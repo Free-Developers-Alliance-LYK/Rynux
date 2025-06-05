@@ -1,0 +1,10 @@
+/target
+/.vscode
+.DS_Store
+*.asm
+*.img
+*.o
+*.elf
+*.bin
+/.project*
+/.config
