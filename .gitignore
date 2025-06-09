@@ -1,0 +1,16 @@
+/target
+/.vscode
+.DS_Store
+*.asm
+*.img
+*.o
+*.elf
+*.bin
+/.project*
+# config
+/.config
+/.config.old
+
+# Generated include files
+/include/config/
+/include/generated/

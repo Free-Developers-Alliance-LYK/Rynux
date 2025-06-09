@@ -1,0 +1,7 @@
+# For a description of the syntax of this configuration file,
+# see Linux/Documentation/kbuild/kconfig-language.rst.
+#
+#
+mainmenu "Rynux/$(ARCH) Kernel Configuration"
+
+source "arch/Kconfig"
