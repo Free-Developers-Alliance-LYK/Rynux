@@ -1,0 +1,49 @@
+menu "General setup"
+
+config BUILDTIME_TABLE_SORT
+	bool
+
+choice
+	prompt "Compiler optimization level"
+        default CC_OPTIMIZE_FOR_PERFORMANCE
+config CC_OPTIMIZE_FOR_PERFORMANCE
+        bool "Optimize for performance (-O2)"
+        help
+	  This is the default optimization level for the kernel, building
+          with the "-O2" compiler flag for best performance and most
+          helpful compile-time warnings.
+config CC_OPTIMIZE_FOR_SIZE
+        bool "Optimize for size (-Os)"
+        help
+          Choosing this option will pass "-Os" to your compiler resulting
+          in a smaller kernel.
+endchoice
+
+config WERROR
+	bool "Compile the kernel with warnings as errors"
+	default y
+	help
+	  A kernel build should not cause any compiler warnings, and this
+	  enables the '-Dwarnings' (for Rust) flags to enforce that rule
+	  by default. Certain warnings from other tools such as the linker
+	  may be upgraded to errors with this option as well.
+
+	  However, if you have a new (or very old) compiler or linker with odd
+	  and unusual warnings, or you have some architecture with problems,
+	  you may need to disable this config option in order to
+	  successfully build the kernel.
+
+	  If in doubt, say Y.
+
+
+menuconfig EXPERT
+	bool "Configure standard kernel features (expert users)"
+	# Unhide debug options, to make the on-by-default options visible
+	select DEBUG_KERNEL
+	help
+	  This option allows certain base kernel options and settings
+	  to be disabled or tweaked. This is for specialized
+	  environments which can tolerate a "non-standard" kernel.
+	  Only use this if you really know what you are doing.
+
+endmenu

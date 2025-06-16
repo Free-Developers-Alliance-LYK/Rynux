@@ -1,0 +1,1023 @@
+VERSION = 0
+PATCHLEVEL = 1
+SUBLEVEL = 0
+EXTRAVERSION =
+NAME = Rynux
+
+PHONY := __all
+__all:
+
+# SET SUBARCH
+this-makefile := $(lastword $(MAKEFILE_LIST))
+abs_srctree := $(realpath $(dir $(this-makefile)))
+abs_objtree := $(CURDIR)
+
+ifneq ($(sub_make_done),1)
+# Do not use make's built-in rules and variables
+# (this increases performance and avoids hard-to-debug behaviour)
+MAKEFLAGS += -rR
+# Avoid funny character set dependencies
+unexport LC_ALL
+LC_COLLATE=C
+LC_NUMERIC=C
+export LC_COLLATE LC_NUMERIC
+
+# Avoid interference with shell env settings
+unexport GREP_OPTIONS
+
+# Beautify output
+# ---------------------------------------------------------------------------
+#
+# Most of build commands in Kbuild start with "cmd_". You can optionally define
+# "quiet_cmd_*". If defined, the short log is printed. Otherwise, no log from
+# that command is printed by default.
+#
+# e.g.)
+#    quiet_cmd_depmod = DEPMOD  $(MODLIB)
+#          cmd_depmod = $(srctree)/scripts/depmod.sh $(DEPMOD) $(KERNELRELEASE)
+#
+# A simple variant is to prefix commands with $(Q) - that's useful
+# for commands that shall be hidden in non-verbose mode.
+#
+#    $(Q)$(MAKE) $(build)=scripts/basic
+#
+# If KBUILD_VERBOSE contains 1, the whole command is echoed.
+# If KBUILD_VERBOSE contains 2, the reason for rebuilding is printed.
+#
+# To put more focus on warnings, be less verbose as default
+# Use 'make V=1' to see the full commands
+
+ifeq ("$(origin V)", "command line")
+  KBUILD_VERBOSE = $(V)
+endif
+
+quiet = quiet_
+Q = @
+
+ifneq ($(findstring 1, $(KBUILD_VERBOSE)),)
+  quiet =
+  Q =
+endif
+
+# If the user is running make -s (silent mode), suppress echoing of
+# commands
+ifneq ($(findstring s,$(firstword -$(MAKEFLAGS))),)
+quiet=silent_
+override KBUILD_VERBOSE :=
+endif
+
+export quiet Q KBUILD_VERBOSE
+
+# Enable "clippy" (a linter) as part of the Rust compilation.
+#
+# Use 'make CLIPPY=1' to enable it.
+ifeq ("$(origin CLIPPY)", "command line")
+  KBUILD_CLIPPY := $(CLIPPY)
+endif
+
+export KBUILD_CLIPPY
+
+# Kbuild will save output files in the current working directory.
+# This does not need to match to the root of the kernel source tree.
+#
+# For example, you can do this:
+#
+#  cd /dir/to/store/output/files; make -f /dir/to/kernel/source/Makefile
+#
+# If you want to save output files in a different location, there are
+# two syntaxes to specify it.
+#
+# 1) O=
+# Use "make O=dir/to/store/output/files/"
+#
+# 2) Set KBUILD_OUTPUT
+# Set the environment variable KBUILD_OUTPUT to point to the output directory.
+# export KBUILD_OUTPUT=dir/to/store/output/files/; make
+#
+# The O= assignment takes precedence over the KBUILD_OUTPUT environment
+
+# variable.
+
+# Do we want to change the working directory?
+ifeq ("$(origin O)", "command line")
+  KBUILD_OUTPUT := $(O)
+endif
+
+# Do we want to change the working directory?
+ifeq ("$(origin O)", "command line")
+  KBUILD_OUTPUT := $(O)
+endif
+
+ifneq ($(KBUILD_OUTPUT),)
+# $(realpath ...) gets empty if the path does not exist. Run 'mkdir -p' first.
+$(shell mkdir -p "$(KBUILD_OUTPUT)")
+# $(realpath ...) resolves symlinks
+abs_objtree := $(realpath $(KBUILD_OUTPUT))
+$(if $(abs_objtree),,$(error failed to create output directory "$(KBUILD_OUTPUT)"))
+endif # ifneq ($(KBUILD_OUTPUT),)
+
+ifneq ($(words $(subst :, ,$(abs_srctree))), 1)
+$(error source directory cannot contain spaces or colons)
+endif
+
+export sub_make_done := 1
+
+endif # sub_make_done
+
+
+
+
+ifeq ($(abs_objtree),$(CURDIR))
+# Suppress "Entering directory ..." if we are at the final work directory.
+no-print-directory := --no-print-directory
+else
+# Recursion to show "Entering directory ..."
+need-sub-make := 1
+endif
+
+ifeq ($(filter --no-print-directory, $(MAKEFLAGS)),)
+# If --no-print-directory is unset, recurse once again to set it.
+# You may end up recursing into __sub-make twice. This is needed due to the
+# behavior change in GNU Make 4.4.1.
+need-sub-make := 1
+endif
+
+ifeq ($(need-sub-make),1)
+
+PHONY += $(MAKECMDGOALS) __sub-make
+
+$(filter-out $(this-makefile), $(MAKECMDGOALS)) __all: __sub-make
+	@:
+
+# Invoke a second make in the output directory, passing relevant variables
+__sub-make:
+	$(Q)$(MAKE) $(no-print-directory) -C $(abs_objtree) \
+	-f $(abs_srctree)/Makefile $(MAKECMDGOALS)
+
+else # need-sub-make
+
+# We process the rest of the Makefile if this is the final invocation of make
+
+ifeq ($(abs_srctree),$(abs_objtree))
+        # building in the source tree
+        srctree := .
+	building_out_of_srctree :=
+else
+        ifeq ($(abs_srctree)/,$(dir $(abs_objtree))
+                # building in a subdirectory of the source tree
+                srctree := ..
+        else
+                srctree := $(abs_srctree)
+        endif
+	building_out_of_srctree := 1
+endif
+
+ifneq ($(KBUILD_ABS_SRCTREE),)
+srctree := $(abs_srctree)
+endif
+
+objtree		:= .
+
+VPATH		:=
+
+export srctree objtree VPATH
+
+# To make sure we do not include .config for any of the *config targets
+# catch them early, and hand them over to scripts/kconfig/Makefile
+# It is allowed to specify more targets when calling make, including
+# mixing *config targets and build targets.
+# For example 'make oldconfig all'.
+# Detect when mixed targets is specified, and make a second invocation
+# of make so .config is not included in this case either (for *config).
+
+clean-targets := %clean mrproper cleandocs
+
+no-dot-config-targets := $(clean-targets) \
+			 outputmakefile rustavailable rustfmt rustfmtcheck
+
+no-sync-config-targets := $(no-dot-config-targets) %install \
+			  image_name
+single-targets := %.a %.lds %.ll %.lst %.o %.rsi %.s %.symtypes %/
+
+config-build	:=
+mixed-build	:=
+need-config	:= 1
+may-sync-config	:= 1
+single-build	:=
+
+ifneq ($(filter $(no-dot-config-targets), $(MAKECMDGOALS)),)
+    ifeq ($(filter-out $(no-dot-config-targets), $(MAKECMDGOALS)),)
+        need-config :=
+    endif
+endif
+
+ifneq ($(filter $(no-sync-config-targets), $(MAKECMDGOALS)),)
+    ifeq ($(filter-out $(no-sync-config-targets), $(MAKECMDGOALS)),)
+        may-sync-config :=
+    endif
+endif
+
+need-compiler := $(may-sync-config)
+
+ifdef mixed-build
+# ===========================================================================
+# We're called with mixed targets (*config and build targets).
+# Handle them one by one.
+
+PHONY += $(MAKECMDGOALS) __build_one_by_one
+
+$(MAKECMDGOALS): __build_one_by_one
+	@:
+
+__build_one_by_one:
+	$(Q)set -e; \
+	for i in $(MAKECMDGOALS); do \
+		$(MAKE) -f $(srctree)/Makefile $$i; \
+	done
+
+else # !mixed-build
+
+include $(srctree)/scripts/Kbuild.include
+
+
+# Read KERNELRELEASE from include/config/kernel.release (if it exists)
+KERNELRELEASE = $(call read-file, include/config/kernel.release)
+KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
+
+include $(srctree)/scripts/subarch.include
+
+# Cross compiling and selecting different set of gcc/bin-utils
+# ---------------------------------------------------------------------------
+#
+# When performing cross compilation for other architectures ARCH shall be set
+# to the target architecture. (See arch/* for the possibilities).
+# ARCH can be set during invocation of make:
+# make ARCH=arm64
+# Another way is to have ARCH set in the environment.
+# The default ARCH is the host where make is executed.
+
+# CROSS_COMPILE specify the prefix used for all executables used
+# during compilation. Only gcc and related bin-utils executables
+# are prefixed with $(CROSS_COMPILE).
+# CROSS_COMPILE can be set on the command line
+# make CROSS_COMPILE=aarch64-linux-gnu-
+# Alternatively CROSS_COMPILE can be set in the environment.
+# Default value for CROSS_COMPILE is not to prefix executables
+# Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
+#ARCH		?= $(SUBARCH)
+# Currently we only support arm64
+ARCH := arm64
+
+# Architecture as present in compile.h
+UTS_MACHINE 	:= $(ARCH)
+SRCARCH 	:= $(ARCH)
+
+export cross_compiling :=
+ifneq ($(SRCARCH),$(SUBARCH))
+cross_compiling := 1
+endif
+
+KCONFIG_CONFIG	?= .config
+export KCONFIG_CONFIG
+
+# SHELL used by kbuild
+CONFIG_SHELL := sh
+
+HOST_LFS_CFLAGS := $(shell getconf LFS_CFLAGS 2>/dev/null)
+HOST_LFS_LDFLAGS := $(shell getconf LFS_LDFLAGS 2>/dev/null)
+HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
+
+ifeq ($(LLVM),)
+	$(error LLVM variable is empty! Please set LLVM to a non-empty value.)
+endif
+
+ifneq ($(filter %/,$(LLVM)),)
+LLVM_PREFIX := $(LLVM)
+endif
+
+ifneq ($(filter -%,$(LLVM)),)
+LLVM_SUFFIX := $(LLVM)
+endif
+
+HOSTCC	= $(LLVM_PREFIX)clang$(LLVM_SUFFIX)
+HOSTCXX	= $(LLVM_PREFIX)clang++$(LLVM_SUFFIX)
+
+HOSTRUSTC = rustc
+HOSTPKG_CONFIG	= pkg-config
+
+KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
+			 -O2 -fomit-frame-pointer -std=gnu11
+KBUILD_USERCFLAGS  := $(KBUILD_USERHOSTCFLAGS) $(USERCFLAGS)
+KBUILD_USERLDFLAGS := $(USERLDFLAGS)
+
+# These flags apply to all Rust code in the tree, including the kernel and
+# host programs.
+export rust_common_flags := --edition=2021 \
+			    -Zbinary_dep_depinfo=y \
+			    -Astable_features \
+			    -Dunsafe_op_in_unsafe_fn \
+			    -Dnon_ascii_idents \
+			    -Wrust_2018_idioms \
+			    -Wunreachable_pub \
+			    -Wmissing_docs \
+			    -Wrustdoc::missing_crate_level_docs \
+			    -Wclippy::all \
+			    -Wclippy::mut_mut \
+			    -Wclippy::needless_bitwise_bool \
+			    -Wclippy::needless_continue \
+			    -Wclippy::no_mangle_with_rust_abi \
+			    -Wclippy::dbg_macro
+
+KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) \
+		       $(HOSTCFLAGS) -I $(srctree)/scripts/include
+KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS) \
+		       -I $(srctree)/scripts/include
+KBUILD_HOSTRUSTFLAGS := $(rust_common_flags) -O -Cstrip=debuginfo \
+			-Zallow-features= $(HOSTRUSTFLAGS)
+KBUILD_HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS) $(HOSTLDFLAGS)
+KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
+
+# Make variables (CC, etc...)
+CPP		= $(CC) -E
+CC		= $(LLVM_PREFIX)clang$(LLVM_SUFFIX)
+LD		= $(LLVM_PREFIX)ld.lld$(LLVM_SUFFIX)
+AR		= $(LLVM_PREFIX)llvm-ar$(LLVM_SUFFIX)
+NM		= $(LLVM_PREFIX)llvm-nm$(LLVM_SUFFIX)
+OBJCOPY		= $(LLVM_PREFIX)llvm-objcopy$(LLVM_SUFFIX)
+OBJDUMP		= $(LLVM_PREFIX)llvm-objdump$(LLVM_SUFFIX)
+READELF		= $(LLVM_PREFIX)llvm-readelf$(LLVM_SUFFIX)
+STRIP		= $(LLVM_PREFIX)llvm-strip$(LLVM_SUFFIX)
+
+RUSTC		= rustc
+RUSTDOC		= rustdoc
+RUSTFMT		= rustfmt
+CLIPPY_DRIVER	= clippy-driver
+BINDGEN		= bindgen
+PAHOLE		= pahole
+RESOLVE_BTFIDS	= $(objtree)/tools/bpf/resolve_btfids/resolve_btfids
+LEX		= flex
+YACC		= bison
+AWK		= awk
+INSTALLKERNEL  := installkernel
+PERL		= perl
+PYTHON3		= python3
+CHECK		= sparse
+BASH		= bash
+KGZIP		= gzip
+KBZIP2		= bzip2
+KLZOP		= lzop
+LZMA		= lzma
+LZ4		= lz4c
+XZ		= xz
+ZSTD		= zstd
+
+
+NOSTDINC_FLAGS :=
+CFLAGS_KERNEL	=
+RUSTFLAGS_KERNEL =
+AFLAGS_KERNEL	=
+LDFLAGS_vmlinux =
+
+KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
+KBUILD_CPPFLAGS := -D__KERNEL__
+
+KBUILD_RUSTFLAGS := $(rust_common_flags) \
+		    -Cpanic=abort -Cembed-bitcode=n -Clto=n \
+		    -Cforce-unwind-tables=n -Ccodegen-units=1 \
+		    -Csymbol-mangling-version=v0 \
+		    -Crelocation-model=static \
+		    -Zfunction-sections=n \
+		    -Wclippy::float_arithmetic
+
+KBUILD_AFLAGS_KERNEL :=
+KBUILD_CFLAGS_KERNEL :=
+KBUILD_RUSTFLAGS_KERNEL :=
+KBUILD_LDFLAGS :=
+CLANG_FLAGS :=
+
+ifeq ($(KBUILD_CLIPPY),1)
+	RUSTC_OR_CLIPPY_QUIET := CLIPPY
+	RUSTC_OR_CLIPPY = $(CLIPPY_DRIVER)
+else
+	RUSTC_OR_CLIPPY_QUIET := RUSTC
+	RUSTC_OR_CLIPPY = $(RUSTC)
+endif
+
+# Allows the usage of unstable features in stable compilers.
+export RUSTC_BOOTSTRAP := 1
+
+export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC HOSTPKG_CONFIG
+export RUSTC RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN
+export HOSTRUSTC KBUILD_HOSTRUSTFLAGS
+export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
+export PERL PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
+export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
+export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS LDFLAGS_MODULE
+export KBUILD_USERCFLAGS KBUILD_USERLDFLAGS
+
+export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
+export KBUILD_CFLAGS CFLAGS_KERNEL
+export KBUILD_RUSTFLAGS RUSTFLAGS_KERNEL
+export KBUILD_AFLAGS AFLAGS_KERNEL
+export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTFLAGS_KERNEL
+
+# Files to ignore in find ... statements
+
+export RCS_FIND_IGNORE := \( -name SCCS -o -name BitKeeper -o -name .svn -o    \
+			  -name CVS -o -name .pc -o -name .hg -o -name .git \) \
+			  -prune -o
+
+# ===========================================================================
+# Rules shared between *config targets and build targets
+
+# Basic helpers built in scripts/basic/
+PHONY += scripts_basic
+scripts_basic:
+	$(Q)$(MAKE) $(build)=scripts/basic
+
+PHONY += outputmakefile
+ifdef building_out_of_srctree
+# Before starting out-of-tree build, make sure the source tree is clean.
+# outputmakefile generates a Makefile in the output directory, if using a
+# separate output directory. This allows convenient use of make in the
+# output directory.
+# At the same time when output Makefile generated, generate .gitignore to
+# ignore whole output directory
+
+quiet_cmd_makefile = GEN     Makefile
+      cmd_makefile = { \
+	echo "\# Automatically generated by $(srctree)/Makefile: don't edit"; \
+	echo "include $(srctree)/Makefile"; \
+	} > Makefile
+
+outputmakefile:
+	@if [ -f $(srctree)/.config -o \
+		 -d $(srctree)/include/config -o \
+		 -d $(srctree)/arch/$(SRCARCH)/include/generated ]; then \
+		echo >&2 "***"; \
+		echo >&2 "*** The source tree is not clean, please run 'make$(if $(findstring command line, $(origin ARCH)), ARCH=$(ARCH)) mrproper'"; \
+		echo >&2 "*** in $(abs_srctree)";\
+		echo >&2 "***"; \
+		false; \
+	fi
+	$(Q)ln -fsn $(srctree) source
+	$(call cmd,makefile)
+	$(Q)test -e .gitignore || \
+	{ echo "# this is build directory, ignore it"; echo "*"; } > .gitignore
+endif
+
+# The expansion should be delayed until arch/$(SRCARCH)/Makefile is included.
+# Some architectures define CROSS_COMPILE in arch/$(SRCARCH)/Makefile.
+# CC_VERSION_TEXT and RUSTC_VERSION_TEXT are referenced from Kconfig (so they
+# need export), and from include/config/auto.conf.cmd to detect the compiler
+# upgrade.
+CC_VERSION_TEXT = $(subst $(pound),,$(shell LC_ALL=C $(CC) --version 2>/dev/null | head -n 1))
+RUSTC_VERSION_TEXT = $(subst $(pound),,$(shell $(RUSTC) --version 2>/dev/null))
+
+ifneq ($(findstring clang,$(CC_VERSION_TEXT)),)
+include $(srctree)/scripts/Makefile.clang
+endif
+
+# Include this also for config targets because some architectures need
+# cc-cross-prefix to determine CROSS_COMPILE.
+ifdef need-compiler
+include $(srctree)/scripts/Makefile.compiler
+endif
+
+export CC_VERSION_TEXT RUSTC_VERSION_TEXT
+
+ifdef config-build
+
+config: outputmakefile scripts_basic FORCE
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+
+%config: outputmakefile scripts_basic FORCE
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+
+else #!config-build
+# ===========================================================================
+# Build targets only - this includes vmlinux, arch-specific targets, clean
+# targets and others. In general all targets except *config targets.
+
+# If building an external module we do not care about the all: rule
+# but instead __all depend on modules
+PHONY += all
+__all: all
+
+targets :=
+
+KBUILD_BUILTIN := 1
+
+export KBUILD_BUILTIN
+
+ifdef need-config
+include include/config/auto.conf
+endif
+
+# The all: target is the default when no target is given on the
+# command line.
+# This allow a user to issue only 'make' to build a kernel including modules
+# Defaults to vmlinux, but the arch makefile usually adds further targets
+all: vmlinux
+
+include $(srctree)/arch/$(SRCARCH)/Makefile
+ifdef need-config
+ifdef may-sync-config
+# Read in dependencies to all Kconfig* files, make sure to run syncconfig if
+# changes are detected. This should be included after arch/$(SRCARCH)/Makefile
+# because some architectures define CROSS_COMPILE there.
+include include/config/auto.conf.cmd
+
+$(KCONFIG_CONFIG):
+	@echo >&2 '***'
+	@echo >&2 '*** Configuration file "$@" not found!'
+	@echo >&2 '***'
+	@echo >&2 '*** Please run some configurator (e.g. "make oldconfig" or'
+	@echo >&2 '*** "make menuconfig" or "make xconfig").'
+	@echo >&2 '***'
+	@/bin/false
+
+# The actual configuration files used during the build are stored in
+# include/generated/ and include/config/. Update them if .config is newer than
+# include/config/auto.conf (which mirrors .config).
+#
+# This exploits the 'multi-target pattern rule' trick.
+# The syncconfig should be executed only once to make all the targets.
+# (Note: use the grouped target '&:' when we bump to GNU Make 4.3)
+#
+# Do not use $(call cmd,...) here. That would suppress prompts from syncconfig,
+# so you cannot notice that Kconfig is waiting for the user input.
+%/config/auto.conf %/config/auto.conf.cmd %/generated/autoconf.h %/generated/rustc_cfg: $(KCONFIG_CONFIG)
+	$(Q)$(kecho) "  SYNC    $@"
+	$(Q)$(MAKE) -f $(srctree)/Makefile syncconfig
+
+else # !may-sync-config
+# External modules and some install targets need include/generated/autoconf.h
+# and include/config/auto.conf but do not care if they are up-to-date.
+# Use auto.conf to trigger the test
+PHONY += include/config/auto.conf
+
+include/config/auto.conf:
+	@test -e include/generated/autoconf.h -a -e $@ || (		\
+	echo >&2;							\
+	echo >&2 "  ERROR: Kernel configuration is invalid.";		\
+	echo >&2 "         include/generated/autoconf.h or $@ are missing.";\
+	echo >&2 "         Run 'make oldconfig && make prepare' on kernel src to fix it.";	\
+	echo >&2 ;							\
+	/bin/false)
+
+endif # may-sync-config
+endif # need-config
+
+ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+KBUILD_CFLAGS += -O2
+KBUILD_RUSTFLAGS += -Copt-level=2
+else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+KBUILD_CFLAGS += -Os
+KBUILD_RUSTFLAGS += -Copt-level=s
+endif
+
+# Always set `debug-assertions` and `overflow-checks` because their default
+# depends on `opt-level` and `debug-assertions`, respectively.
+KBUILD_RUSTFLAGS += -Cdebug-assertions=$(if $(CONFIG_RUST_DEBUG_ASSERTIONS),y,n)
+KBUILD_RUSTFLAGS += -Coverflow-checks=$(if $(CONFIG_RUST_OVERFLOW_CHECKS),y,n)
+
+KBUILD_RUSTFLAGS-$(CONFIG_WERROR) += -Dwarnings
+KBUILD_RUSTFLAGS += $(KBUILD_RUSTFLAGS-y)
+
+ifdef CONFIG_FRAME_POINTER
+KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
+KBUILD_RUSTFLAGS += -Cforce-frame-pointers=y
+endif
+
+# While VLAs have been removed, GCC produces unreachable stack probes
+# for the randomize_kstack_offset feature. Disable it for all compilers.
+KBUILD_CFLAGS	+= $(call cc-option, -fno-stack-clash-protection)
+
+# `rustc`'s `-Zfunction-sections` applies to data too (as of 1.59.0).
+ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
+KBUILD_RUSTFLAGS_KERNEL += -Zfunction-sections=y
+LDFLAGS_vmlinux += --gc-sections
+endif
+
+ifdef CONFIG_CFI_CLANG
+	# Always pass -Zsanitizer-cfi-normalize-integers as CONFIG_RUST selects
+	# CONFIG_CFI_ICALL_NORMALIZE_INTEGERS.
+	RUSTC_FLAGS_CFI   := -Zsanitizer=kcfi -Zsanitizer-cfi-normalize-integers
+	KBUILD_RUSTFLAGS += $(RUSTC_FLAGS_CFI)
+	export RUSTC_FLAGS_CFI
+export CC_FLAGS_CFI
+endif
+
+# arch Makefile may override CC so keep this after arch Makefile is included
+NOSTDINC_FLAGS += -nostdinc
+
+# To gain proper coverage for CONFIG_UBSAN_BOUNDS and CONFIG_FORTIFY_SOURCE,
+# the kernel uses only C99 flexible arrays for dynamically sized trailing
+# arrays. Enforce this for everything that may examine structure sizes and
+# perform bounds checking.
+KBUILD_CFLAGS += $(call cc-option, -fstrict-flex-arrays=3)
+
+# disable invalid "can't wrap" optimizations for signed / pointers
+KBUILD_CFLAGS	+= -fno-strict-overflow
+
+# Make sure -fstack-check isn't enabled (like gentoo apparently did)
+KBUILD_CFLAGS  += -fno-stack-check
+
+# change __FILE__ to the relative path from the srctree
+KBUILD_CPPFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
+
+# include additional Makefiles when needed
+include-y			:= scripts/Makefile.extrawarn
+
+include $(addprefix $(srctree)/, $(include-y))
+
+LDFLAGS_vmlinux += --build-id=sha1
+
+KBUILD_LDFLAGS	+= -z noexecstack
+
+# Align the bit size of userspace programs with the kernel
+KBUILD_USERCFLAGS  += $(filter -m32 -m64 --target=%, $(KBUILD_CFLAGS))
+KBUILD_USERLDFLAGS += $(filter -m32 -m64 --target=%, $(KBUILD_CFLAGS))
+
+# Default kernel image to build when no specific target is given.
+# KBUILD_IMAGE may be overruled on the command line or
+# set in the environment
+# Also any assignments in arch/$(ARCH)/Makefile take precedence over
+# this default value
+export KBUILD_IMAGE ?= vmlinux
+
+# INSTALL_PATH specifies where to place the updated kernel and system map
+# images. Default is /boot, but you can set it to other values
+export	INSTALL_PATH ?= $(objtree)/boot
+
+#
+# INSTALL_DTBS_PATH specifies a prefix for relocations required by build roots.
+# Like INSTALL_MOD_PATH, it isn't defined in the Makefile, but can be passed as
+# an argument if needed. Otherwise it defaults to the kernel install path
+#
+export INSTALL_DTBS_PATH ?= $(INSTALL_PATH)/dtbs/$(KERNELRELEASE)
+
+PHONY += prepare0
+
+build-dir	:= .
+clean-dirs	:= $(sort . \
+		     $(patsubst %/,%,$(filter %/, $(core-) \
+			$(drivers-) $(libs-))))
+
+export ARCH_CORE	:= $(core-y)
+export ARCH_LIB		:= $(filter %/, $(libs-y))
+export ARCH_DRIVERS	:= $(drivers-y)
+# Externally visible symbols (used by link-vmlinux.sh)
+
+KBUILD_VMLINUX_OBJS := ./built-in.a
+KBUILD_VMLINUX_LIBS := $(patsubst %/,%/lib.a, $(libs-y))
+
+export KBUILD_VMLINUX_LIBS
+export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
+
+# '$(AR) mPi' needs 'T' to workaround the bug of llvm-ar <= 14
+quiet_cmd_ar_vmlinux.a = AR      $@
+      cmd_ar_vmlinux.a = \
+	rm -f $@; \
+	$(AR) cDPrST $@ $(KBUILD_VMLINUX_OBJS); \
+	$(AR) mPiT $$($(AR) t $@ | sed -n 1p) $@ $$($(AR) t $@ | grep -F -f $(srctree)/scripts/head-object-list.txt)
+
+targets += vmlinux.a
+vmlinux.a: $(KBUILD_VMLINUX_OBJS) scripts/head-object-list.txt FORCE
+	$(call if_changed,ar_vmlinux.a)
+
+PHONY += vmlinux_o
+vmlinux_o: vmlinux.a $(KBUILD_VMLINUX_LIBS)
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_o
+
+vmlinux.o : vmlinux_o
+	@:
+
+PHONY += vmlinux
+# LDFLAGS_vmlinux in the top Makefile defines linker flags for the top vmlinux,
+# not for decompressors. LDFLAGS_vmlinux in arch/*/boot/compressed/Makefile is
+# unrelated; the decompressors just happen to have the same base name,
+# arch/*/boot/compressed/vmlinux.
+# Export LDFLAGS_vmlinux only to scripts/Makefile.vmlinux.
+#
+# _LDFLAGS_vmlinux is a workaround for the 'private export' bug:
+#   https://savannah.gnu.org/bugs/?61463
+# For Make > 4.4, the following simple code will work:
+#  vmlinux: private export LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
+vmlinux: private _LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
+vmlinux: export LDFLAGS_vmlinux = $(_LDFLAGS_vmlinux)
+vmlinux: vmlinux.o $(KBUILD_LDS) modpost
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux
+
+# The actual objects are generated when descending,
+# make sure no implicit rule kicks in
+$(sort $(KBUILD_LDS) $(KBUILD_VMLINUX_OBJS) $(KBUILD_VMLINUX_LIBS)): . ;
+
+ifeq ($(origin KERNELRELEASE),file)
+filechk_kernel.release = $(srctree)/scripts/setlocalversion $(srctree)
+else
+	filechk_kernel.release = echo $(KERNELRELEASE)
+endif
+
+# Store (new) KERNELRELEASE string in include/config/kernel.release
+include/config/kernel.release: FORCE
+	$(call filechk,kernel.release)
+
+# Additional helpers built in scripts/
+# Carefully list dependencies so we do not try to build scripts twice
+# in parallel
+PHONY += scripts
+scripts: scripts_basic scripts_dtc
+	$(Q)$(MAKE) $(build)=$(@)
+
+# Things we need to do before we recursively start building the kernel
+# or the modules are listed in "prepare".
+# A multi level approach is used. prepareN is processed before prepareN-1.
+# archprepare is used in arch Makefiles and when processed asm symlink,
+# version.h and scripts_basic is processed / created.
+
+PHONY += prepare archprepare
+
+archprepare: outputmakefile archheaders archscripts scripts include/config/kernel.release \
+	asm-generic $(version_h) include/generated/utsrelease.h \
+	include/generated/compile.h include/generated/autoconf.h remove-stale-files
+
+prepare0: archprepare
+	$(Q)$(MAKE) $(build)=scripts/mod
+	$(Q)$(MAKE) $(build)=. prepare
+
+
+# All the preparing..
+prepare: prepare0
+	+$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust_is_available.sh
+
+PHONY += remove-stale-files
+remove-stale-files:
+	$(Q)$(srctree)/scripts/remove-stale-files
+
+# Support for using generic headers in asm-generic
+asm-generic := -f $(srctree)/scripts/Makefile.asm-headers obj
+
+PHONY += asm-generic uapi-asm-generic
+asm-generic: uapi-asm-generic
+	$(Q)$(MAKE) $(asm-generic)=arch/$(SRCARCH)/include/generated/asm \
+	generic=include/asm-generic
+uapi-asm-generic:
+	$(Q)$(MAKE) $(asm-generic)=arch/$(SRCARCH)/include/generated/uapi/asm \
+	generic=include/uapi/asm-generic
+
+
+# Generate some files
+# ---------------------------------------------------------------------------
+
+# KERNELRELEASE can change from a few different places, meaning version.h
+# needs to be updated, so this check is forced on all builds
+
+uts_len := 64
+define filechk_utsrelease.h
+	if [ `echo -n "$(KERNELRELEASE)" | wc -c ` -gt $(uts_len) ]; then \
+	  echo '"$(KERNELRELEASE)" exceeds $(uts_len) characters' >&2;    \
+	  exit 1;                                                         \
+	fi;                                                               \
+	echo \#define UTS_RELEASE \"$(KERNELRELEASE)\"
+endef
+
+define filechk_version.h
+	if [ $(SUBLEVEL) -gt 255 ]; then                                 \
+		echo \#define LINUX_VERSION_CODE $(shell                 \
+		expr $(VERSION) \* 65536 + $(PATCHLEVEL) \* 256 + 255); \
+	else                                                             \
+		echo \#define LINUX_VERSION_CODE $(shell                 \
+		expr $(VERSION) \* 65536 + $(PATCHLEVEL) \* 256 + $(SUBLEVEL)); \
+	fi;                                                              \
+	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) +  \
+	((c) > 255 ? 255 : (c)))';                                       \
+	echo \#define LINUX_VERSION_MAJOR $(VERSION);                    \
+	echo \#define LINUX_VERSION_PATCHLEVEL $(PATCHLEVEL);            \
+	echo \#define LINUX_VERSION_SUBLEVEL $(SUBLEVEL)
+endef
+
+$(version_h): private PATCHLEVEL := $(or $(PATCHLEVEL), 0)
+$(version_h): private SUBLEVEL := $(or $(SUBLEVEL), 0)
+$(version_h): FORCE
+	$(call filechk,version.h)
+
+include/generated/utsrelease.h: include/config/kernel.release FORCE
+	$(call filechk,utsrelease.h)
+
+filechk_compile.h = $(srctree)/scripts/mkcompile_h \
+	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
+
+include/generated/compile.h: FORCE
+	$(call filechk,compile.h)
+
+PHONY += headerdep
+headerdep:
+	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
+	$(srctree)/scripts/headerdep.pl -I$(srctree)/include
+
+# ---------------------------------------------------------------------------
+# Kernel headers
+
+#Default location for installed headers
+export INSTALL_HDR_PATH = $(objtree)/usr
+
+quiet_cmd_headers_install = INSTALL $(INSTALL_HDR_PATH)/include
+      cmd_headers_install = \
+	mkdir -p $(INSTALL_HDR_PATH); \
+	rsync -mrl --include='*/' --include='*\.h' --exclude='*' \
+	usr/include $(INSTALL_HDR_PATH)
+
+PHONY += headers_install
+headers_install: headers
+	$(call cmd,headers_install)
+
+PHONY += archheaders archscripts
+
+hdr-inst := -f $(srctree)/scripts/Makefile.headersinst obj
+
+PHONY += headers
+headers: $(version_h) scripts_unifdef uapi-asm-generic archheaders archscripts
+	$(if $(filter um, $(SRCARCH)), $(error Headers not exportable for UML))
+	$(Q)$(MAKE) $(hdr-inst)=include/uapi
+	$(Q)$(MAKE) $(hdr-inst)=arch/$(SRCARCH)/include/uapi
+
+ifdef CONFIG_HEADERS_INSTALL
+prepare: headers
+endif
+
+PHONY += scripts_unifdef
+scripts_unifdef: scripts_basic
+	$(Q)$(MAKE) $(build)=scripts scripts/unifdef
+
+# ---------------------------------------------------------------------------
+# Install
+
+# Many distributions have the custom install script, /sbin/installkernel.
+# If DKMS is installed, 'make install' will eventually recurse back
+# to this Makefile to build and install external modules.
+# Cancel sub_make_done so that options such as M=, V=, etc. are parsed.
+
+quiet_cmd_install = INSTALL $(INSTALL_PATH)
+      cmd_install = unset sub_make_done; $(srctree)/scripts/install.sh
+
+# ---------------------------------------------------------------------------
+# vDSO install
+
+PHONY += vdso_install
+vdso_install: export INSTALL_FILES = $(vdso-install-y)
+vdso_install:
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vdsoinst
+
+# ---------------------------------------------------------------------------
+# Tools
+
+# Clear a bunch of variables before executing the submake
+ifeq ($(quiet),silent_)
+tools_silent=s
+endif
+
+tools/: FORCE
+	$(Q)mkdir -p $(objtree)/tools
+	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS="$(tools_silent) $(filter --j% -j,$(MAKEFLAGS))" O=$(abspath $(objtree)) subdir=tools -C $(srctree)/tools/
+
+tools/%: FORCE
+	$(Q)mkdir -p $(objtree)/tools
+	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS="$(tools_silent) $(filter --j% -j,$(MAKEFLAGS))" O=$(abspath $(objtree)) subdir=tools -C $(srctree)/tools/ $*
+
+
+
+# ---------------------------------------------------------------------------
+# Devicetree files
+
+ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/boot/dts/),)
+dtstree := arch/$(SRCARCH)/boot/dts
+endif
+
+ifneq ($(dtstree),)
+
+%.dtb: dtbs_prepare
+	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+
+%.dtbo: dtbs_prepare
+	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+
+PHONY += dtbs dtbs_prepare dtbs_install dtbs_check
+dtbs: dtbs_prepare
+	$(Q)$(MAKE) $(build)=$(dtstree) need-dtbslist=1
+
+
+
+# include/config/kernel.release is actually needed when installing DTBs because
+# INSTALL_DTBS_PATH contains $(KERNELRELEASE). However, we do not want to make
+# dtbs_install depend on it as dtbs_install may run as root.
+dtbs_prepare: include/config/kernel.release scripts_dtc
+
+ifneq ($(filter dtbs_check, $(MAKECMDGOALS)),)
+export CHECK_DTBS=y
+endif
+
+ifneq ($(CHECK_DTBS),)
+dtbs_prepare: dt_binding_schemas
+endif
+
+dtbs_check: dtbs
+
+dtbs_install:
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.dtbinst obj=$(dtstree)
+
+ifdef CONFIG_OF_EARLY_FLATTREE
+all: dtbs
+endif
+
+endif
+
+PHONY += scripts_dtc
+scripts_dtc: scripts_basic
+	$(Q)$(MAKE) $(build)=scripts/dtc
+
+ifneq ($(filter dt_binding_check, $(MAKECMDGOALS)),)
+export CHECK_DTBS=y
+endif
+
+PHONY += dt_binding_check dt_binding_schemas
+dt_binding_check: dt_binding_schemas scripts_dtc
+	$(Q)$(MAKE) $(build)=Documentation/devicetree/bindings $@
+
+dt_binding_schemas:
+	$(Q)$(MAKE) $(build)=Documentation/devicetree/bindings
+
+PHONY += dt_compatible_check
+
+dt_compatible_check: dt_binding_schemas
+	$(Q)$(MAKE) $(build)=Documentation/devicetree/bindings $@
+
+
+###
+# Cleaning is done on three levels.
+# make clean     Delete most generated files
+#                Leave enough to build external modules
+# make mrproper  Delete the current configuration, and all generated files
+# make distclean Remove editor backup files, patch leftover files and the like
+
+# Directories & files removed with 'make clean'
+CLEAN_FILES += vmlinux.symvers modules-only.symvers \
+	       modules.builtin modules.builtin.modinfo modules.nsdeps \
+	       modules.builtin.ranges vmlinux.o.map \
+	       compile_commands.json rust/test \
+	       rust-project.json .vmlinux.objs .vmlinux.export.c
+
+# Directories & files removed with 'make mrproper'
+MRPROPER_FILES += include/config include/generated          \
+		  arch/$(SRCARCH)/include/generated .objdiff \
+		  debian snap tar-install PKGBUILD pacman \
+		  .config .config.old .version \
+		  Module.symvers \
+		  certs/signing_key.pem \
+		  certs/x509.genkey \
+		  vmlinux-gdb.py \
+		  rpmbuild \
+		  rust/libmacros.so
+
+# clean - Delete most, but leave enough to build external modules
+#
+clean: private rm-files := $(CLEAN_FILES)
+
+PHONY += archclean vmlinuxclean
+
+vmlinuxclean:
+	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
+	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
+
+clean: archclean vmlinuxclean resolve_btfids_clean
+
+# mrproper - Delete all generated files, including .config
+#
+mrproper: private rm-files := $(MRPROPER_FILES)
+mrproper-dirs      := $(addprefix _mrproper_,scripts)
+
+PHONY += $(mrproper-dirs) mrproper
+$(mrproper-dirs):
+	$(Q)$(MAKE) $(clean)=$(patsubst _mrproper_%,%,$@)
+
+mrproper: clean $(mrproper-dirs)
+	$(call cmd,rmfiles)
+	@find . $(RCS_FIND_IGNORE) \
+		\( -name '*.rmeta' \) \
+		-type f -print | xargs rm -f
+
+# distclean
+#
+PHONY += distclean
+
+distclean: mrproper
+	@find . $(RCS_FIND_IGNORE) \
+		\( -name '*.orig' -o -name '*.rej' -o -name '*~' \
+		-o -name '*.bak' -o -name '#*#' -o -name '*%' \
+		-o -name 'core' -o -name tags -o -name TAGS -o -name 'cscope*' \
+		-o -name GPATH -o -name GRTAGS -o -name GSYMS -o -name GTAGS \) \
+		-type f -print | xargs rm -f
+

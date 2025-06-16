@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-2.0
+# ==========================================================================
+# Cleaning up
+# ==========================================================================
+
+src := $(if $(VPATH),$(VPATH)/)$(obj)
+
+PHONY := __clean
+__clean:
+
+include $(srctree)/scripts/Kbuild.include
+include $(kbuild-file)
+
+# Figure out what we need to build from the various variables
+# ==========================================================================
+
+subdir-yn := $(sort $(subdir-y) $(subdir-) \
+		$(patsubst %/,%, $(filter %/, $(obj-y) $(obj-))))
+
+# Add subdir path
+
+subdir-yn	:= $(addprefix $(obj)/,$(subdir-yn))
+
+# build a list of files to remove, usually relative to the current
+# directory
+
+__clean-files	:= \
+	$(clean-files) $(targets) $(hostprogs) $(userprogs) \
+	$(extra-y) $(extra-) \
+	$(always-y) $(always-) \
+	$(hostprogs-always-y) $(hostprogs-always-) \
+	$(userprogs-always-y) $(userprogs-always-)
+
+__clean-files   := $(filter-out $(no-clean-files), $(__clean-files))
+
+__clean-files   := $(wildcard $(addprefix $(obj)/, $(__clean-files)))
+
+# ==========================================================================
+
+# To make this rule robust against "Argument list too long" error,
+# remove $(obj)/ prefix, and restore it by a shell command.
+quiet_cmd_clean = CLEAN   $(obj)
+      cmd_clean = printf '$(obj)/%s ' $(patsubst $(obj)/%,%,$(__clean-files)) | xargs rm -rf
+
+__clean: $(subdir-yn)
+ifneq ($(strip $(__clean-files)),)
+	$(call cmd,clean)
+endif
+	@:
+
+
+# ===========================================================================
+# Generic stuff
+# ===========================================================================
+
+# Descending
+# ---------------------------------------------------------------------------
+
+PHONY += $(subdir-yn)
+$(subdir-yn):
+	$(Q)$(MAKE) $(clean)=$@
+
+.PHONY: $(PHONY)

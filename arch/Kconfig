@@ -3,8 +3,32 @@
 # Note: arch/$(SRCARCH)/Kconfig needs to be included first so that it can
 # override the default values in this file.
 #
-source "arch/$(SRCARCH)/Kconfig"
 
 menu "General architecture-dependent options"
 
+config UNWIND_TABLES
+    bool
+
+config ARCH_SUPPORTS_CFI_CLANG
+	bool
+	help
+	  An architecture should select this option if it can support Clang's
+	  Control-Flow Integrity (CFI) checking.
+
+config CFI_CLANG
+	bool "Use Clang's Control Flow Integrity (CFI)"
+	depends on ARCH_SUPPORTS_CFI_CLANG
+	depends on $(cc-option,-fsanitize=kcfi)
+	help
+	  This option enables Clang's forward-edge Control Flow Integrity
+	  (CFI) checking, where the compiler injects a runtime check to each
+	  indirect function call to ensure the target is a valid function with
+	  the correct static type. This restricts possible call targets and
+	  makes it more difficult for an attacker to exploit bugs that allow
+	  the modification of stored function pointers. More information can be
+	  found from Clang's documentation:
+
+	    https://clang.llvm.org/docs/ControlFlowIntegrity.html
 endmenu
+
+source "arch/$(SRCARCH)/Kconfig"
