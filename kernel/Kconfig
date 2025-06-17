@@ -1,4 +1,0 @@
-
-source "init/Kconfig"
-source "arch/Kconfig"
-
