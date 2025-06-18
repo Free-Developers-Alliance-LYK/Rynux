@@ -1,0 +1,30 @@
+[package]
+name = "proc-macro2-fuzz"
+version = "0.0.0"
+authors = ["David Tolnay <dtolnay@gmail.com>"]
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+afl = { version = "0.15", optional = true }
+honggfuzz = { version = "0.5", optional = true }
+libfuzzer-sys = { version = "0.4.7", optional = true }
+proc-macro2 = { path = "..", default-features = false }
+
+[features]
+default = ["libfuzzer"]
+afl = ["dep:afl"]
+honggfuzz = ["dep:honggfuzz"]
+libfuzzer = ["dep:libfuzzer-sys"]
+span-locations = ["proc-macro2/span-locations"]
+
+[[bin]]
+name = "parse_token_stream"
+path = "fuzz_targets/parse_token_stream.rs"
+test = false
+doc = false
+
+[workspace]
