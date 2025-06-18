@@ -21,7 +21,7 @@ targets         += $(real-dtb-y)
 # ---------------------------------------------------------------------------
 
 ifdef need-dtbslist
-subdir-dtbslist := $(addsuffix /dtbs-list, $(subdir-ym))
+subdir-dtbslist := $(addsuffix /dtbs-list, $(subdir-y))
 dtb-y           += $(subdir-dtbslist)
 always-y        += $(obj)/dtbs-list
 endif

@@ -180,6 +180,7 @@ objtree		:= .
 VPATH		:=
 
 ifdef building_out_of_srctree
+$(info "-------------------building out of source tree, srctree=$(srctree)")
 VPATH       := $(srctree)
 endif
 
@@ -195,11 +196,12 @@ export srctree objtree VPATH
 
 clean-targets := %clean mrproper cleandocs
 
-no-dot-config-targets := $(clean-targets)  help% %docs\
-			 outputmakefile rustavailable rustfmt rustfmtcheck
+no-dot-config-targets := $(clean-targets)  help% %docs kernelversion \
+			 dt_binding_check outputmakefile rustavailable rustfmt \
+			 rustfmtcheck
 
 no-sync-config-targets := $(no-dot-config-targets) %install \
-			  image_name
+			  image_name kernelrelease
 
 config-build	:=
 mixed-build	:=
@@ -334,21 +336,26 @@ KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 
 # These flags apply to all Rust code in the tree, including the kernel and
 # host programs.
+
 export rust_common_flags := --edition=2021 \
-			    -Zbinary_dep_depinfo=y \
-			    -Astable_features \
-			    -Dunsafe_op_in_unsafe_fn \
-			    -Dnon_ascii_idents \
-			    -Wrust_2018_idioms \
-			    -Wunreachable_pub \
-			    -Wmissing_docs \
-			    -Wrustdoc::missing_crate_level_docs \
-			    -Wclippy::all \
-			    -Wclippy::mut_mut \
-			    -Wclippy::needless_bitwise_bool \
-			    -Wclippy::needless_continue \
-			    -Wclippy::no_mangle_with_rust_abi \
-			    -Wclippy::dbg_macro
+                  -Zbinary_dep_depinfo=y \
+                  -Astable_features \
+                  -Dnon_ascii_idents \
+                  -Dunsafe_op_in_unsafe_fn \
+                  -Wmissing_docs \
+                  -Wrust_2018_idioms \
+                  -Wunreachable_pub \
+                  -Wclippy::all \
+                  -Wclippy::ignored_unit_patterns \
+                  -Wclippy::mut_mut \
+                  -Wclippy::needless_bitwise_bool \
+                  -Aclippy::needless_lifetimes \
+                  -Wclippy::no_mangle_with_rust_abi \
+                  -Wclippy::undocumented_unsafe_blocks \
+                  -Wclippy::unnecessary_safety_comment \
+                  -Wclippy::unnecessary_safety_doc \
+                  -Wrustdoc::missing_crate_level_docs \
+                  -Wrustdoc::unescaped_backticks
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) \
 		       $(HOSTCFLAGS) -I $(srctree)/scripts/include
@@ -394,7 +401,7 @@ NOSTDINC_FLAGS :=
 CFLAGS_KERNEL	=
 RUSTFLAGS_KERNEL =
 AFLAGS_KERNEL	=
-LDFLAGS_vmlinux =
+LDFLAGS_vmrynux =
 
 KBUILD_RUSTFLAGS := $(rust_common_flags) \
 		    -Cpanic=abort -Cembed-bitcode=n -Clto=n \
@@ -500,9 +507,10 @@ ifdef need-compiler
 include $(srctree)/scripts/Makefile.compiler
 endif
 
-export CC_VERSION_TEXT RUSTC_VERSION_TEXT
-
 ifdef config-build
+
+include $(srctree)/arch/$(SRCARCH)/Makefile
+export KBUILD_DEFCONFIG KBUILD_KCONFIG CC_VERSION_TEXT RUSTC_VERSION_TEXT
 
 config: outputmakefile scripts_basic FORCE
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@
@@ -512,7 +520,7 @@ config: outputmakefile scripts_basic FORCE
 
 else #!config-build
 # ===========================================================================
-# Build targets only - this includes vmlinux, arch-specific targets, clean
+# Build targets only - this includes vmrynux, arch-specific targets, clean
 # targets and others. In general all targets except *config targets.
 
 # If building an external module we do not care about the all: rule
@@ -530,18 +538,14 @@ ifdef need-config
 include include/config/auto.conf
 endif
 
-# Objects we will link into vmlinux / subdirs we need to visit
-core-y		:=
-drivers-y	:=
-libs-y		:= lib/
-
 # The all: target is the default when no target is given on the
 # command line.
 # This allow a user to issue only 'make' to build a kernel including modules
-# Defaults to vmlinux, but the arch makefile usually adds further targets
-all: vmlinux
+# Defaults to vmrynux, but the arch makefile usually adds further targets
+all: vmrynux
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
+
 ifdef need-config
 ifdef may-sync-config
 # Read in dependencies to all Kconfig* files, make sure to run syncconfig if
@@ -611,7 +615,7 @@ endif
 # arch Makefile may override CC so keep this after arch Makefile is included
 NOSTDINC_FLAGS += -nostdinc
 
-LDFLAGS_vmlinux += --build-id=sha1
+LDFLAGS_vmrynux += --build-id=sha1
 
 KBUILD_LDFLAGS	+= -z noexecstack
 
@@ -624,7 +628,7 @@ KBUILD_USERLDFLAGS += $(filter -m32 -m64 --target=%, $(KBUILD_CFLAGS))
 # set in the environment
 # Also any assignments in arch/$(ARCH)/Makefile take precedence over
 # this default value
-export KBUILD_IMAGE ?= vmlinux
+export KBUILD_IMAGE ?= vmrynux
 
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
@@ -642,52 +646,46 @@ PHONY += prepare0
 export extmod_prefix = $(if $(KBUILD_EXTMOD),$(KBUILD_EXTMOD)/)
 
 build-dir	:= .
-clean-dirs	:= $(sort . \
-		     $(patsubst %/,%,$(filter %/, $(core-) \
-			$(drivers-) $(libs-))))
+clean-dirs	:= .
 
-export ARCH_CORE	:= $(core-y)
-export ARCH_LIB		:= $(filter %/, $(libs-y))
-export ARCH_DRIVERS	:= $(drivers-y)
-# Externally visible symbols (used by link-vmlinux.sh)
+# Externally visible symbols (used by link-vmrynux.sh)
 
 KBUILD_VMLINUX_OBJS := ./built-in.a
 
-export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
+export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmrynux.lds
 
 # '$(AR) mPi' needs 'T' to workaround the bug of llvm-ar <= 14
-quiet_cmd_ar_vmlinux.a = AR      $@
-      cmd_ar_vmlinux.a = \
+quiet_cmd_ar_vmrynux.a = AR      $@
+      cmd_ar_vmrynux.a = \
 	rm -f $@; \
 	$(AR) cDPrST $@ $(KBUILD_VMLINUX_OBJS)
 
-targets += vmlinux.a
-vmlinux.a: $(KBUILD_VMLINUX_OBJS) FORCE
-	$(info "-------------------create vmlinux.a :KBUILD_VMLINUX_OBJS = $(KBUILD_VMLINUX_OBJS)")
-	$(call if_changed,ar_vmlinux.a)
+targets += vmrynux.a
+vmrynux.a: $(KBUILD_VMLINUX_OBJS) FORCE
+	$(call if_changed,ar_vmrynux.a)
 
-PHONY += vmlinux_o
-vmlinux_o: vmlinux.a
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_o
+PHONY += vmrynux_o
+vmrynux_o: vmrynux.a
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmrynux_o
 
-vmlinux.o : vmlinux_o
+vmrynux.o : vmrynux_o
 	@:
 
-PHONY += vmlinux
-# LDFLAGS_vmlinux in the top Makefile defines linker flags for the top vmlinux,
-# not for decompressors. LDFLAGS_vmlinux in arch/*/boot/compressed/Makefile is
+PHONY += vmrynux
+# LDFLAGS_vmrynux in the top Makefile defines linker flags for the top vmrynux,
+# not for decompressors. LDFLAGS_vmrynux in arch/*/boot/compressed/Makefile is
 # unrelated; the decompressors just happen to have the same base name,
-# arch/*/boot/compressed/vmlinux.
-# Export LDFLAGS_vmlinux only to scripts/Makefile.vmlinux.
+# arch/*/boot/compressed/vmrynux.
+# Export LDFLAGS_vmrynux only to scripts/Makefile.vmrynux.
 #
-# _LDFLAGS_vmlinux is a workaround for the 'private export' bug:
+# _LDFLAGS_vmrynux is a workaround for the 'private export' bug:
 #   https://savannah.gnu.org/bugs/?61463
 # For Make > 4.4, the following simple code will work:
-#  vmlinux: private export LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
-vmlinux: private _LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
-vmlinux: export LDFLAGS_vmlinux = $(_LDFLAGS_vmlinux)
-vmlinux: vmlinux.o $(KBUILD_LDS)
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux
+#  vmrynux: private export LDFLAGS_vmrynux := $(LDFLAGS_vmrynux)
+vmrynux: private _LDFLAGS_vmrynux := $(LDFLAGS_vmrynux)
+vmrynux: export LDFLAGS_vmrynux = $(_LDFLAGS_vmrynux)
+vmrynux: vmrynux.o $(KBUILD_LDS)
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmrynux
 
 # The actual objects are generated when descending,
 # make sure no implicit rule kicks in
@@ -808,9 +806,9 @@ scripts_dtc: scripts_basic
 # make distclean Remove editor backup files, patch leftover files and the like
 
 # Directories & files removed with 'make clean'
-CLEAN_FILES += vmlinux.symvers vmlinux.o.map \
+CLEAN_FILES += vmrynux.symvers vmrynux.o.map \
 	       compile_commands.json rust-project.json \
-		   .vmlinux.objs .vmlinux.export.c
+		   .vmrynux.objs .vmrynux.export.c
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_FILES += include/config include/generated          \
@@ -819,20 +817,19 @@ MRPROPER_FILES += include/config include/generated          \
 		  .config .config.old .version \
 		  certs/signing_key.pem \
 		  certs/x509.genkey \
-		  vmlinux-gdb.py \
-		  rpmbuild \
-		  rust/libmacros.so
+		  vmrynux-gdb.py \
+		  libmacros.so
 
 # clean - Delete most, but leave enough to build external modules
 #
 clean: private rm-files := $(CLEAN_FILES)
 
-PHONY += vmlinuxclean
+PHONY += vmrynuxclean
 
-vmlinuxclean:
-	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
+vmrynuxclean:
+	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmrynux.sh clean
 
-clean: vmlinuxclean
+clean: vmrynuxclean
 
 # mrproper - Delete all generated files, including .config
 #
@@ -874,21 +871,10 @@ help:
 	@echo  ''
 	@echo  'Other generic targets:'
 	@echo  '  all		  - Build all targets marked with [*]'
-	@echo  '* vmlinux	  - Build the bare kernel'
-	@echo  '  modules_install - Install all modules to INSTALL_MOD_PATH (default: /)'
-	@echo  '  vdso_install    - Install unstripped vdso to INSTALL_MOD_PATH (default: /)'
-	@echo  '  dir/            - Build all files in dir and below'
-	@echo  '  dir/file.[ois]  - Build specified target only'
-	@echo  '  dir/file.ll     - Build the LLVM assembly file'
-	@echo  '                    (requires compiler support for LLVM assembly generation)'
-	@echo  '  dir/file.lst    - Build specified mixed source/assembly target only'
-	@echo  '                    (requires a recent binutils and recent build (System.map))'
-	@echo  '  dir/file.ko     - Build module including final link'
+	@echo  '* vmrynux	  - Build the bare kernel'
 	@echo  '  kernelrelease	  - Output the release version string (use with make -s)'
 	@echo  '  kernelversion	  - Output the version stored in Makefile (use with make -s)'
 	@echo  '  image_name	  - Output the image name (use with make -s)'
-	@echo  '  headers_install - Install sanitised kernel headers to INSTALL_HDR_PATH'; \
-	 echo  '                    (default: $(INSTALL_HDR_PATH))'; \
 	 echo  ''
 	@echo  'Static analysers:'
 	@echo  '  clang-analyzer  - Check with clang static analyzer'
@@ -906,11 +892,6 @@ help:
 	@echo  '                    (requires kernel .config; downloads external repos)'
 	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
 	@echo  '		    (requires kernel .config)'
-	@echo  '  dir/file.[os]   - Build specified target only'
-	@echo  '  dir/file.rsi    - Build macro expanded source, similar to C preprocessing.'
-	@echo  '                    Run with RUSTFMT=n to skip reformatting if needed.'
-	@echo  '                    The output is not intended to be compilable.'
-	@echo  '  dir/file.ll     - Build the LLVM assembly file'
 	@echo  ''
 	@$(if $(dtstree), \
 		echo 'Devicetree:'; \
@@ -946,7 +927,6 @@ help:
 	@echo  '                       2: give reason for rebuild of target'
 	@echo  '                       V=1 and V=2 can be combined with V=12'
 	@echo  '  make O=dir [targets] Locate all output files in "dir", including .config'
-	@echo  '  make RECORDMCOUNT_WARN=1 [targets] Warn about ignored mcount sections'
 	@echo  '  make W=n   [targets] Enable extra build checks, n=1,2,3,c,e where'
 	@echo  '		1: warnings which may be relevant and do not occur too often'
 	@echo  '		2: warnings which occur quite often but may still be relevant'
@@ -975,17 +955,24 @@ $(help-board-dirs): help-%:
 		printf "  %-24s - Build for %s\\n" $*/$(b) $(subst _defconfig,,$(b));) \
 		echo '')
 
+# Rust targets
+# ---------------------------------------------------------------------------
+
+# "Is Rust available?" target
+PHONY += rustavailable
+rustavailable:
+	+$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust_is_available.sh && echo "Rust is available!"
 # Documentation target
 #
 # Using the singular to avoid running afoul of `no-dot-config-targets`.
 PHONY += rustdoc
 rustdoc: prepare
-	$(Q)$(MAKE) $(build)=rust $@
+	$(Q)$(MAKE) $(build)=kernel $@
 
 # Testing target
 PHONY += rusttest
 rusttest: prepare
-	$(Q)$(MAKE) $(build)=rust $@
+	$(Q)$(MAKE) $(build)=kernel $@
 
 # Formatting targets
 PHONY += rustfmt rustfmtcheck
@@ -1024,17 +1011,16 @@ $(clean-dirs):
 clean: $(clean-dirs)
 	$(call cmd,rmfiles)
 	@find $(or $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
-		\( -name '*.[aios]' -o -name '*.rsi' -o -name '*.ko' -o -name '.*.cmd' \
-		-o -name '*.ko.*' \
+		\( -name '*.[aios]' -o -name '*.rsi' -o -name '.*.cmd' \
 		-o -name '*.dtb' -o -name '*.dtbo' \
 		-o -name '*.dtb.S' -o -name '*.dtbo.S' \
 		-o -name '*.dt.yaml' -o -name 'dtbs-list' \
 		-o -name '*.dwo' -o -name '*.lst' \
-		-o -name '*.su' -o -name '*.mod' \
-		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
+		-o -name '*.su' \
+		-o -name '.*.d' -o -name '.*.tmp' \
 		-o -name '*.lex.c' -o -name '*.tab.[ch]' \
 		-o -name '*.asn1.[ch]' \
-		-o -name '*.symtypes' -o -name 'modules.order' \
+		-o -name '*.symtypes' \
 		-o -name '*.c.[012]*.*' \
 		-o -name '*.ll' \
 		-o -name '*.gcno' \
@@ -1050,7 +1036,7 @@ quiet_cmd_gen_compile_commands = GEN     $@
       cmd_gen_compile_commands = $(PYTHON3) $< -a $(AR) -o $@ $(filter-out $<, $(real-prereqs))
 
 $(extmod_prefix)compile_commands.json: $(srctree)/scripts/clang-tools/gen_compile_commands.py \
-	$(if $(KBUILD_EXTMOD),, vmlinux.a $(KBUILD_VMLINUX_LIBS)) FORCE
+	$(if $(KBUILD_EXTMOD),, vmrynux.a $(KBUILD_VMLINUX_LIBS)) FORCE
 	$(call if_changed,gen_compile_commands)
 
 targets += $(extmod_prefix)compile_commands.json
@@ -1087,7 +1073,6 @@ existing-targets := $(wildcard $(sort $(targets)))
 endif # config-build
 endif # mixed-build
 endif # need-sub-make
-
 
 PHONY += FORCE
 FORCE:

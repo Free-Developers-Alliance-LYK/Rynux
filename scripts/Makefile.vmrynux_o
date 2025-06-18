@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 PHONY := __default
-__default: vmlinux.o
+__default: vmrynux.o
 
 include include/config/auto.conf
 include $(srctree)/scripts/Kbuild.include
@@ -18,29 +18,27 @@ quiet_cmd_gen_initcalls_lds = GEN     $@
 	$(PERL) $(real-prereqs) > $@
 
 .tmp_initcalls.lds: $(srctree)/scripts/generate_initcall_order.pl \
-		vmlinux.a  FORCE
+		vmrynux.a  FORCE
 	$(call if_changed,gen_initcalls_lds)
 
 targets := .tmp_initcalls.lds
 
-# Link of vmlinux.o used for section mismatch analysis
+# Link of vmrynux.o used for section mismatch analysis
 # ---------------------------------------------------------------------------
 
-quiet_cmd_ld_vmlinux.o = LD      $@
-      cmd_ld_vmlinux.o = \
+quiet_cmd_ld_vmrynux.o = LD      $@
+      cmd_ld_vmrynux.o = \
 	$(LD) ${KBUILD_LDFLAGS} -r -o $@ \
-	--whole-archive vmlinux.a --no-whole-archive \
-	$(cmd_objtool)
+	--whole-archive vmrynux.a --no-whole-archive \
 
-define rule_ld_vmlinux.o
-	$(call cmd_and_savecmd,ld_vmlinux.o)
-	$(call cmd,gen_objtooldep)
+define rule_ld_vmrynux.o
+	$(call cmd_and_savecmd,ld_vmrynux.o)
 endef
 
-vmlinux.o: vmlinux.a FORCE
-	$(call if_changed_rule,ld_vmlinux.o)
+vmrynux.o: vmrynux.a FORCE
+	$(call if_changed_rule,ld_vmrynux.o)
 
-targets += vmlinux.o
+targets += vmrynux.o
 
 # Add FORCE to the prerequisites of a target to force it to be always rebuilt.
 # ---------------------------------------------------------------------------

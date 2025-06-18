@@ -1,5 +1,28 @@
 menu "General setup"
 
+config RUSTC_VERSION
+	int
+	default $(rustc-version)
+	help
+	  It does not depend on `RUST` since that one may need to use the version
+	  in a `depends on`.
+
+config RUST_IS_AVAILABLE
+	def_bool $(success,$(srctree)/scripts/rust_is_available.sh)
+	help
+	  This shows whether a suitable Rust toolchain is available (found).
+
+	  Please see Documentation/rust/quick-start.rst for instructions on how
+	  to satisfy the build requirements of Rust support.
+
+	  In particular, the Makefile target 'rustavailable' is useful to check
+	  why the Rust toolchain is not being detected.
+
+config RUSTC_LLVM_VERSION
+	int
+	default $(rustc-llvm-version)
+
+
 config BUILDTIME_TABLE_SORT
 	bool
 

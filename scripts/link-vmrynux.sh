@@ -1,27 +1,27 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0
 #
-# link vmlinux
+# link vmrynux
 #
-# vmlinux is linked from the objects in vmlinux.a and $(KBUILD_VMLINUX_LIBS).
-# vmlinux.a contains objects that are linked unconditionally.
+# vmrynux is linked from the objects in vmrynux.a and $(KBUILD_VMLINUX_LIBS).
+# vmrynux.a contains objects that are linked unconditionally.
 # $(KBUILD_VMLINUX_LIBS) are archives which are linked conditionally
 # (not within --whole-archive), and do not require symbol indexes added.
 #
-# vmlinux
+# vmrynux
 #   ^
 #   |
-#   +--< vmlinux.a
+#   +--< vmrynux.a
 #   |
 #   +--< $(KBUILD_VMLINUX_LIBS)
 #   |    +--< lib/lib.a + more
 #   |
 #   +-< ${kallsymso} (see description in KALLSYMS section)
 #
-# vmlinux version (uname -v) cannot be updated during normal
+# vmrynux version (uname -v) cannot be updated during normal
 # descending-into-subdirs phase since we do not yet know if we need to
-# update vmlinux.
-# Therefore this step is delayed until just before final link of vmlinux.
+# update vmrynux.
+# Therefore this step is delayed until just before final link of vmrynux.
 #
 # System.map is generated to document addresses of all kernel symbols
 
@@ -30,7 +30,7 @@ set -e
 
 LD="$1"
 KBUILD_LDFLAGS="$2"
-LDFLAGS_vmlinux="$3"
+LDFLAGS_vmrynux="$3"
 
 is_enabled() {
 	grep -q "^$1=y" include/config/auto.conf
@@ -43,9 +43,9 @@ info()
 	printf "  %-7s %s\n" "${1}" "${2}"
 }
 
-# Link of vmlinux
+# Link of vmrynux
 # ${1} - output file
-vmlinux_link()
+vmrynux_link()
 {
 	local output=${1}
 	local objs
@@ -59,14 +59,14 @@ vmlinux_link()
 	# skip output file argument
 	shift
 
-	objs=vmlinux.o
+	objs=vmrynux.o
 	libs=
 
 	objs="${objs} init/version-timestamp.o"
 
 	wl=
 	ld="${LD}"
-	ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}"
+	ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmrynux}"
 	ldlibs=
 
 	ldflags="${ldflags} ${wl}--script=${objtree}/${KBUILD_LDS}"
@@ -103,7 +103,7 @@ kallsyms()
 	kallsymso=${2}.o
 }
 
-# Perform kallsyms for the given temporary vmlinux.
+# Perform kallsyms for the given temporary vmrynux.
 sysmap_and_kallsyms()
 {
 	mksysmap "${1}" "${1}.syms"
@@ -128,8 +128,8 @@ sorttable()
 cleanup()
 {
 	rm -f System.map
-	rm -f vmlinux
-	rm -f vmlinux.map
+	rm -f vmrynux
+	rm -f vmrynux.map
 }
 
 # Use "make V=1" to debug this script
@@ -150,28 +150,28 @@ kallsymso=
 strip_debug=
 
 if is_enabled CONFIG_KALLSYMS; then
-	true > .tmp_vmlinux.kallsyms0.syms
-	kallsyms .tmp_vmlinux.kallsyms0.syms .tmp_vmlinux0.kallsyms
+	true > .tmp_vmrynux.kallsyms0.syms
+	kallsyms .tmp_vmrynux.kallsyms0.syms .tmp_vmrynux0.kallsyms
 fi
 
 if is_enabled CONFIG_KALLSYMS; then
-	vmlinux_link .tmp_vmlinux1
+	vmrynux_link .tmp_vmrynux1
 fi
 
 if is_enabled CONFIG_KALLSYMS; then
 
 	# kallsyms support
-	# Generate section listing all symbols and add it into vmlinux
+	# Generate section listing all symbols and add it into vmrynux
 	# It's a four step process:
 	# 0)  Generate a dummy __kallsyms with empty symbol list.
-	# 1)  Link .tmp_vmlinux.kallsyms1 so it has all symbols and sections,
+	# 1)  Link .tmp_vmrynux.kallsyms1 so it has all symbols and sections,
 	#     with a dummy __kallsyms.
 	#     Running kallsyms on that gives us .tmp_kallsyms1.o with
 	#     the right size
-	# 2)  Link .tmp_vmlinux.kallsyms2 so it now has a __kallsyms section of
+	# 2)  Link .tmp_vmrynux.kallsyms2 so it now has a __kallsyms section of
 	#     the right size, but due to the added section, some
 	#     addresses have shifted.
-	#     From here, we generate a correct .tmp_vmlinux.kallsyms2.o
+	#     From here, we generate a correct .tmp_vmrynux.kallsyms2.o
 	# 3)  That link may have expanded the kernel image enough that
 	#     more linker branch stubs / trampolines had to be added, which
 	#     introduces new names, which further expands kallsyms. Do another
@@ -179,36 +179,36 @@ if is_enabled CONFIG_KALLSYMS; then
 	#     in even more stubs, but unlikely.
 	#     KALLSYMS_EXTRA_PASS=1 may also used to debug or work around
 	#     other bugs.
-	# 4)  The correct ${kallsymso} is linked into the final vmlinux.
+	# 4)  The correct ${kallsymso} is linked into the final vmrynux.
 	#
-	# a)  Verify that the System.map from vmlinux matches the map from
+	# a)  Verify that the System.map from vmrynux matches the map from
 	#     ${kallsymso}.
 
 	# The kallsyms linking does not need debug symbols included.
 	strip_debug=1
 
-	sysmap_and_kallsyms .tmp_vmlinux1
+	sysmap_and_kallsyms .tmp_vmrynux1
 	size1=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
 
-	vmlinux_link .tmp_vmlinux2
-	sysmap_and_kallsyms .tmp_vmlinux2
+	vmrynux_link .tmp_vmrynux2
+	sysmap_and_kallsyms .tmp_vmrynux2
 	size2=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
 
 	if [ $size1 -ne $size2 ] || [ -n "${KALLSYMS_EXTRA_PASS}" ]; then
-		vmlinux_link .tmp_vmlinux3
-		sysmap_and_kallsyms .tmp_vmlinux3
+		vmrynux_link .tmp_vmrynux3
+		sysmap_and_kallsyms .tmp_vmrynux3
 	fi
 fi
 
 strip_debug=
 
-vmlinux_link vmlinux
+vmrynux_link vmrynux
 
-mksysmap vmlinux System.map
+mksysmap vmrynux System.map
 
 if is_enabled CONFIG_BUILDTIME_TABLE_SORT; then
-	info SORTTAB vmlinux
-	if ! sorttable vmlinux; then
+	info SORTTAB vmrynux
+	if ! sorttable vmrynux; then
 		echo >&2 Failed to sort kernel tables
 		exit 1
 	fi
@@ -224,4 +224,4 @@ if is_enabled CONFIG_KALLSYMS; then
 fi
 
 # For fixdep
-echo "vmlinux: $0" > .vmlinux.d
+echo "vmrynux: $0" > .vmrynux.d

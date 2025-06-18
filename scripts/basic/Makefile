@@ -13,4 +13,4 @@ cmd_create_randstruct_seed = \
 		$@ $(objtree)/include/generated/randstruct_hash.h
 $(obj)/randstruct.seed: $(gen-randstruct-seed) FORCE
 	$(call if_changed,create_randstruct_seed)
-always-$(CONFIG_RANDSTRUCT) += randstruct.seed
+always-$y += randstruct.seed
