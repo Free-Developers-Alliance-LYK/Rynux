@@ -2,20 +2,19 @@
 Rustix is a modern, secure, and high-performance Linux kernel reimagined and rewritten in Rust. This project aims to leverage Rust’s safety guarantees and concurrency features to build a reliable and efficient operating system kernel from the ground up.
 
 
-
 ## Features
 
 - Now only supports arm64 architecture.
 
 
-## Build
+## Build Check
 it simlar to the Linux kernel build process, you can use `make` to compile the kernel. The build system is designed to be modular and extensible, allowing for easy customization and configuration.
 
 To easily check whether the requirements are met, the following target can be used:
 ```shell
 make LLVM=-17 O=build_dir rustavailable
 ```
-This triggers the same logic used by Kconfig to determine whether `RUST_IS_AVAILABLE` should be enabled; but it also explains why not if that is the case.
+This triggers the same logic used by Kconfig to determine whether `RUST_IS_AVAILABLE` should be enabled; it also explains why not if that is the case.
 
 ### Config
 
@@ -23,4 +22,10 @@ To configure the kernel, you can use the `menuconfig` interface, which provides 
 
 ```bash
 make LLVM=-17  O=build_dir menuconfig
+```
+
+### Build Image
+
+```bash
+make LLVM=-17 O=build_dir
 ```

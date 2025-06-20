@@ -10,11 +10,11 @@
 #
 # Copyright (C) 1995-2001 by Russell King
 
-LDFLAGS_vmlinux	:=--no-undefined -X --pic-veneer
+LDFLAGS_vmrynux	:=--no-undefined -X --pic-veneer
 
 ifeq ($(CONFIG_ARM64_ERRATUM_843419),y)
   ifeq ($(CONFIG_ARM64_LD_HAS_FIX_ERRATUM_843419),y)
-LDFLAGS_vmlinux	+= --fix-cortex-a53-843419
+LDFLAGS_vmrynux	+= --fix-cortex-a53-843419
   endif
 endif
 cc_has_k_constraint := $(call try-run,echo				\
@@ -46,7 +46,7 @@ all:	$(notdir $(KBUILD_IMAGE))
 image.fit: dtbs
 
 vmlinuz.efi image.fit: Image
-$(BOOT_TARGETS): vmlinux
+$(BOOT_TARGETS): vmrynux
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
 Image.%: Image

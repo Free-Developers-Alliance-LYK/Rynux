@@ -42,7 +42,6 @@ ifndef obj
 $(warning kbuild: Makefile.build is included improperly)
 endif
 
-$(info "obj is $(obj) obj-y is $(obj-y) extra-y = $(extra-y) src is $(src)" )
 
 # ===========================================================================
 
@@ -144,7 +143,8 @@ rust_common_cmd = \
 	-Zcrate-attr=no_std \
 	-Zcrate-attr='feature($(rust_allowed_features))' \
 	-Zunstable-options --extern force:alloc --extern force:kernel \
-	--crate-type rlib -L $(objtree)/ \
+	--crate-type rlib \
+	-L $(objtree)/ -L $(objtree)/third_lib/  -L $(objtree)/proc_macros \
 	--crate-name $(basename $(notdir $@)) \
 	--sysroot=/dev/null \
 	--out-dir $(dir $@) --emit=dep-info=$(depfile)
@@ -187,7 +187,6 @@ quiet_cmd_rustc_ll_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
 $(obj)/%.ll: $(obj)/%.rs FORCE
 	+$(call if_changed_dep,rustc_ll_rs)
 
-
 define rule_rustc_library
 	$(call cmd_and_fixdep,rustc_library)
 endef
@@ -199,19 +198,12 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
         $(filter-out $(skip_flags),$(rust_flags) $(rustc_target_flags)) \
         --emit=dep-info=$(depfile) --emit=obj=$@ \
         --emit=metadata=$(dir $@)$(patsubst %.o,lib%.rmeta,$(notdir $@)) \
-        --crate-type rlib -L$(objtree)/$(obj) \
+        --crate-type rlib \
+		-L$(objtree)/$(obj) -L$(objtree)/third_lib -L$(objtree)/proc_macros \
         --crate-name $(patsubst %.o,%,$(notdir $@)) $< \
         --sysroot=/dev/null \
     $(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
-quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
-      cmd_rustc_procmacro = \
-	$(RUSTC_OR_CLIPPY) $(rust_common_flags) \
-		-Clinker-flavor=gcc -Clinker=$(HOSTCC) \
-		-Clink-args='$(call escsq,$(KBUILD_HOSTLDFLAGS))' \
-		--emit=dep-info=$(depfile) --emit=link=$@ --extern proc_macro \
-		--crate-type proc-macro \
-		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<
 
 # Compile assembler sources (.S)
 # ---------------------------------------------------------------------------
@@ -259,8 +251,7 @@ targets += $(lib-y) $(always-y)
 # Linker scripts preprocessor (.lds.S -> .lds)
 # ---------------------------------------------------------------------------
 quiet_cmd_cpp_lds_S = LDS     $@
-      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -U$(ARCH) \
-	                     -D__ASSEMBLY__ -DLINKER_SCRIPT -o $@ $<
+      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -U$(ARCH) -o $@ $<
 
 $(obj)/%.lds: $(src)/%.lds.S FORCE
 	$(call if_changed_dep,cpp_lds_S)
@@ -292,7 +283,6 @@ quiet_cmd_ar_builtin = AR      $@
 	$(AR) cDPrST $@
 
 $(obj)/built-in.a: $(real-obj-y) FORCE
-	$(info "Building built-in.a")
 	$(call if_changed,ar_builtin)
 
 
@@ -345,7 +335,6 @@ $(single-subdir-goals): $(single-subdirs)
 
 PHONY += $(subdir-y)
 $(subdir-y):
-	$(info "build subdir $@")
 	$(Q)$(MAKE) $(build)=$@ \
 	$(filter $@/%, $(single-subdir-goals))
 

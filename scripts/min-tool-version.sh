@@ -33,7 +33,7 @@ llvm)
 	fi
 	;;
 rustc)
-	echo 1.78.0
+	echo 1.83.0
 	;;
 *)
 	echo "$1: unknown tool" >&2

@@ -48,11 +48,11 @@ $(obj)/%.tab.c $(obj)/%.tab.h: $(src)/%.y FORCE
 # C code
 # Executables compiled from a single .c file
 host-csingle	:= $(foreach m,$(hostprogs), \
-			$(if $($(m)-objs)$($(m)-cxxobjs)$($(m)-rust),,$(m)))
+			$(if $($(m)-objs)$($(m)-cxxobjs)$($(m)-rust)$($(m)-rustlib),,$(m)))
 
 # C executables linked based on several .o files
 host-cmulti	:= $(foreach m,$(hostprogs),\
-		   $(if $($(m)-cxxobjs)$($(m)-rust),,$(if $($(m)-objs),$(m))))
+		   $(if $($(m)-cxxobjs)$($(m)-rust)$($(m)-rustlib),,$(if $($(m)-objs),$(m))))
 
 # Object (.o) files compiled from .c files
 host-cobjs	:= $(sort $(foreach m,$(hostprogs),$($(m)-objs)))
@@ -69,6 +69,7 @@ host-cxxobjs	:= $(sort $(foreach m,$(host-cxxmulti),$($(m)-cxxobjs)))
 # Executables compiled from a single Rust crate (which may consist of
 # one or more .rs files)
 host-rust	:= $(foreach m,$(hostprogs),$(if $($(m)-rust),$(m)))
+host-rustlib := $(foreach m,$(hostprogs),$(if $($(m)-rustlib),$(m)))
 
 host-csingle	:= $(addprefix $(obj)/,$(host-csingle))
 host-cmulti	:= $(addprefix $(obj)/,$(host-cmulti))
@@ -76,6 +77,7 @@ host-cobjs	:= $(addprefix $(obj)/,$(host-cobjs))
 host-cxxmulti	:= $(addprefix $(obj)/,$(host-cxxmulti))
 host-cxxobjs	:= $(addprefix $(obj)/,$(host-cxxobjs))
 host-rust	:= $(addprefix $(obj)/,$(host-rust))
+host-rust	:= $(addprefix $(obj)/,$(host-rustlib))
 
 #####
 # Handle options to gcc. Support building with separate output directory
@@ -155,6 +157,32 @@ quiet_cmd_host-rust	= HOSTRUSTC $@
 	$(HOSTRUSTC) $(hostrust_flags) --emit=link=$@ $<
 $(host-rust): $(obj)/%: $(src)/%.rs FORCE
 	+$(call if_changed_dep,host-rust)
+
+external_ignore_warn = -A elided-lifetimes-in-paths -A missing_docs \
+					   -A unused-extern-crates -A unreachable-pub
+
+quiet_cmd_host_rustlib = HOSTRUSTC L $@
+      cmd_host_rustlib = \
+    $(HOSTRUSTC) \
+        $(filter-out $(skip_flags),$(KBUILD_HOSTRUSTFLAGS) $(rustc_target_flags)) \
+		$(external_ignore_warn) \
+        --emit=dep-info=$(depfile) --emit=link \
+        --emit=metadata \
+        --crate-type rlib \
+		-L $(objtree)/proc_macros \
+		--out-dir $(obj) \
+        --crate-name $(patsubst %.rlib,%,$(notdir $@)) $<
+
+quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
+      cmd_rustc_procmacro = \
+	$(RUSTC_OR_CLIPPY) $(rust_common_flags)  $(rustc_target_flags) \
+		-Clinker-flavor=gcc -Clinker=$(HOSTCC) \
+        -Clink-args='$(call escsq,$(KBUILD_PROCMACROLDFLAGS))' \
+		$(external_ignore_warn) \
+		-L$(objtree)/proc_macros \
+		--emit=dep-info=$(depfile) --emit=link=$@ --extern proc_macro \
+		--crate-type proc-macro \
+        --crate-name $(patsubst lib%.$(libmacros_extension),%,$(notdir $@)) $<
 
 targets += $(host-csingle) $(host-cmulti) $(host-cobjs) \
 	   $(host-cxxmulti) $(host-cxxobjs) $(host-rust)

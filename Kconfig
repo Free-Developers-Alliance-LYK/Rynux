@@ -26,7 +26,5 @@ source "arch/Kconfig"
 
 source "init/Kconfig"
 
-#source "lib/Kconfig"
-
-source "lib/Kconfig.debug"
+source "klib/Kconfig.debug"
 

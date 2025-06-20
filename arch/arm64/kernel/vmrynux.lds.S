@@ -1,12 +1,5 @@
 #define SBSS_ALIGN			0
-#include <asm-generic/vmlinux.lds.h>
-#include <asm/cache.h>
-#include <asm/kernel-pgtable.h>
-#include <asm/memory.h>
-#include <asm/page.h>
-#include <asm/layout.h>
-
-#include "image.h"
+#include <layout.h>
 
 OUTPUT_ARCH(aarch64)
 ENTRY(_text)
@@ -203,8 +196,6 @@ SECTIONS
 	.data.rel.ro : { *(.data.rel.ro) }
 	ASSERT(SIZEOF(.data.rel.ro) == 0, "Unexpected RELRO detected!")
 }
-
-#include "image-vars.h"
 
 ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
 	"ID map text too big or misaligned")
