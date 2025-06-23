@@ -22,7 +22,7 @@ quiet_cmd_exports = GEN $@
 
 targets += $(objtree)/layout.h
 
-$(objtree)/layout.h: $(obj)/linker.o FORCE
+$(objtree)/layout.h: $(obj)/linker.o $(srctree)/scripts/generate_layout_header.py  FORCE
 	$(call if_changed,exports)
 
 $(obj)/kernel.o: private rustc_target_flags = --extern alloc \

@@ -16,7 +16,6 @@ alloc-cfgs = \
     --cfg no_global_oom_handling \
     --cfg no_rc
 
-
 redirect-intrinsics = \
 	__addsf3 __eqsf2 __extendsfdf2 __gesf2 __lesf2 __ltsf2 __mulsf3 __nesf2 __truncdfsf2 __unordsf2 \
 	__adddf3 __eqdf2 __ledf2 __ltdf2 __muldf3 __unorddf2 \
@@ -49,8 +48,9 @@ $(obj)/alloc.o: $(RUST_LIB_SRC)/alloc/src/lib.rs $(obj)/compiler_builtins.o FORC
 	+$(call if_changed_rule,rustc_library)
 
 $(obj)/const_format.o: private skip_flags = -Wunreachable_pub
-$(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_macros
-$(obj)/const_format.o: $(src)/const_format/src/lib.rs FORCE
+$(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_macros \
+  						--extern alloc
+$(obj)/const_format.o: $(src)/const_format/src/lib.rs $(obj)/alloc.o FORCE
 	+$(call if_changed_rule,rustc_library)
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
