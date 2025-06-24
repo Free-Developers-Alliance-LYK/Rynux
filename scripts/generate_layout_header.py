@@ -6,7 +6,11 @@ import sys
 # type: "int" 或 "str"
 INTERESTED_VARS = {
     "SZ_4K": "int",
-    "DISCARDS": "str",
+    "KIMAGE_VADDR": "int",
+    "SEGMENT_ALIGN": "int",
+    "EXPORT_DISCARDS": "str",
+    "EXPORT_HEAD_TEXT": "str",
+    "EXPORT_IRQENTRY_TEXT": "str",
 }
 
 def extract_int(rodata_bytes, sym, rodata, elfclass):
@@ -54,7 +58,10 @@ def main():
                         val = extract_str(f, sym, rodata)
                     else:
                         continue  # 未知类型，跳过
-                    found[name] = (typ, val)
+                    out_name = name
+                    if name.startswith("EXPORT_"):
+                        out_name = name[len("EXPORT_"):]
+                    found[out_name] = (typ, val)
 
     # 写头文件
     with open(OUT, 'w') as h:

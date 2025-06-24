@@ -12,9 +12,9 @@ $(obj)/klib.o: private rustc_target_flags = --extern alloc --extern macros
 $(obj)/klib.o: $(src)/klib/lib.rs $(obj)/third_lib/built-in.a FORCE
 	+$(call if_changed_rule,rustc_library)
 
-$(obj)/linker.o: private rustc_target_flags = --extern alloc \
+$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
     --extern macros --extern klib --extern const_format
-$(obj)/linker.o: $(src)/linker/lib.rs $(obj)/klib.o FORCE
+$(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/klib.o FORCE
 	+$(call if_changed_rule,rustc_library)
 
 quiet_cmd_exports = GEN $@
@@ -22,23 +22,16 @@ quiet_cmd_exports = GEN $@
 
 targets += $(objtree)/layout.h
 
-$(objtree)/layout.h: $(obj)/linker.o $(srctree)/scripts/generate_layout_header.py  FORCE
+$(objtree)/layout.h: $(obj)/kernel.o $(srctree)/scripts/generate_layout_header.py  FORCE
 	$(call if_changed,exports)
 
-$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
-    --extern macros --extern klib --extern linker
-$(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/linker.o FORCE
-	+$(call if_changed_rule,rustc_library)
-
-
 PHONY += prepare
-prepare: $(obj)/linker.o $(obj)/kernel.o $(obj)/klib.o $(objtree)/layout.h
+prepare: $(obj)/kernel.o $(obj)/klib.o $(objtree)/layout.h
 	@:
 
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
 obj-y			+= third_lib/
 obj-y			+= klib.o
-obj-y 			+= linker.o
 obj-y 			+= kernel.o
 obj-y			+= arch/$(SRCARCH)/

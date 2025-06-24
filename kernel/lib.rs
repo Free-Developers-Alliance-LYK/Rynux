@@ -15,6 +15,11 @@
 
 pub use macros;
 
+pub mod arch;
+pub mod size;
+pub mod vmrynux;
+pub mod mm;
+
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
