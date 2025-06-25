@@ -27,7 +27,8 @@ cfg_if! {
 }
 
 /// Size of a page PA SIZE in bytes.
-pub const PAGE_SIZE: usize = 1 << PAGE_SHIFT;
+#[no_mangle]
+pub static PAGE_SIZE: usize = 1 << PAGE_SHIFT;
 
 /// Page structure.
 pub struct Page {

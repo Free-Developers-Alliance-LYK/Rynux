@@ -100,9 +100,6 @@ config PAGE_SIZE_256KB
 
 endchoice
 
-
-
-
 endmenu
 
 source "arch/$(SRCARCH)/Kconfig"

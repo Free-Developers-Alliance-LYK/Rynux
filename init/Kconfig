@@ -69,4 +69,33 @@ menuconfig EXPERT
 	  environments which can tolerate a "non-standard" kernel.
 	  Only use this if you really know what you are doing.
 
+choice
+	prompt "Maximum Kernel Image size"
+	default KERNEL_IMAGE_SIZE_16MB
+
+config KERNEL_IMAGE_SIZE_4MB
+	bool "4MB size"
+	help
+	  This option allows you to set the maximum size of the kernel image
+	  to 4MB.
+
+config KERNEL_IMAGE_SIZE_8MB
+	bool "8MB size"
+	help
+	  This option allows you to set the maximum size of the kernel image
+	  to 8MB.
+
+config KERNEL_IMAGE_SIZE_16MB
+	bool "16MB size"
+	help
+	  This option allows you to set the maximum size of the kernel image
+	  to 16MB.
+
+config KERNEL_IMAGE_SIZE_32MB
+	bool "32MB size"
+	help
+	  This option allows you to set the maximum size of the kernel image
+	  to 32MB.
+endchoice
+
 endmenu

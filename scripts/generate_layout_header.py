@@ -6,11 +6,22 @@ import sys
 # type: "int" 或 "str"
 INTERESTED_VARS = {
     "SZ_4K": "int",
+    "PAGE_SIZE": "int",
     "KIMAGE_VADDR": "int",
     "SEGMENT_ALIGN": "int",
+    "INIT_IDMAP_DIR_SIZE":"int",
+    "INIT_IDMAP_DIR_PAGES": "int",
     "EXPORT_DISCARDS": "str",
     "EXPORT_HEAD_TEXT": "str",
     "EXPORT_IRQENTRY_TEXT": "str",
+    "EXPORT_SOFTIRQENTRY_TEXT": "str",
+    "EXPORT_ENTRY_TEXT": "str",
+    "EXPORT_TEXT_TEXT": "str",
+    "EXPORT_SCHED_TEXT": "str",
+    "EXPORT_LOCK_TEXT": "str",
+    "EXPORT_KPROBES_TEXT": "str",
+    "EXPORT_INIT_TEXT_SECTION": "str",
+    "EXPORT_EXIT_TEXT": "str",
 }
 
 def extract_int(rodata_bytes, sym, rodata, elfclass):
@@ -74,7 +85,7 @@ def main():
                 h.write(f"#define {name:<16} 0x{val:X}\n")
             elif typ == "str":
                 val_escaped = val.replace('\n', '\\\n')
-                h.write(f"#define {name:<16} \"{val_escaped}\"\n")
+                h.write(f"#define {name:<16} {val_escaped}\n")
         h.write(f"\n#endif /* {guard} */\n")
 
     print(f"Wrote {OUT} with {len(found)} constants.")

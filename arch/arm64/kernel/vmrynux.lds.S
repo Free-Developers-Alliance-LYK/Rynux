@@ -59,7 +59,7 @@ SECTIONS
 	_etext = .;			/* End of text section */
 
 	/* everything from this point to __init_begin will be marked RO NX */
-	RO_DATA(PAGE_SIZE)
+	RO_DATA
 
 	.got : { *(.got) }
 	/*
@@ -89,7 +89,7 @@ SECTIONS
 	__init_begin = .;
 	__inittext_begin = .;
 
-	INIT_TEXT_SECTION(8)
+	INIT_TEXT_SECTION
 
 	__exittext_begin = .;
 	.exit.text : {

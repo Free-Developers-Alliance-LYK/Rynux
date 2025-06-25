@@ -120,3 +120,24 @@ pub const PCI_IO_END: usize = PCI_IO_START + PCI_IO_SIZE;
 
 /// Fixmap Top
 pub const FIXMAP_TOP: usize = -(SZ_8M as isize) as usize;
+
+cfg_if! {
+    if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_4MB)] {
+        /// Kernel Image Size
+        pub const KERNEL_IMAGE_SIZE: usize = SZ_4M;
+    } else if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_8MB)] {
+        /// Kernel Image Size
+        pub const KERNEL_IMAGE_SIZE: usize = SZ_8M;
+    } else if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_16MB)] {
+        /// Kernel Image Size
+        pub const KERNEL_IMAGE_SIZE: usize = SZ_16M;
+    } else if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_32MB)] {
+        /// Kernel Image Size
+        pub const KERNEL_IMAGE_SIZE: usize = SZ_32M;
+    } else {
+        compile_error!("Unknown kernel image size");
+    }
+}
+
+/// Minimum kernel image alignment
+pub const MIN_KIMG_ALIGN: usize = SZ_2M;
