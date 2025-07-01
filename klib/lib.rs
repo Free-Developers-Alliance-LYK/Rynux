@@ -30,3 +30,4 @@ macro_rules! const_str_to_u8_array_with_null {
 pub(crate) mod cfg_if;
 
 pub mod math;
+pub mod string;

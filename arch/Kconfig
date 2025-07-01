@@ -148,6 +148,26 @@ config VMAP_STACK
 	  caught immediately rather than causing difficult-to-diagnose
 	  corruption.
 
+config HAVE_EFFICIENT_UNALIGNED_ACCESS
+	bool
+	help
+	  Some architectures are unable to perform unaligned accesses
+	  without the use of get_unaligned/put_unaligned. Others are
+	  unable to perform such accesses efficiently (e.g. trap on
+	  unaligned access and require fixing it up in the exception
+	  handler.)
+
+	  This symbol should be selected by an architecture if it can
+	  perform unaligned accesses efficiently to allow different
+	  code paths to be selected for these cases. Some network
+	  drivers, for example, could opt to not fix up alignment
+	  problems with received packets if doing so would not help
+	  much.
+
+	  See Documentation/core-api/unaligned-memory-access.rst for more
+	  information on the topic of unaligned memory accesses.
+
+
 
 endmenu # General architecture-dependent options
 
