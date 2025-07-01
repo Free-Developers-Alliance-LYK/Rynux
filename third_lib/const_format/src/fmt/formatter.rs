@@ -1327,9 +1327,6 @@ delegate_write_methods! {
     fn write_u64_display(n: u64)
     length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
 
-    fn write_u128_display(n: u128)
-    length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
-
     fn write_usize_display(n: usize)
     length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
 
@@ -1343,9 +1340,6 @@ delegate_write_methods! {
     length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
 
     fn write_i64_display(n: i64)
-    length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
-
-    fn write_i128_display(n: i128)
     length = PWrapper(n).compute_display_len(FormattingFlags::NEW);
 
     fn write_isize_display(n: isize)
@@ -1457,9 +1451,6 @@ delegate_integer_debug_methods! {
     fn write_u64_debug(n: u64)
     length = |flags| PWrapper(n).compute_debug_len(flags);
 
-    fn write_u128_debug(n: u128)
-    length = |flags| PWrapper(n).compute_debug_len(flags);
-
     fn write_usize_debug(n: usize)
     length = |flags| PWrapper(n).compute_debug_len(flags);
 
@@ -1473,9 +1464,6 @@ delegate_integer_debug_methods! {
     length = |flags| PWrapper(n).compute_debug_len(flags);
 
     fn write_i64_debug(n: i64)
-    length = |flags| PWrapper(n).compute_debug_len(flags);
-
-    fn write_i128_debug(n: i128)
     length = |flags| PWrapper(n).compute_debug_len(flags);
 
     fn write_isize_debug(n: isize)

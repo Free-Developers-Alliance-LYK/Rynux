@@ -65,7 +65,6 @@ slice_of_std_impl! {
     u16, i16,
     u32, i32,
     u64, i64,
-    u128, i128,
     usize, isize,
 }
 
@@ -74,7 +73,7 @@ slice_of_std_impl! {
 use core::{
     marker::{PhantomData, PhantomPinned},
     num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
+        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize,
         NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
     },
     ptr::NonNull,
@@ -92,8 +91,6 @@ impl_fmt! {
     impl[] Option<NonZeroI32>;
     impl[] Option<NonZeroU64>;
     impl[] Option<NonZeroI64>;
-    impl[] Option<NonZeroU128>;
-    impl[] Option<NonZeroI128>;
     impl[] Option<NonZeroUsize>;
     impl[] Option<NonZeroIsize>;
     impl[] Option<u8>;
@@ -104,8 +101,6 @@ impl_fmt! {
     impl[] Option<i32>;
     impl[] Option<u64>;
     impl[] Option<i64>;
-    impl[] Option<u128>;
-    impl[] Option<i128>;
     impl[] Option<usize>;
     impl[] Option<isize>;
     impl[] Option<bool>;
@@ -147,7 +142,7 @@ macro_rules! non_zero_impls {
 non_zero_impls! {
     NonZeroU8, NonZeroI8, NonZeroU16, NonZeroI16,
     NonZeroU32, NonZeroI32, NonZeroU64, NonZeroI64,
-    NonZeroU128, NonZeroI128, NonZeroUsize, NonZeroIsize,
+    NonZeroUsize, NonZeroIsize,
 }
 
 std_kind_impl! { impl[T,] *mut T }

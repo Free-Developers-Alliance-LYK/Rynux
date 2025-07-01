@@ -39,8 +39,8 @@ pub enum PVariant {
 #[derive(Debug, Copy, Clone)]
 pub struct Integer {
     pub is_negative: bool,
-    pub unsigned: u128,
-    pub mask: &'static u128, // A mask which disables the bits that weren't in the original number
+    pub unsigned: u64,
+    pub mask: &'static u64, // A mask which disables the bits that weren't in the original number
 }
 
 #[doc(hidden)]
@@ -63,8 +63,8 @@ macro_rules! pconvwrapper_impls {
                 pub const fn to_integer(self)->Integer{
                     Integer{
                         is_negative: self.0 < 0,
-                        unsigned: PWrapper(self.0).unsigned_abs() as u128,
-                        mask: &(((!(0 as $Signed)) as $Unsigned) as u128),
+                        unsigned: PWrapper(self.0).unsigned_abs() as u64,
+                        mask: &(((!(0 as $Signed)) as $Unsigned) as u64),
                     }
                 }
             }
@@ -74,8 +74,8 @@ macro_rules! pconvwrapper_impls {
                 pub const fn to_integer(self)->Integer{
                     Integer{
                         is_negative: false,
-                        unsigned: self.0 as u128,
-                        mask: &((!(0 as $Unsigned)) as u128),
+                        unsigned: self.0 as u64,
+                        mask: &((!(0 as $Unsigned)) as u64),
                     }
                 }
             }
@@ -120,7 +120,6 @@ pconvwrapper_impls! {
     (i16, u16)
     (i32, u32)
     (i64, u64)
-    (i128, u128)
     (isize, usize)
 }
 

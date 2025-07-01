@@ -1294,16 +1294,11 @@ impl<'w, E> StrWriterMut<'w, E> {
 
             let mut shifted = 0;
 
-            if c < 128
-                && ({
-                    shifted = 1 << c;
-                    (FOR_ESCAPING.is_escaped & shifted) != 0
-                })
-            {
+            if c < 128 && FOR_ESCAPING.has_escaped(c) {
                 self_buffer[written] = b'\\';
                 written += 1;
 
-                if (FOR_ESCAPING.is_backslash_escaped & shifted) != 0 {
+                if FOR_ESCAPING.has_backslash_escaped(c) {
                     remaining_for_escapes -= 1;
                     if remaining_for_escapes < 0 {
                         return Err(Error::NotEnoughSpace);
@@ -1416,13 +1411,11 @@ write_integer_fn! {
     (write_u16_display, write_u16_debug, unsigned, u16, u16)
     (write_u32_display, write_u32_debug, unsigned, u32, u32)
     (write_u64_display, write_u64_debug, unsigned, u64, u64)
-    (write_u128_display, write_u128_debug, unsigned, u128, u128)
     (write_usize_display, write_usize_debug, unsigned, usize, usize)
 
     (write_i8_display, write_i8_debug, signed, i8, u8)
     (write_i16_display, write_i16_debug, signed, i16, u16)
     (write_i32_display, write_i32_debug, signed, i32, u32)
     (write_i64_display, write_i64_debug, signed, i64, u64)
-    (write_i128_display, write_i128_debug, signed, i128, u128)
     (write_isize_display, write_isize_debug, signed, isize, usize)
 }

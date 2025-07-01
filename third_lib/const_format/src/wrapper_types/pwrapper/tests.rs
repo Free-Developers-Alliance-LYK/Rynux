@@ -156,8 +156,6 @@ fn pwrapper_methods() {
     check_number_of_digits_!(i64);
     check_number_of_digits_!(usize);
     check_number_of_digits_!(isize);
-    check_number_of_digits_!(u128);
-    check_number_of_digits_!(i128);
 }
 
 #[cfg(feature = "fmt")]

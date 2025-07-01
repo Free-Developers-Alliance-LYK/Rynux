@@ -131,12 +131,10 @@ macro_rules! __write_pvariant {
                 let c = str[i];
                 let mut written_c = c;
                 if c < 128 {
-                    let shifted = 1 << c;
-
-                    if (FOR_ESCAPING.is_escaped & shifted) != 0 {
+                     if FOR_ESCAPING.has_escaped(c) {
                         $out.array[$out.len] = b'\\';
                         $out.len += 1;
-                        if (FOR_ESCAPING.is_backslash_escaped & shifted) == 0 {
+                        if !FOR_ESCAPING.has_backslash_escaped(c) {
                             $out.array[$out.len] = b'x';
                             $out.array[$out.len + 1] =
                                 hex_as_ascii(c >> 4, $crate::pmr::HexFormatting::Upper);

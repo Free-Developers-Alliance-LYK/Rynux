@@ -245,8 +245,8 @@ pub struct StartAndArray<T: ?Sized> {
 
 #[doc(hidden)]
 pub struct ForEscaping {
-    pub is_escaped: u128,
-    pub is_backslash_escaped: u128,
+    pub is_escaped: [u64; 2],
+    pub is_backslash_escaped: [u64; 2],
     pub escape_char: [u8; 16],
 }
 
@@ -255,6 +255,24 @@ impl ForEscaping {
     #[inline(always)]
     pub const fn get_backslash_escape(b: u8) -> u8 {
         FOR_ESCAPING.escape_char[(b & 0b1111) as usize]
+    }
+
+    /// Gets the escape for a character that is kwown to be escaped.
+    pub const fn has_escaped(&self, b: u8) -> bool {
+        if b < 64 {
+            (self.is_escaped[0] & (1u64 << b)) != 0
+        } else {
+            (self.is_escaped[1] & (1u64 << (b - 64))) != 0
+        }
+    }
+
+    /// Gets whether a character is escaped with a backslash.
+    pub const fn has_backslash_escaped(&self, b: u8) -> bool {
+        if b < 64 {
+            (self.is_backslash_escaped[0] & (1u64 << b)) != 0
+        } else {
+            (self.is_backslash_escaped[1] & (1u64 << (b - 64))) != 0
+        }
     }
 }
 
@@ -273,7 +291,8 @@ pub const fn hex_as_ascii(n: u8, hex_fmt: HexFormatting) -> u8 {
 // Really clippy? Array indexing can panic you know.
 #[allow(clippy::no_effect)]
 pub const FOR_ESCAPING: &ForEscaping = {
-    let mut is_backslash_escaped = 0;
+    let mut is_backslash_escaped_lo: u64 = 0;
+    let mut is_backslash_escaped_hi: u64 = 0;
 
     let escaped = [
         (b'\t', b't'),
@@ -290,7 +309,11 @@ pub const FOR_ESCAPING: &ForEscaping = {
 
     __for_range! {i in 0..escaped.len() =>
         let (code, escape) = escaped[i];
-        is_backslash_escaped |= 1 << code;
+        if code < 64 {
+            is_backslash_escaped_lo |= 1u64 << code;
+        } else {
+            is_backslash_escaped_hi |= 1u64 << (code - 64);
+        }
 
         let ei = (code & 0b1111) as usize;
         let prev_escape = escape_char[ei] as usize;
@@ -299,11 +322,12 @@ pub const FOR_ESCAPING: &ForEscaping = {
     }
 
     // Setting all the control characters as being escaped.
-    let is_escaped = is_backslash_escaped | 0xFFFF_FFFF;
+    let is_escaped_lo = is_backslash_escaped_lo | 0xFFFF_FFFFu64;
+    let is_escaped_hi = is_backslash_escaped_hi;
 
     &ForEscaping {
         escape_char,
-        is_backslash_escaped,
-        is_escaped,
+        is_backslash_escaped: [is_backslash_escaped_lo, is_backslash_escaped_hi],
+        is_escaped: [is_escaped_lo, is_escaped_hi],
     }
 };

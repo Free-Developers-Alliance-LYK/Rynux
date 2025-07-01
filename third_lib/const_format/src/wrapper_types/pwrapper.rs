@@ -212,12 +212,10 @@ impl_number_of_digits! {impl_either; signed  , (i8, u8), 8}
 impl_number_of_digits! {impl_either; signed  , (i16, u16), 16}
 impl_number_of_digits! {impl_either; signed  , (i32, u32), 32}
 impl_number_of_digits! {impl_either; signed  , (i64, u64), 64}
-impl_number_of_digits! {impl_either; signed  , (i128, u128), 128}
 impl_number_of_digits! {impl_either; unsigned, (u8, u8), 8}
 impl_number_of_digits! {impl_either; unsigned, (u16, u16), 16}
 impl_number_of_digits! {impl_either; unsigned, (u32, u32), 32}
 impl_number_of_digits! {impl_either; unsigned, (u64, u64), 64}
-impl_number_of_digits! {impl_either; unsigned, (u128, u128), 128}
 
 #[cfg(target_pointer_width = "16")]
 type UWord = u16;
@@ -225,8 +223,6 @@ type UWord = u16;
 type UWord = u32;
 #[cfg(target_pointer_width = "64")]
 type UWord = u64;
-#[cfg(target_pointer_width = "128")]
-type UWord = u128;
 
 #[cfg(target_pointer_width = "16")]
 type IWord = i16;
@@ -234,8 +230,6 @@ type IWord = i16;
 type IWord = i32;
 #[cfg(target_pointer_width = "64")]
 type IWord = i64;
-#[cfg(target_pointer_width = "128")]
-type IWord = i128;
 
 macro_rules! impl_for_xsize {
     ($XSize:ident, $XWord:ident) => {
@@ -288,8 +282,8 @@ impl PWrapper<isize> {
 
 impl Integer {
     #[inline]
-    const fn as_negative(self) -> i128 {
-        (self.unsigned as i128).wrapping_neg()
+    const fn as_negative(self) -> i64 {
+        (self.unsigned as i64).wrapping_neg()
     }
 }
 
@@ -297,7 +291,7 @@ impl Integer {
 impl PWrapper<Integer> {
     pub const fn to_start_array_binary(self, flags: FormattingFlags) -> StartAndArray<[u8; 130]> {
         let mut n = if self.0.is_negative {
-            self.0.as_negative() as u128
+            self.0.as_negative() as u64
         } else {
             self.0.unsigned
         };
@@ -334,7 +328,7 @@ impl PWrapper<Integer> {
         flags: FormattingFlags,
     ) -> StartAndArray<[u8; 34]> {
         let mut n = if self.0.is_negative {
-            self.0.as_negative() as u128
+            self.0.as_negative() as u64
         } else {
             self.0.unsigned
         };
@@ -415,9 +409,8 @@ impl PWrapper<&[u8]> {
         while range.start < range.end {
             let c = self.0[range.start];
             if c < 128 {
-                let shifted = 1 << c;
-                if (FOR_ESCAPING.is_escaped & shifted) != 0 {
-                    sum += if (FOR_ESCAPING.is_backslash_escaped & shifted) == 0 {
+                 if FOR_ESCAPING.has_escaped(c) {
+                    sum += if !FOR_ESCAPING.has_backslash_escaped(c) {
                         3 // `\x01` only add 3 characters
                     } else {
                         1 // Escaped with a backslash
@@ -492,8 +485,6 @@ impl_eq_for_primitives! {
     impl[] i32 = l == *r;
     impl[] u64 = l == *r;
     impl[] i64 = l == *r;
-    impl[] u128 = l == *r;
-    impl[] i128 = l == *r;
     impl[] usize = l == *r;
     impl[] isize = l == *r;
     impl[] bool = l == *r;

@@ -94,13 +94,11 @@ fn debug_formatting() {
         i16::MIN, i16::MAX,
         i32::MIN, i32::MAX,
         i64::MIN, i64::MAX,
-        i128::MIN, i128::MAX,
         isize::MIN, isize::MAX,
         u8::MIN, u8::MAX,
         u16::MIN, u16::MAX,
         u32::MIN, u32::MAX,
         u64::MIN, u64::MAX,
-        u128::MIN, u128::MAX,
         usize::MIN, usize::MAX,
         false, true,
     }
@@ -258,12 +256,10 @@ fn binary_and_hex_formatting() {
     binary_hex_test_case!(u16, s);
     binary_hex_test_case!(u32, s);
     binary_hex_test_case!(u64, s);
-    binary_hex_test_case!(u128, s);
     binary_hex_test_case!(i8, s);
     binary_hex_test_case!(i16, s);
     binary_hex_test_case!(i32, s);
     binary_hex_test_case!(i64, s);
-    binary_hex_test_case!(i128, s);
 }
 
 #[test]

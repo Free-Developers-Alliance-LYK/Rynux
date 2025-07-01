@@ -138,10 +138,44 @@ const ENTRY_TEXT: &str = concatcp!{
 #[allow(missing_docs)]
 pub static EXPORT_ENTRY_TEXT: [u8; ENTRY_TEXT.len()+1] = const_str_to_u8_array_with_null!(ENTRY_TEXT);
 
+const TEXT_SPLIT: &str = concatcp!{
+    "__split_text_start = .; \n",
+    "*(.text.split .text.split.[0-9a-zA-Z_]*)  \n",
+    "__split_text_end = .; \n",
+};
+
+const TEXT_UNLIKELY: &str = concatcp!{
+    "__unlikely_text_start = .; \n",
+    "*(.text.unlikely .text.unlikely.*) \n", 
+    "__unlikely_text_end = .; \n",
+};
+
+const TEXT_HOT: &str = concatcp!{
+    "__hot_text_start = .; \n",
+    "*(.text.hot .text.hot.*) \n",
+    "__hot_text_end = .; \n",
+};
+
+const NOINSTR_TEXT: &str = concatcp!{
+    ALIGN_FUNCTION, " ; \n",
+    "__noinstr_text_start = .; \n",
+    "*(.noinstr.text)  \n",
+    "__cpuidle_text_start = .; \n",
+    "*(.cpuidle.text) \n",
+    "__cpuidle_text_end = .; \n",
+    "__noinstr_text_end = .; \n",
+};
+
 // TODO: dummy
 const TEXT_TEXT: &str = concatcp!{
+    ALIGN_FUNCTION, " ; \n",
+    "*(.text.unknown .text.unknown.*) \n",
+    TEXT_SPLIT,
+    TEXT_UNLIKELY,
     ". = ALIGN(", PAGE_SIZE, "); \n",
+    TEXT_HOT,
     "*(.text .text.fixup) \n",
+    NOINSTR_TEXT,
     "*(.ref.text)  \n",
 };
 
@@ -200,18 +234,31 @@ const RO_AFTER_INIT_DATA: &str = concatcp!{
     "*(.data..ro_after_init) \n",
     "__end_ro_after_init = .; \n",
 };
+const NOTES: &str = concatcp!{
+    "/DISCARD/ : { \n",
+        "*(.note.GNU-stack) \n",
+        "*(.note.gnu.property) \n",
+    "} \n",
+    ".notes : AT(ADDR(.notes) -", LOAD_OFFSET, ") { \n",
+        "__start_notes = .; \n",
+        "KEEP(*(.note.*)) \n",
+        "__stop_notes = .; \n",
+    "} \n",
+};
 
 const RO_DATA: &str = concatcp!{
     ". = ALIGN(", RO_DATA_ALIGN, "); \n",
     ".rodata : AT(ADDR(.rodata) -", LOAD_OFFSET, ") { \n",
-    " __start_rodata = .; \n",
-    "*(.rodata) *(.rodata.*) *(.data.rel.ro*) \n",
-    SCHED_DATA,
-    RO_AFTER_INIT_DATA,
+        " __start_rodata = .; \n",
+        "*(.rodata) *(.rodata.*) *(.data.rel.ro*) \n",
+        SCHED_DATA,
+        RO_AFTER_INIT_DATA,
     "} \n",
+
     ".rodata1 : AT(ADDR(.rodata1) -", LOAD_OFFSET, ") { \n",
-    "*(.rodata1) \n",
+        "*(.rodata1) \n",
     "} \n",
+    NOTES,
     ". = ALIGN(", RO_DATA_ALIGN, "); \n",
     "__end_rodata = .; \n",
 };

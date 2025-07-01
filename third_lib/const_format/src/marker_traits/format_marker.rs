@@ -252,7 +252,6 @@ std_kind_impls! {
     i16, u16,
     i32, u32,
     i64, u64,
-    i128, u128,
     isize, usize,
     bool, char,
 }

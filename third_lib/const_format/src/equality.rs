@@ -6,7 +6,7 @@ use core::{
     cmp::Ordering,
     marker::{PhantomData, PhantomPinned},
     num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
+        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize,
         NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
     },
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
@@ -66,7 +66,6 @@ slice_of_equal_op_impl! {
     u16, i16,
     u32, i32,
     u64, i64,
-    u128, i128,
     usize, isize,
 }
 
@@ -102,8 +101,6 @@ impl_eq_for_option_prim! {
     impl[] i32 = l == *r;
     impl[] u64 = l == *r;
     impl[] i64 = l == *r;
-    impl[] u128 = l == *r;
-    impl[] i128 = l == *r;
     impl[] usize = l == *r;
     impl[] isize = l == *r;
     impl[] bool = l == *r;
@@ -144,8 +141,6 @@ impl_eq_for_option! {
     impl[] NonZeroI32 = l.get() == r.get();
     impl[] NonZeroU64 = l.get() == r.get();
     impl[] NonZeroI64 = l.get() == r.get();
-    impl[] NonZeroU128 = l.get() == r.get();
-    impl[] NonZeroI128 = l.get() == r.get();
     impl[] NonZeroUsize = l.get() == r.get();
     impl[] NonZeroIsize = l.get() == r.get();
 }
