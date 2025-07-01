@@ -3,6 +3,7 @@
 # scripts contains sources for various helper programs used throughout
 # the kernel for the build process.
 
+hostprogs-always-$(CONFIG_KALLSYMS)         += kallsyms
 hostprogs-always-$(CONFIG_BUILDTIME_TABLE_SORT)		+= sorttable
 hostprogs-always-$(CONFIG_RUST_KERNEL_DOCTESTS)		+= rustdoc_test_builder
 hostprogs-always-$(CONFIG_RUST_KERNEL_DOCTESTS)		+= rustdoc_test_gen

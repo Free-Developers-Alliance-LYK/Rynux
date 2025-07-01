@@ -12,6 +12,14 @@
 
 LDFLAGS_vmrynux	:=--no-undefined -X --pic-veneer
 
+ifeq ($(CONFIG_RELOCATABLE), y)
+  # Pass --no-apply-dynamic-relocs to restore pre-binutils-2.27 behaviour
+  # for relative relocs, since this leads to better Image compression
+  # with the relocation offsets always being zero.
+  LDFLAGS_vmrynux     += -shared -Bsymbolic -z notext \
+              $(call ld-option, --no-apply-dynamic-relocs)
+endif
+
 ifeq ($(CONFIG_ARM64_ERRATUM_843419),y)
   ifeq ($(CONFIG_ARM64_LD_HAS_FIX_ERRATUM_843419),y)
 LDFLAGS_vmrynux	+= --fix-cortex-a53-843419
@@ -34,6 +42,19 @@ $(info "KBUILD_RUSTFLAGS = $(KBUILD_RUSTFLAGS)")
 # Same as above, prefer ELF but fall back to linux target if needed.
 KBUILD_LDFLAGS	+= -EL $(call ld-option, -maarch64elf, -maarch64linux -z norelro)
 KBUILD_LDFLAGS	+= -z norelro
+
+ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
+  KBUILD_CPPFLAGS += -mbig-endian
+  # Prefer the baremetal ELF build target, but not all toolchains include
+  # it so fall back to the standard linux version if needed.
+  KBUILD_LDFLAGS  += -EB $(call ld-option, -maarch64elfb, -maarch64linuxb -z norelro)
+  UTS_MACHINE := aarch64_be
+else
+  KBUILD_CPPFLAGS += -mlittle-endian
+  # Same as above, prefer ELF but fall back to linux target if needed.
+  KBUILD_LDFLAGS  += -EL $(call ld-option, -maarch64elf, -maarch64linux -z norelro)
+  UTS_MACHINE := aarch64
+endif
 
 BOOT_TARGETS	:= Image vmlinuz.efi image.fit
 

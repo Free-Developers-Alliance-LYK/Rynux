@@ -418,7 +418,27 @@ KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTFLAGS_KERNEL :=
 KBUILD_LDFLAGS :=
 CLANG_FLAGS :=
-KBUILD_CPPFLAGS := -I$(objtree)
+KBUILD_CPPFLAGS := -I$(objtree) -D__KERNEL__
+
+# Use USERINCLUDE when you must reference the UAPI directories only.
+USERINCLUDE    := \
+          -I$(srctree)/arch/$(SRCARCH)/include/uapi \
+          -I$(objtree)/arch/$(SRCARCH)/include/generated/uapi \
+          -I$(srctree)/include/uapi \
+          -I$(objtree)/include/generated/uapi \
+		  	-include $(srctree)/include/kconfig.h
+
+# Use RYNUXINCLUDE when you must reference the include/ directory.
+# Needed to be compatible with the O= option
+RYNUXINCLUDE    := \
+		-I$(srctree)/arch/$(SRCARCH)/include \
+		-I$(objtree)/arch/$(SRCARCH)/include/generated \
+		-I$(srctree)/include \
+		-I$(objtree)/include \
+		$(USERINCLUDE)
+
+KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
+
 
 ifeq ($(KBUILD_CLIPPY),1)
 	RUSTC_OR_CLIPPY_QUIET := CLIPPY
@@ -440,7 +460,7 @@ export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
 export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS KBUILD_PROCMACROLDFLAGS
 export KBUILD_USERCFLAGS KBUILD_USERLDFLAGS
 
-export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
+export KBUILD_CPPFLAGS NOSTDINC_FLAGS RYNUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
 export KBUILD_CFLAGS CFLAGS_KERNEL
 export KBUILD_RUSTFLAGS RUSTFLAGS_KERNEL
 export KBUILD_AFLAGS AFLAGS_KERNEL
@@ -603,6 +623,11 @@ else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_RUSTFLAGS += -Copt-level=s
 endif
 
+ifdef building_out_of_srctree
+KBUILD_CPPFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
+$(info "KBUILD_CPPFLAGS = $(KBUILD_CPPFLAGS)")
+endif
+
 # Always set `debug-assertions` and `overflow-checks` because their default
 # depends on `opt-level` and `debug-assertions`, respectively.
 KBUILD_RUSTFLAGS += -Cdebug-assertions=$(if $(CONFIG_RUST_DEBUG_ASSERTIONS),y,n)
@@ -619,6 +644,15 @@ endif
 NOSTDINC_FLAGS += -nostdinc
 
 LDFLAGS_vmrynux += --build-id=sha1
+
+ifeq ($(CONFIG_RELR),y)
+  # ld.lld before 15 did not support -z pack-relative-relocs.
+  LDFLAGS_vmrynux += $(call ld-option,--pack-dyn-relocs=relr,-z pack-relative-relocs)
+endif
+
+# We never want expected sections to be placed heuristically by the
+# linker. All sections should be explicitly named in the linker script.
+LDFLAGS_vmrynux += --orphan-handling=warn
 
 KBUILD_LDFLAGS	+= -z noexecstack
 
@@ -653,7 +687,7 @@ clean-dirs	:= .
 
 # Externally visible symbols (used by link-vmrynux.sh)
 
-KBUILD_VMLINUX_OBJS := ./built-in.a
+KBUILD_VMRYNUX_OBJS := ./built-in.a
 
 export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmrynux.lds
 
@@ -661,10 +695,10 @@ export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmrynux.lds
 quiet_cmd_ar_vmrynux.a = AR      $@
       cmd_ar_vmrynux.a = \
 	rm -f $@; \
-	$(AR) cDPrST $@ $(KBUILD_VMLINUX_OBJS)
+	$(AR) cDPrST $@ $(KBUILD_VMRYNUX_OBJS)
 
 targets += vmrynux.a
-vmrynux.a: $(KBUILD_VMLINUX_OBJS) FORCE
+vmrynux.a: $(KBUILD_VMRYNUX_OBJS) FORCE
 	$(call if_changed,ar_vmrynux.a)
 
 PHONY += vmrynux_o
@@ -692,7 +726,7 @@ vmrynux: vmrynux.o $(KBUILD_LDS)
 
 # The actual objects are generated when descending,
 # make sure no implicit rule kicks in
-$(sort $(KBUILD_LDS) $(KBUILD_VMLINUX_OBJS)): . ;
+$(sort $(KBUILD_LDS) $(KBUILD_VMRYNUX_OBJS)): . ;
 
 ifeq ($(origin KERNELRELEASE),file)
 filechk_kernel.release = $(srctree)/scripts/setlocalversion $(srctree)
@@ -1039,7 +1073,7 @@ quiet_cmd_gen_compile_commands = GEN     $@
       cmd_gen_compile_commands = $(PYTHON3) $< -a $(AR) -o $@ $(filter-out $<, $(real-prereqs))
 
 $(extmod_prefix)compile_commands.json: $(srctree)/scripts/clang-tools/gen_compile_commands.py \
-	$(if $(KBUILD_EXTMOD),, vmrynux.a $(KBUILD_VMLINUX_LIBS)) FORCE
+	$(if $(KBUILD_EXTMOD),, vmrynux.a ) FORCE
 	$(call if_changed,gen_compile_commands)
 
 targets += $(extmod_prefix)compile_commands.json

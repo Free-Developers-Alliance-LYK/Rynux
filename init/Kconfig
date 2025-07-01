@@ -22,9 +22,23 @@ config RUSTC_LLVM_VERSION
 	int
 	default $(rustc-llvm-version)
 
+config AS_IS_GNU
+	def_bool $(success,test "$(as-name)" = GNU)
+
+config AS_IS_LLVM
+	def_bool $(success,test "$(as-name)" = LLVM)
+
+config AS_VERSION
+	int
+	# Use clang version if this is the integrated assembler
+	default CLANG_VERSION if AS_IS_LLVM
+	default $(as-version)
+
 
 config BUILDTIME_TABLE_SORT
 	bool
+
+
 
 choice
 	prompt "Compiler optimization level"
@@ -98,4 +112,24 @@ config KERNEL_IMAGE_SIZE_32MB
 	  to 32MB.
 endchoice
 
+config TOOLS_SUPPORT_RELR
+	def_bool $(success,env "CC=$(CC)" "LD=$(LD)" "NM=$(NM)" "OBJCOPY=$(OBJCOPY)" $(srctree)/scripts/tools-support-relr.sh)
+
+
+config KALLSYMS
+	bool "Load all symbols for debugging/ksymoops" if EXPERT
+	default y
+	help
+	  Say Y here to let the kernel print out symbolic crash information and
+	  symbolic stack backtraces. This increases the size of the kernel
+	  somewhat, as all symbols have to be loaded into the kernel image.
+
+config KALLSYMS_ALL
+	bool "Include all symbols in kallsyms"
+	depends on KALLSYMS
+	help
+	  Say Y here to force all symbols to be included in the
+	  kernel's kallsyms table. Normally kallsyms only contains
+	  the symbols of functions for which a stack trace should be
+	  possible, but saying Y here will add all kernel symbols.
 endmenu

@@ -5,6 +5,7 @@ use super::{
     pmd::Pmd,
 };
 
+use super::PGTABLE_LEVELS;
 use crate::mm::page::PAGE_SIZE;
 use crate::arch::arm64::va_layout::{KIMAGE_VADDR, KERNEL_IMAGE_SIZE, MIN_KIMG_ALIGN};
 
@@ -46,6 +47,7 @@ const fn swapper_skip_level_shift() -> (usize, usize) {
 const SWAPPER_SKIP_LEVEL: usize = swapper_skip_level_shift().0;
 const SWAPPER_BLOCK_SHIFT: usize = swapper_skip_level_shift().1;
 const SWAPPER_BLOCK_SIZE: usize = 1 << SWAPPER_BLOCK_SHIFT;
+const SWAPPER_PGTABLE_LEVELS: usize = PGTABLE_LEVELS - SWAPPER_SKIP_LEVEL;
 
 // The initial ID map consists of the kernel image, mapped as two separate
 // segments, and may appear misaligned wrt the swapper block size. This means
@@ -55,6 +57,17 @@ const fn early_idmap_extra_pages() -> usize {
     use crate::arch::arm64::mm::SEGMENT_ALIGN;
     if SWAPPER_BLOCK_SIZE > SEGMENT_ALIGN {
         3
+    } else {
+        0
+    }
+}
+
+const fn early_segment_extra_pages() -> usize {
+    use crate::arch::arm64::mm::SEGMENT_ALIGN;
+     /* The number of segments in the kernel image (text, rodata, inittext, initdata, data+bss) */
+    const KERNEL_SEGMENT_COUNT: usize = 5;
+    if SWAPPER_BLOCK_SIZE > SEGMENT_ALIGN {
+        KERNEL_SEGMENT_COUNT + 1
     } else {
         0
     }
@@ -81,3 +94,9 @@ pub static INIT_IDMAP_DIR_PAGES: usize = early_pages(INIT_IDMAP_PGTABLE_LEVELS, 
 /// The size of the initial identity mapping.
 #[no_mangle]
 pub static INIT_IDMAP_DIR_SIZE: usize = (INIT_IDMAP_DIR_PAGES + early_idmap_extra_pages()) * PAGE_SIZE;
+
+static INIT_DIR_PAGES: usize = early_pages(SWAPPER_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
+/// The size of the initial page tables.
+#[no_mangle]
+pub static INIT_DIR_SIZE: usize = (INIT_DIR_PAGES + early_segment_extra_pages()) * PAGE_SIZE;
+

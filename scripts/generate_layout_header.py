@@ -6,11 +6,13 @@ import sys
 # type: "int" 或 "str"
 INTERESTED_VARS = {
     "SZ_4K": "int",
+    "SZ_2K": "int",
     "PAGE_SIZE": "int",
     "KIMAGE_VADDR": "int",
     "SEGMENT_ALIGN": "int",
     "INIT_IDMAP_DIR_SIZE":"int",
     "INIT_IDMAP_DIR_PAGES": "int",
+    "INIT_DIR_SIZE":"int",
     "EXPORT_DISCARDS": "str",
     "EXPORT_HEAD_TEXT": "str",
     "EXPORT_IRQENTRY_TEXT": "str",
@@ -22,6 +24,20 @@ INTERESTED_VARS = {
     "EXPORT_KPROBES_TEXT": "str",
     "EXPORT_INIT_TEXT_SECTION": "str",
     "EXPORT_EXIT_TEXT": "str",
+    "EXPORT_RO_DATA": "str",
+    "EXPORT_INIT_DATA": "str",
+    "EXPORT_INIT_SETUP": "str",
+    "EXPORT_INIT_CALLS": "str",
+    "EXPORT_CON_INITCALL": "str",
+    "EXPORT_INIT_RAM_FS": "str",
+    "EXPORT_EXIT_DATA": "str",
+    "EXPORT_PERCPU_SECTION": "str",
+    "EXPORT_RW_DATA": "str",
+    "EXPORT_BSS_SECTION": "str",
+    "EXPORT_STABS_DEBUG": "str",
+    "EXPORT_DWARF_DEBUG": "str",
+    "EXPORT_ELF_DETAILS": "str",
+    "EXPORT_HEAD_SYMBOLS": "str",
 }
 
 def extract_int(rodata_bytes, sym, rodata, elfclass):
@@ -35,7 +51,7 @@ def extract_str(f, sym, rodata):
     addr = sym['st_value']
     file_offset = rodata['sh_offset'] + (addr - rodata['sh_addr'])
     f.seek(file_offset)
-    raw = f.read(512)   # 512 字节足够一般字符串用
+    raw = f.read(4096)   # 512 字节足够一般字符串用
     s = raw.split(b'\0', 1)[0].decode('utf-8', errors='replace')
     return s
 

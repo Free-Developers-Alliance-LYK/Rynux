@@ -61,9 +61,7 @@ config VMLINUX_MAP
 	help
 	  Selecting this option will pass "-Map=vmlinux.map" to ld
 	  when linking vmlinux. That file can be useful for verifying
-	  and debugging magic section games, and for seeing which
-	  pieces of code get eliminated with
-	  CONFIG_LD_DEAD_CODE_DATA_ELIMINATION.
+	  and debugging magic section games
 
 
 

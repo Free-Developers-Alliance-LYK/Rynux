@@ -18,9 +18,9 @@ ENTRY(_text)
  * boundary should be sufficient.
  */
 PECOFF_FILE_ALIGNMENT = 0x200;
+#define PECOFF_EDATA_PADDING    \
+      .pecoff_edata_padding : { BYTE(0); . = ALIGN(PECOFF_FILE_ALIGNMENT); }
 
-/* now we not support  EFI*/
-#define PECOFF_EDATA_PADDING
 
 SECTIONS
 {
@@ -114,7 +114,7 @@ SECTIONS
 
 	.init.data : {
 		INIT_DATA
-		INIT_SETUP(16)
+		INIT_SETUP
 		INIT_CALLS
 		CON_INITCALL
 		INIT_RAM_FS
@@ -124,27 +124,30 @@ SECTIONS
 		EXIT_DATA
 	}
 
-	PERCPU_SECTION(L1_CACHE_BYTES)
+	PERCPU_SECTION
 
 	.rela.dyn : ALIGN(8) {
-		__rela_start = .;
+		__pi_rela_start = .;
 		*(.rela .rela*)
-		__rela_end = .;
+		__pi_rela_end = .;
 	}
 
 	.relr.dyn : ALIGN(8) {
-		__relr_start = .;
+		__pi_relr_start = .;
 		*(.relr.dyn)
-		__relr_end = .;
+		__pi_relr_end = .;
 	}
 
 	. = ALIGN(SEGMENT_ALIGN);
 	__initdata_end = .;
 	__init_end = .;
 
+	.data.rel.ro : { *(.data.rel.ro) }
+    ASSERT(SIZEOF(.data.rel.ro) == 0, "Unexpected RELRO detected!")
+
 	_data = .;
 	_sdata = .;
-	RW_DATA(L1_CACHE_BYTES, PAGE_SIZE, THREAD_ALIGN)
+	RW_DATA
 
 	/*
 	 * Data written with the MMU off but read with the MMU on requires
@@ -168,7 +171,7 @@ SECTIONS
 	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
 	_edata = .;
 
-	BSS_SECTION(SBSS_ALIGN, 0, 0)
+	BSS_SECTION
 
 	. = ALIGN(PAGE_SIZE);
 	init_pg_dir = .;
@@ -193,9 +196,6 @@ SECTIONS
 		*(.plt) *(.plt.*) *(.iplt) *(.igot .igot.plt)
 	}
 	ASSERT(SIZEOF(.plt) == 0, "Unexpected run-time procedure linkages detected!")
-
-	.data.rel.ro : { *(.data.rel.ro) }
-	ASSERT(SIZEOF(.data.rel.ro) == 0, "Unexpected RELRO detected!")
 }
 
 ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
@@ -204,6 +204,3 @@ ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
  * If padding is applied before .head.text, virt<->phys conversions will fail.
  */
 ASSERT(_text == KIMAGE_VADDR, "HEAD is misaligned")
-
-ASSERT(swapper_pg_dir - reserved_pg_dir == RESERVED_SWAPPER_OFFSET,
-       "RESERVED_SWAPPER_OFFSET is wrong!")

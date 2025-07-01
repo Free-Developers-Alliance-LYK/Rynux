@@ -3,8 +3,34 @@ config ARM64
         select ARCH_WANT_FRAME_POINTERS
 	select BUILDTIME_TABLE_SORT
 	select FUNCTION_ALIGNMENT_4B
+	select HAVE_ARCH_VMAP_STACK
+	select 64BIT
 
 menu "Arm64 architecture options"
+
+choice
+	prompt "Endianness"
+	default CPU_LITTLE_ENDIAN
+	help
+	  Select the endianness of data accesses performed by the CPU. Userspace
+	  applications will need to be compiled and linked for the endianness
+	  that is selected here.
+
+config CPU_BIG_ENDIAN
+	bool "Build big-endian kernel"
+	# https://github.com/llvm/llvm-project/commit/1379b150991f70a5782e9a143c2ba5308da1161c
+	depends on AS_IS_GNU || AS_VERSION >= 150000
+	help
+	  Say Y if you plan on running a kernel with a big-endian userspace.
+
+config CPU_LITTLE_ENDIAN
+	bool "Build little-endian kernel"
+	help
+	  Say Y if you plan on running a kernel with a little-endian userspace.
+	  This is usually the case for distributions targeting arm64.
+
+endchoice
+
 
 config BROKEN_GAS_INST
 	def_bool !$(as-instr,1:\n.inst 0\n.rept . - 1b\n\nnop\n.endr\n)
@@ -171,5 +197,15 @@ config ARM64_PA_BITS
 
 endmenu # ARM64 Mem Management options
 
+config RELOCATABLE
+	bool "Build a relocatable kernel image" if EXPERT
+	select ARCH_HAS_RELR
+	default y
+	help
+	  This builds the kernel as a Position Independent Executable (PIE),
+	  which retains all relocation metadata required to relocate the
+	  kernel binary at runtime to a different virtual address than the
+	  address it was linked at.
+	  Since AArch64 uses the RELA relocation format, this requires a
 
 endmenu # ARM64 architecture options

@@ -3,9 +3,9 @@
 #
 # link vmrynux
 #
-# vmrynux is linked from the objects in vmrynux.a and $(KBUILD_VMLINUX_LIBS).
+# vmrynux is linked from the objects in vmrynux.a and $(KBUILD_VMRYNUX_LIBS).
 # vmrynux.a contains objects that are linked unconditionally.
-# $(KBUILD_VMLINUX_LIBS) are archives which are linked conditionally
+# $(KBUILD_VMRYNUX_LIBS) are archives which are linked conditionally
 # (not within --whole-archive), and do not require symbol indexes added.
 #
 # vmrynux
@@ -13,7 +13,7 @@
 #   |
 #   +--< vmrynux.a
 #   |
-#   +--< $(KBUILD_VMLINUX_LIBS)
+#   +--< $(KBUILD_VMRYNUX_LIBS)
 #   |    +--< lib/lib.a + more
 #   |
 #   +-< ${kallsymso} (see description in KALLSYMS section)
@@ -31,6 +31,7 @@ set -e
 LD="$1"
 KBUILD_LDFLAGS="$2"
 LDFLAGS_vmrynux="$3"
+VMRYNUX="$4"
 
 is_enabled() {
 	grep -q "^$1=y" include/config/auto.conf
@@ -59,15 +60,22 @@ vmrynux_link()
 	# skip output file argument
 	shift
 
-	objs=vmrynux.o
-	libs=
+	objs=vmrynux.a
+	libs="${KBUILD_VMRYNUX_LIBS}"
 
-	objs="${objs} init/version-timestamp.o"
+	#objs="${objs} init/version-timestamp.o"
 
-	wl=
-	ld="${LD}"
-	ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmrynux}"
-	ldlibs=
+	if [ "${SRCARCH}" = "um" ]; then
+		wl=-Wl,
+		ld="${CC}"
+		ldflags="${CFLAGS_vmrynux}"
+		ldlibs="-lutil -lrt -lpthread"
+	else
+		wl=
+		ld="${LD}"
+		ldflags="${KBUILD_LDFLAGS} ${LDFLAGS_vmrynux}"
+		ldlibs=
+	fi
 
 	ldflags="${ldflags} ${wl}--script=${objtree}/${KBUILD_LDS}"
 
@@ -76,14 +84,42 @@ vmrynux_link()
 		ldflags="${ldflags} ${wl}--strip-debug"
 	fi
 
-	if is_enabled CONFIG_VMLINUX_MAP; then
-		ldflags="${ldflags} ${wl}-Map=${output}.map"
+	if [ -n "${generate_map}" ];  then
+		ldflags="${ldflags} ${wl}-Map=vmrynux.map"
 	fi
 
 	${ld} ${ldflags} -o ${output}					\
 		${wl}--whole-archive ${objs} ${wl}--no-whole-archive	\
 		${wl}--start-group ${libs} ${wl}--end-group		\
-		${kallsymso} ${ldlibs}
+		${kallsymso} ${btf_vmrynux_bin_o} ${arch_vmrynux_o} ${ldlibs}
+}
+
+# generate .BTF typeinfo from DWARF debuginfo
+# ${1} - vmrynux image
+gen_btf()
+{
+	local btf_data=${1}.btf.o
+
+	info BTF "${btf_data}"
+	LLVM_OBJCOPY="${OBJCOPY}" ${PAHOLE} -J ${PAHOLE_FLAGS} ${1}
+
+	# Create ${btf_data} which contains just .BTF section but no symbols. Add
+	# SHF_ALLOC because .BTF will be part of the vmrynux image. --strip-all
+	# deletes all symbols including __start_BTF and __stop_BTF, which will
+	# be redefined in the linker script. Add 2>/dev/null to suppress GNU
+	# objcopy warnings: "empty loadable segment detected at ..."
+	${OBJCOPY} --only-section=.BTF --set-section-flags .BTF=alloc,readonly \
+		--strip-all ${1} "${btf_data}" 2>/dev/null
+	# Change e_type to ET_REL so that it can be used to link final vmrynux.
+	# GNU ld 2.35+ and lld do not allow an ET_EXEC input.
+	if is_enabled CONFIG_CPU_BIG_ENDIAN; then
+		et_rel='\0\1'
+	else
+		et_rel='\1\0'
+	fi
+	printf "${et_rel}" | dd of="${btf_data}" conv=notrunc bs=1 seek=16 status=none
+
+	btf_vmrynux_bin_o=${btf_data}
 }
 
 # Create ${2}.o file with all symbols from the ${1} object file
@@ -91,13 +127,15 @@ kallsyms()
 {
 	local kallsymopt;
 
-	kallsymopt="${kallsymopt} --all-symbols"
+	if is_enabled CONFIG_KALLSYMS_ALL; then
+		kallsymopt="${kallsymopt} --all-symbols"
+	fi
 
 	info KSYMS "${2}.S"
 	scripts/kallsyms ${kallsymopt} "${1}" > "${2}.S"
 
 	info AS "${2}.o"
-	${CC} ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS} \
+	${CC} ${NOSTDINC_FLAGS} ${RYNUXINCLUDE} ${KBUILD_CPPFLAGS} \
 	      ${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL} -c -o "${2}.o" "${2}.S"
 
 	kallsymso=${2}.o
@@ -122,11 +160,14 @@ mksysmap()
 
 sorttable()
 {
-	${objtree}/scripts/sorttable ${1}
+	${NM} -S ${1} > .tmp_vmrynux.nm-sort
+	${objtree}/scripts/sorttable -s .tmp_vmrynux.nm-sort ${1}
 }
 
 cleanup()
 {
+	rm -f .btf.*
+	rm -f .tmp_vmrynux.nm-sort
 	rm -f System.map
 	rm -f vmrynux
 	rm -f vmrynux.map
@@ -144,17 +185,21 @@ if [ "$1" = "clean" ]; then
 	exit 0
 fi
 
-${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init init/version-timestamp.o
-
+#${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init init/version-timestamp.o
+arch_vmrynux_o=
+btf_vmrynux_bin_o=
 kallsymso=
 strip_debug=
+generate_map=
 
 if is_enabled CONFIG_KALLSYMS; then
-	true > .tmp_vmrynux.kallsyms0.syms
-	kallsyms .tmp_vmrynux.kallsyms0.syms .tmp_vmrynux0.kallsyms
+	true > .tmp_vmrynux0.syms
+	kallsyms .tmp_vmrynux0.syms .tmp_vmrynux0.kallsyms
 fi
 
+
 if is_enabled CONFIG_KALLSYMS; then
+	strip_debug=1
 	vmrynux_link .tmp_vmrynux1
 fi
 
@@ -164,14 +209,14 @@ if is_enabled CONFIG_KALLSYMS; then
 	# Generate section listing all symbols and add it into vmrynux
 	# It's a four step process:
 	# 0)  Generate a dummy __kallsyms with empty symbol list.
-	# 1)  Link .tmp_vmrynux.kallsyms1 so it has all symbols and sections,
+	# 1)  Link .tmp_vmrynux1.kallsyms so it has all symbols and sections,
 	#     with a dummy __kallsyms.
-	#     Running kallsyms on that gives us .tmp_kallsyms1.o with
+	#     Running kallsyms on that gives us .tmp_vmrynux1.kallsyms.o with
 	#     the right size
-	# 2)  Link .tmp_vmrynux.kallsyms2 so it now has a __kallsyms section of
+	# 2)  Link .tmp_vmrynux2.kallsyms so it now has a __kallsyms section of
 	#     the right size, but due to the added section, some
 	#     addresses have shifted.
-	#     From here, we generate a correct .tmp_vmrynux.kallsyms2.o
+	#     From here, we generate a correct .tmp_vmrynux2.kallsyms.o
 	# 3)  That link may have expanded the kernel image enough that
 	#     more linker branch stubs / trampolines had to be added, which
 	#     introduces new names, which further expands kallsyms. Do another
@@ -202,13 +247,27 @@ fi
 
 strip_debug=
 
-vmrynux_link vmrynux
+if is_enabled CONFIG_VMRYNUX_MAP; then
+	generate_map=1
+fi
 
-mksysmap vmrynux System.map
+vmrynux_link "${VMRYNUX}"
+
+# fill in BTF IDs
+if is_enabled CONFIG_DEBUG_INFO_BTF; then
+	info BTFIDS "${VMRYNUX}"
+	RESOLVE_BTFIDS_ARGS=""
+	if is_enabled CONFIG_WERROR; then
+		RESOLVE_BTFIDS_ARGS=" --fatal_warnings "
+	fi
+	${RESOLVE_BTFIDS} ${RESOLVE_BTFIDS_ARGS} "${VMRYNUX}"
+fi
+
+mksysmap "${VMRYNUX}" System.map
 
 if is_enabled CONFIG_BUILDTIME_TABLE_SORT; then
-	info SORTTAB vmrynux
-	if ! sorttable vmrynux; then
+	info SORTTAB "${VMRYNUX}"
+	if ! sorttable "${VMRYNUX}"; then
 		echo >&2 Failed to sort kernel tables
 		exit 1
 	fi
@@ -224,4 +283,4 @@ if is_enabled CONFIG_KALLSYMS; then
 fi
 
 # For fixdep
-echo "vmrynux: $0" > .vmrynux.d
+echo "${VMRYNUX}: $0" > ".${VMRYNUX}.d"
