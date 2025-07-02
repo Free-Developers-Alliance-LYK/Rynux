@@ -27,6 +27,8 @@ libmacros_extension := $(patsubst libmacros.%,%,$(libmacros_name))
 
 libconst_format_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name const_format_proc_macros --crate-type proc-macro - </dev/null)
 
+libstatic_assertions_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name static_assertions_proc_macros --crate-type proc-macro - </dev/null)
+
 # Procedural macros can only be used with the `rustc` that compiled it.
 $(obj)/$(libmacros_name): $(src)/macros/lib.rs FORCE
 	+$(call if_changed_dep,rustc_procmacro)
@@ -37,14 +39,19 @@ $(obj)/$(libconst_format_proc_macro_name): $(src)/const_format_proc_macros/src/l
 	$(obj)/proc_macro2.rlib $(obj)/quote.rlib $(obj)/unicode_xid.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
+$(obj)/$(libstatic_assertions_proc_macro_name): $(src)/static_assertions_proc_macros/src/lib.rs FORCE
+	+$(call if_changed_dep,rustc_procmacro)
+
 # This to trrgger Makefile.build include Makefile.host
 hostprogs += fake
 # This to trrgger target exclude unicode_ident
 fake-rustlib := y
 
-prepare: $(obj)/$(libmacros_name) $(obj)/$(libconst_format_proc_macro_name)
+prepare: $(obj)/$(libmacros_name) $(obj)/$(libconst_format_proc_macro_name) $(obj)/$(libstatic_assertions_proc_macro_name)
 
 always-y += $(libmacros_name)
 always-y += $(libconst_format_proc_macro_name)
+always-y += $(libstatic_assertions_proc_macro_name)
+
 no-clean-files += proc_macro2.rlib quote.rlib unicode_ident.rlib unicode_xid.rlib
-no-clean-files += $(libmacros_name) $(libconst_format_proc_macro_name)
+no-clean-files += $(libmacros_name) $(libconst_format_proc_macro_name) $(libstatic_assertions_proc_macro_name)

@@ -4,3 +4,4 @@ pub mod pgtable;
 pub mod mm;
 pub mod cache;
 pub mod kernel;
+pub mod linkage;

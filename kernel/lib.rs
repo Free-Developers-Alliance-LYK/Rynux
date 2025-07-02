@@ -19,10 +19,14 @@ pub mod arch;
 pub mod size;
 pub mod vmrynux;
 pub mod mm;
+pub mod linkage;
+pub mod prelude;
+
+pub use static_assertions as static_assertions;
+pub use const_format as const_format;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
         loop {}
 }
-

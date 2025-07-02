@@ -1,5 +1,6 @@
 //! Vmrynux for linker
 use crate::mm::page::PAGE_SIZE;
+use crate::linkage::FUNCTION_ALIGNMENT;
 use const_format::concatcp;
 use klib::{cfg_if, const_str_to_u8_array_with_null};
 use crate::arch::mm::ArchThreadMemLayout;
@@ -72,27 +73,6 @@ const HEAD_TEXT: &str = "KEEP(*(.head.text))";
 #[allow(missing_docs)]
 #[no_mangle]
 pub static EXPORT_HEAD_TEXT: [u8; HEAD_TEXT.len()+1] = const_str_to_u8_array_with_null!(HEAD_TEXT);
-
-cfg_if! {
-    if #[cfg(CONFIG_FUNCTION_ALIGNMENT_4B)] {
-        /// Function alignment
-        pub const FUNCTION_ALIGNMENT: usize = 4;
-    } else if #[cfg(CONFIG_FUNCTION_ALIGNMENT_8B)] {
-        /// Function alignment
-        pub const FUNCTION_ALIGNMENT: usize = 8;
-    } else if #[cfg(CONFIG_FUNCTION_ALIGNMENT_16B)] {
-        /// Function alignment
-        pub const FUNCTION_ALIGNMENT: usize = 16;
-    } else if #[cfg(CONFIG_FUNCTION_ALIGNMENT_32B)] {
-        /// Function alignment
-        pub const FUNCTION_ALIGNMENT: usize = 32;
-    } else if #[cfg(CONFIG_FUNCTION_ALIGNMENT_64B)] {
-        /// Function alignment
-        pub const FUNCTION_ALIGNMENT: usize = 64;
-    } else {
-        compile_error!("Unsupported function alignment");
-    }
-}
 
 const ALIGN_FUNCTION: &str = concatcp!{
     ". = ALIGN(",FUNCTION_ALIGNMENT,")",
