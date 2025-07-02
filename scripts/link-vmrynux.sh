@@ -158,12 +158,6 @@ mksysmap()
 	${NM} -n "${1}" | sed -f "${srctree}/scripts/mksysmap" > "${2}"
 }
 
-sorttable()
-{
-	${NM} -S ${1} > .tmp_vmrynux.nm-sort
-	${objtree}/scripts/sorttable -s .tmp_vmrynux.nm-sort ${1}
-}
-
 cleanup()
 {
 	rm -f .btf.*
@@ -264,14 +258,6 @@ if is_enabled CONFIG_DEBUG_INFO_BTF; then
 fi
 
 mksysmap "${VMRYNUX}" System.map
-
-if is_enabled CONFIG_BUILDTIME_TABLE_SORT; then
-	info SORTTAB "${VMRYNUX}"
-	if ! sorttable "${VMRYNUX}"; then
-		echo >&2 Failed to sort kernel tables
-		exit 1
-	fi
-fi
 
 # step a (see comment above)
 if is_enabled CONFIG_KALLSYMS; then

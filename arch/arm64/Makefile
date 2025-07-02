@@ -56,6 +56,8 @@ else
   UTS_MACHINE := aarch64
 endif
 
+boot		:= arch/arm64/boot
+
 BOOT_TARGETS	:= Image vmlinuz.efi image.fit
 
 PHONY += $(BOOT_TARGETS)

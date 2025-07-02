@@ -1,7 +1,6 @@
 config ARM64
 	def_bool y
         select ARCH_WANT_FRAME_POINTERS
-	select BUILDTIME_TABLE_SORT
 	select FUNCTION_ALIGNMENT_4B
 	select HAVE_ARCH_VMAP_STACK
 	select 64BIT

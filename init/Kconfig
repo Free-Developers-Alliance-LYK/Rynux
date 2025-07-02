@@ -35,11 +35,6 @@ config AS_VERSION
 	default $(as-version)
 
 
-config BUILDTIME_TABLE_SORT
-	bool
-
-
-
 choice
 	prompt "Compiler optimization level"
         default CC_OPTIMIZE_FOR_PERFORMANCE

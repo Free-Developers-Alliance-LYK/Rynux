@@ -12,10 +12,6 @@ RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 core-cfgs = \
     --cfg no_fp_fmt_parse
 
-alloc-cfgs = \
-    --cfg no_global_oom_handling \
-    --cfg no_rc
-
 redirect-intrinsics = \
 	__addsf3 __eqsf2 __extendsfdf2 __gesf2 __lesf2 __ltsf2 __mulsf3 __nesf2 __truncdfsf2 __unordsf2 \
 	__adddf3 __eqdf2 __ledf2 __ltdf2 __muldf3 __unorddf2 \
@@ -41,20 +37,12 @@ $(obj)/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(obj)/compiler_builtins.o: $(src)/compiler_builtins.rs $(obj)/core.o FORCE
 	+$(call if_changed_rule,rustc_library)
 
-$(obj)/alloc.o: private skip_clippy = 1
-$(obj)/alloc.o: private skip_flags = -Wunreachable_pub
-$(obj)/alloc.o: private rustc_target_flags = $(alloc-cfgs)
-$(obj)/alloc.o: $(RUST_LIB_SRC)/alloc/src/lib.rs $(obj)/compiler_builtins.o FORCE
-	+$(call if_changed_rule,rustc_library)
-
 $(obj)/const_format.o: private skip_flags = -Wunreachable_pub
-$(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_macros \
-  						--extern alloc
-$(obj)/const_format.o: $(src)/const_format/src/lib.rs $(obj)/alloc.o FORCE
+$(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_macros
+$(obj)/const_format.o: $(src)/const_format/src/lib.rs  $(obj)/core.o $(obj)/compiler_builtins.o FORCE
 	+$(call if_changed_rule,rustc_library)
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
 obj-y			+= core.o
 obj-y			+= compiler_builtins.o
-obj-y 			+= alloc.o
 obj-y 			+= const_format.o

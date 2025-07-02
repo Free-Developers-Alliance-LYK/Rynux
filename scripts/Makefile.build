@@ -142,7 +142,7 @@ rust_common_cmd = \
 	-Zallow-features=$(rust_allowed_features) \
 	-Zcrate-attr=no_std \
 	-Zcrate-attr='feature($(rust_allowed_features))' \
-	-Zunstable-options --extern force:alloc --extern force:kernel \
+	-Zunstable-options --extern force:kernel \
 	--crate-type rlib \
 	-L $(objtree)/ -L $(objtree)/third_lib/  -L $(objtree)/proc_macros \
 	--crate-name $(basename $(notdir $@)) \

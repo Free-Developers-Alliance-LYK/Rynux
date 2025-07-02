@@ -29,3 +29,9 @@ make LLVM=-17  O=build_dir menuconfig
 ```bash
 make LLVM=-17 O=build_dir
 ```
+
+### Run Image o qemu
+
+```bash
+qemu-system-aarch64 -M virt -cpu cortex-a57 -smp 1 -m 4G   -kernel build_dir/arch/arm64/boot/Image  -nographic    -append " earlycon root=/dev/ram rdinit=/bin/sh "
+```
