@@ -12,8 +12,7 @@ $(obj)/klib.o: private rustc_target_flags = --extern alloc --extern macros
 $(obj)/klib.o: $(src)/klib/lib.rs $(obj)/third_lib/built-in.a FORCE
 	+$(call if_changed_rule,rustc_library)
 
-$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
-    --extern macros --extern klib --extern const_format
+$(obj)/kernel.o: private rustc_target_flags = --extern macros --extern klib --extern const_format --extern static_assertions
 $(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/klib.o FORCE
 	+$(call if_changed_rule,rustc_library)
 
