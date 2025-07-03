@@ -1,5 +1,10 @@
 //! Rynux arm64 boot head
 
+use kernel::arch::arm64::{
+    sysreg,
+};
+
+use kernel::{cpu_le, cpu_be};
 
 core::arch::global_asm!(r#"
     .section .head.text, "ax"
@@ -35,6 +40,23 @@ pub unsafe extern "C" fn primary_entry() -> ! {
     }
 }
 
+/*
+cfg_if! {
+    if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
+        macro_rules! ee_test_instr {
+            () => {
+                "tbz x19, {shift}, 1f"
+            };
+        }
+    } else {
+        macro_rules! ee_test_instr {
+            () => {
+                "tbnz x19, {sctlr_elx_ee_shift}, 1f"
+            }
+        }
+    }
+}
+*/
 #[allow(missing_docs)]
 #[no_mangle]
 #[naked]
@@ -43,29 +65,20 @@ pub unsafe extern "C" fn record_mmu_state() -> ! {
     unsafe {
         core::arch::naked_asm!(
             "mrs x19, CurrentEL",
-            "cmp x19, #CurrentEL_EL2",
+            "cmp x19, {CurrentEL_EL2}",
             "mrs x19, sctlr_el1",
             "b.ne 0f",
             "mrs x19, sctlr_el2",
             "0:",
-            "tbnz x19, #SCTLR_ELx_EE_SHIFT, 1f",
-            "tbz x19, #SCTLR_ELx_EE_SHIFT, 1f",
-            "tst x19, #SCTLR_ELx_C",
-            "and x19, x19, #SCTLR_ELx_M",
+            cpu_le!("tbnz x19, {sctlr_elx_ee_shift}, 1f"),
+            cpu_be!("tbz x19, {sctlr_elx_ee_shift}, 1f"),
+            "tst x19, {sctlr_elx_c}",
+            "and x19, x19, {sctlr_elx_m}",
             "csel x19, xzr, x19, eq",
             "ret",
             "1:",
-            "eor x19, x19, #SCTLR_ELx_EE",
-            "bic x19, x19, #SCTLR_ELx_M",
-            "b.ne 2f",
-            "pre_disable_mmu_workaround",
-            "msr sctlr_el2, x19",
-            "b 3f",
-            "2:",
-            "pre_disable_mmu_workaround",
-            "msr sctlr_el1, x19",
-            "3:",
-            "isb",
+            sctlr_elx_ee_shift =  const sysreg::SctlrElx::EE_SHIFT,
+            CurrentEL_EL2 = const sysreg::CurrentEL::EL2,
         );
     }
 }

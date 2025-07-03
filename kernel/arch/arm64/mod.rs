@@ -5,3 +5,5 @@ pub mod mm;
 pub mod cache;
 pub mod kernel;
 pub mod linkage;
+pub mod sysreg;
+pub mod assembler;
