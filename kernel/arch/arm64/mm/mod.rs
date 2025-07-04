@@ -11,7 +11,6 @@ use klib::cfg_if;
 #[no_mangle]
 pub static SEGMENT_ALIGN: usize = SZ_64K;
 
-
 /// ARM64-specific thread memory layout
 pub struct ArchThreadMemLayout {
 }

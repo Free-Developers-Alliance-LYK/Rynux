@@ -7,7 +7,7 @@ use crate::arch::mm::ArchThreadMemLayout;
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64)] {
-       use crate::arch::arm64::cache::L1_CACHE_BYTES;
+       use crate::arch::arm64::mm::cache::L1_CACHE_BYTES;
        const EXIT_DISCARDS: &str = "";
        static LOAD_OFFSET: usize = 0;
        const INIT_TEXT_ALIGN: usize = 8;
@@ -21,6 +21,8 @@ cfg_if! {
        const BSS_STOP_ALIGN: usize = 0;
     }
 }
+
+const CACHE_ALIGN: usize = crate::arch::cache::SMP_CACHE_BYTES;
 
 const EXIT_TEXT: &str = concat!(
     "*(.exit.text) ",
@@ -365,11 +367,17 @@ const INIT_TASK_DATA: &str = concatcp!{
     "__end_init_task = .; \n",
 };
 
+const CACHELINE_ALIGNED_DATA: &str = concatcp!{
+    ". = ALIGN(", CACHE_ALIGN, "); \n",
+    "*(.data..cacheline_aligned) \n",
+};
+
 
 const RW_DATA: &str = concatcp!{
     ". = ALIGN(", PAGE_SIZE, "); \n",
     ".data : AT(ADDR(.data) -", LOAD_OFFSET, ") { \n",
     INIT_TASK_DATA,
+    CACHELINE_ALIGNED_DATA,
     "} \n",
 };
 

@@ -12,6 +12,7 @@
 mod concat_idents;
 mod helpers;
 mod paste;
+mod link;
 
 use proc_macro::TokenStream;
 
@@ -170,4 +171,22 @@ pub fn paste(input: TokenStream) -> TokenStream {
     let mut tokens = input.into_iter().collect();
     paste::expand(&mut tokens);
     tokens.into_iter().collect()
+}
+
+use quote::quote;
+
+#[proc_macro_attribute]
+pub fn cacheline_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::aligned_section_impl(
+        quote!(section = ".data..cacheline_aligned", align = 64).into(),
+        item,
+    )
+}
+
+#[proc_macro_attribute]
+pub fn init_data(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".init.data").into(),
+        item,
+    )
 }

@@ -16,4 +16,16 @@ pub struct SctlrElx {}
 impl SctlrElx {
     /// EE bit shift
     pub const EE_SHIFT: u64 = 25;
+
+    /// EE bit
+    pub const EE: u64 = 1 << Self::EE_SHIFT;
+
+    /// SA bit
+    pub const SA: u64 = 1 << 3;
+    /// Data cache BIT
+    pub const C: u64 = 1 << 2;
+    /// Alignment check
+    pub const A: u64 = 1 << 1;
+    /// mmu enable BIT
+    pub const M: u64 = 1 << 0;
 }
