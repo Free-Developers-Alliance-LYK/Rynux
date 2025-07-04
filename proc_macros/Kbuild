@@ -22,6 +22,18 @@ $(obj)/quote.rlib: $(src)/quote/src/lib.rs $(obj)/proc_macro2.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
 always += $(obj)/quote.rlib
 
+syn_cfg = --cfg 'feature="derive"' \
+		  --cfg 'feature="parsing"' \
+		  --cfg 'feature="printing"' \
+		  --cfg 'feature="proc-macro"' \
+		  --cfg 'feature="full"' \
+		  --cfg 'feature="clone-impls"'
+$(obj)/syn.rlib: private rustc_target_flags = --extern proc_macro2 --extern quote --extern unicode_ident $(syn_cfg)
+$(obj)/syn.rlib: private skip_flags = -Wrust_2018_idioms
+$(obj)/syn.rlib: $(src)/syn/src/lib.rs $(obj)/proc_macro2.rlib $(obj)/unicode_ident.rlib $(obj)/quote.rlib FORCE
+	+$(call if_changed_dep,host_rustlib)
+always += $(obj)/syn.rlib
+
 libmacros_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name macros --crate-type proc-macro - </dev/null)
 libmacros_extension := $(patsubst libmacros.%,%,$(libmacros_name))
 
@@ -30,7 +42,9 @@ libconst_format_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-name
 libstatic_assertions_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name static_assertions_proc_macros --crate-type proc-macro - </dev/null)
 
 # Procedural macros can only be used with the `rustc` that compiled it.
-$(obj)/$(libmacros_name): $(src)/macros/lib.rs FORCE
+$(obj)/$(libmacros_name): private rustc_target_flags = \
+ 	--extern quote --extern syn
+$(obj)/$(libmacros_name): $(src)/macros/lib.rs $(obj)/quote.rlib $(obj)/syn.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
 $(obj)/$(libconst_format_proc_macro_name): private rustc_target_flags = \
