@@ -1,8 +1,8 @@
 //! Link impl
 
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, Item, Meta, Token, Expr, ExprLit, Lit};
+use quote::{quote, format_ident};
+use syn::{parse_macro_input, Item, ItemStatic, ItemConst, Meta, Token, Expr, ExprLit, Lit};
 use syn::punctuated::Punctuated;
 
 pub(crate) fn aligned_section_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -42,15 +42,48 @@ pub(crate) fn aligned_section_impl(attr: TokenStream, item: TokenStream) -> Toke
     let input = parse_macro_input!(item as Item);
 
     let output = match input {
-        Item::Static(mut s) => {
-            s.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
-            s.attrs.insert(1, syn::parse_quote!(#[repr(align(#align))]));
-            quote!(#s)
+        Item::Static(s) => {
+            let ItemStatic {
+                attrs,
+                vis,
+                mutability,
+                ident,
+                ty,
+                expr,
+                ..
+            } = s;
+
+            let wrapper = format_ident!("__{}_align", ident);
+
+            quote! {
+                #[repr(align(#align))]
+                struct #wrapper(#ty);
+
+                #(#attrs)*
+                #[link_section = #section]
+                #vis static #mutability #ident: #wrapper = #wrapper(#expr);
+            }
         }
-        Item::Const(mut c) => {
-            c.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
-            c.attrs.insert(1, syn::parse_quote!(#[repr(align(#align))]));
-            quote!(#c)
+        Item::Const(c) => {
+            let ItemConst {
+                attrs,
+                vis,
+                ident,
+                ty,
+                expr,
+                ..
+            } = c;
+
+            let wrapper = format_ident!("__{}_align", ident);
+
+            quote! {
+                #[repr(align(#align))]
+                struct #wrapper(#ty);
+
+                #(#attrs)*
+                #[link_section = #section]
+                #vis const #ident: #wrapper = #wrapper(#expr);
+            }
         }
         Item::Fn(mut f) => {
             f.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
@@ -97,6 +130,18 @@ pub(crate) fn section_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
     let input = parse_macro_input!(item as Item);
 
     let output = match input {
+        Item::Static(mut s) => {
+            s.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            quote!(#s)
+        }
+        Item::Const(mut c) => {
+            c.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            quote!(#c)
+        }
+        Item::Fn(mut f) => {
+            f.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            quote!(#f)
+        }
         other => {
             quote! {
                 #[link_section = #section]
