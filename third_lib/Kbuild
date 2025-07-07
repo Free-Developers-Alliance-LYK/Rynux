@@ -37,15 +37,27 @@ $(obj)/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(obj)/compiler_builtins.o: $(src)/compiler_builtins.rs $(obj)/core.o FORCE
 	+$(call if_changed_rule,rustc_library)
 
+
+base_libs= $(obj)/core.o $(obj)/compiler_builtins.o
+
+# ------------------------------------- const_format ------------------------
 $(obj)/const_format.o: private skip_flags = -Wunreachable_pub
 $(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_macros
-$(obj)/const_format.o: $(src)/const_format/src/lib.rs  $(obj)/core.o $(obj)/compiler_builtins.o FORCE
+$(obj)/const_format.o: $(src)/const_format/src/lib.rs  $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
-#$(obj)/static_assertions.o: private skip_flags = -Wunreachable_pub
+# ------------------------------------- static assertions ------------------------
 $(obj)/static_assertions.o: private rustc_target_flags = --extern static_assertions_proc_macros
-$(obj)/static_assertions.o: $(src)/static_assertions/src/lib.rs  $(obj)/core.o $(obj)/compiler_builtins.o FORCE
+$(obj)/static_assertions.o: $(src)/static_assertions/src/lib.rs $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
+
+
+# --------------------------------------------- bitflags -------------------
+$(obj)/bitflags.o: private skip_flags = -Wunreachable_pub
+$(obj)/bitflags.o: $(src)/bitflags/src/lib.rs  $(base_libs) FORCE
+	+$(call if_changed_rule,rustc_library)
+
+
 
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
@@ -53,3 +65,4 @@ obj-y			+= core.o
 obj-y			+= compiler_builtins.o
 obj-y 			+= const_format.o
 obj-y 			+= static_assertions.o
+obj-y 			+= bitflags.o
