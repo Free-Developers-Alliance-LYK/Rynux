@@ -10,11 +10,15 @@
 
 #![no_std]
 
+#![feature(naked_functions)]
+
+
 // Allow proc-macros to refer to `::kernel` inside the `kernel` crate (this crate).
 //extern crate self as kernel;
 
 pub use macros;
 
+pub mod klib;
 pub mod arch;
 pub mod size;
 pub mod vmrynux;

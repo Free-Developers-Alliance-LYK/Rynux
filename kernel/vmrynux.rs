@@ -1,9 +1,11 @@
 //! Vmrynux for linker
+
+use crate::{cfg_if, const_str_to_u8_array_with_null};
 use crate::mm::page::PAGE_SIZE;
 use crate::linkage::FUNCTION_ALIGNMENT;
-use const_format::concatcp;
-use klib::{cfg_if, const_str_to_u8_array_with_null};
 use crate::arch::mm::ArchThreadMemLayout;
+
+use const_format::concatcp;
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64)] {

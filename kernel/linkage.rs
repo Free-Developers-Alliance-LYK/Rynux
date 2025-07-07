@@ -1,6 +1,6 @@
 //! Linkage code.
 
-use klib::cfg_if;
+use crate::cfg_if;
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64)] {

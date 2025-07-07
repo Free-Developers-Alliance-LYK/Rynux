@@ -15,12 +15,13 @@ pub const L1_CACHE_BYTES: usize = 1 << L1_CACHE_SHIFT;
 ///
 #[naked]
 #[no_mangle]
-pub unsafe extern "C" fn dcache_inval_poc(mut start: usize, mut end: usize) {
+#[link_section = ".text"]
+pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
     unsafe {
         core::arch::naked_asm!(
             // x0 = start, x1 = end
             // cache line size: x2
-            "read_ctr x3",
+            "mrs x3, ctr_el0",
             "ubfm x3, x3, #16, #19", // cache line size encoding
             "mov x2, #4", // bytes per word
             "lsl x2, x2, x3", // actual cache line size

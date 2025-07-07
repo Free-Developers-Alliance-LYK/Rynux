@@ -1,6 +1,6 @@
 //! Page management code.
 
-use klib::cfg_if;
+use crate::cfg_if;
 
 cfg_if! {
     if #[cfg(CONFIG_PAGE_SIZE_4KB)] {

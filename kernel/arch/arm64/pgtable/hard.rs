@@ -1,5 +1,5 @@
 //! Arm64 Page table hardware definition
-use klib::math::div_round_up;
+use crate::klib::math::div_round_up;
 use crate::mm::page::PAGE_SHIFT;
 
 const PTDESC_ORDER: usize = 3;

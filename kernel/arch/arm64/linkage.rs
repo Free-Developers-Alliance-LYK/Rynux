@@ -1,6 +1,6 @@
 //! ARM64-specific linkage code.
 
-use klib::cfg_if;
+use crate::cfg_if;
 
 cfg_if! {
     if #[cfg(CONFIG_FUNCTION_ALIGNMENT_4B)] {

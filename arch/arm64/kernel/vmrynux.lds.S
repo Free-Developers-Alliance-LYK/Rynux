@@ -171,12 +171,17 @@ SECTIONS
 	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
 	_edata = .;
 
+	/* start of zero-init region */
 	BSS_SECTION
 
 	. = ALIGN(PAGE_SIZE);
 	init_pg_dir = .;
 	. += INIT_DIR_SIZE;
 	init_pg_end = .;
+	/* end of zero-init region */
+
+	. += SZ_4K;		/* stack for the early C runtime */
+	early_init_stack = .;
 
 	. = ALIGN(SEGMENT_ALIGN);
 	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);

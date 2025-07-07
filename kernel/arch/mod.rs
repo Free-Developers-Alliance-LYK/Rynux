@@ -1,6 +1,6 @@
 //! Kernel architecture-specific code.
 
-use klib::cfg_if;
+use crate::cfg_if;
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64)] {
@@ -8,7 +8,7 @@ cfg_if! {
 
         /// ARM64-specific mem module code.
         pub mod mm {
-            pub use super::arm64::mm::ArchThreadMemLayout;
+            pub use super::arm64::mm::thread_layout::ArchThreadMemLayout;
         }
     }
 }

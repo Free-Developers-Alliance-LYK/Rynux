@@ -1,10 +1,13 @@
 //! Arm64 Page table
 
-use klib::cfg_if;
+use crate::cfg_if;
 
 pub mod hard;
 pub mod pgdir;
 pub mod pte;
+pub use pgdir::Pgdir;
+pub use pte::Pte;
+
 pub mod idmap;
 pub mod pmd;
 

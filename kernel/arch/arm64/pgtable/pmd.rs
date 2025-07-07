@@ -3,8 +3,11 @@
 use super::hard::{arm64_hw_pgtable_levels_shift, PTDESC_TABLE_SHIFT};
 use crate::mm::page::PAGE_SHIFT;
 
-pub(crate) struct Pmd {
-}
+/// Pmd value
+pub type PmdVal = u64;
+
+/// Pmd
+pub struct Pmd(pub PmdVal);
 
 #[allow(dead_code)]
 impl Pmd {
@@ -46,4 +49,14 @@ impl Pmd {
     const CONT_PTRS: usize = 1 << (Self::CONT_SHIFT - Self::SHIFT);
     // Mask for continue PMD entry
     const CONT_MASK: usize = !(Self::CONT_SIZE - 1);
+
+    /// Create a new Pmd
+    pub const fn new(val: PmdVal) -> Self {
+        Self(val)
+    }
+
+    /// Get the value of the Pmd
+    pub const fn pmd_value(&self) -> PmdVal {
+        self.0
+    }
 }

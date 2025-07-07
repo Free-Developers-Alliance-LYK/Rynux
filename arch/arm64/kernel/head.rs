@@ -4,7 +4,7 @@ use kernel::arch::arm64::{
     sysreg,
 };
 
-use kernel::{cpu_le, cpu_be};
+use kernel::{cpu_le, cpu_be, adr_l, str_l};
 
 core::arch::global_asm!(r#"
     .section .head.text, "ax"
@@ -42,9 +42,21 @@ unsafe extern "C" fn primary_entry() -> ! {
         core::arch::naked_asm!(
             "bl record_mmu_state",
             "bl preserve_boot_args",
+
+            // init stack
+            "adrp x1, {early_init_stack}",
+            "mov sp, x1",
+            "mov x29, xzr",
+            "adrp x0, {init_idmap_pg_dir}",
+            "mov x1, xzr",
+            "bl {__pi_create_init_idmap}",
+
             "mov x0, 0x09000000",
             "mov w1, #65",
-            "str w1, [x0]"
+            "str w1, [x0]",
+            early_init_stack = sym early_init_stack,
+            init_idmap_pg_dir = sym init_idmap_pg_dir,
+            __pi_create_init_idmap = sym __pi_create_init_idmap,
         );
     }
 }
@@ -84,7 +96,7 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
     unsafe {
         core::arch::naked_asm!(
             "mov x21, x0", // x21=FDT
-            "adr_l x0, {boot_args}", // record the contents of
+            adr_l!("x0", "{boot_args}"),
             "stp x21, x1, [x0]", // x0 .. x3 at kernel entry
             "stp x2, x3, [x0, #16]",
             "cbnz x19, 0f", // skip cache invalidation if MMU is on
@@ -92,11 +104,18 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
             "add x1, x0, #0x20", // 4 x 8 bytes
             "b {dcache_inval_poc}",
             "0:",
-            "str_l x19, {mmu_enabled_at_boot}, x0",
+            str_l!("x19", "{mmu_enabled_at_boot}", "x0"),
             "ret",
-            boot_args = static kernel::arch::arm64::kernel::setup::BOOT_ARGS,
-            mmu_enabled_at_boot = static kernel::arch::arm64::kernel::setup::MMU_ENABLED_AT_BOOT,
+            boot_args = sym kernel::arch::arm64::kernel::setup::BOOT_ARGS,
+            mmu_enabled_at_boot = sym kernel::arch::arm64::kernel::setup::MMU_ENABLED_AT_BOOT,
             dcache_inval_poc = sym kernel::arch::arm64::mm::cache::dcache_inval_poc,
         );
     }
+}
+
+// Define in vmrynux.lds.S
+extern "C" {
+    static early_init_stack: u8;
+    static init_idmap_pg_dir: u8;
+    static __pi_create_init_idmap: u8;
 }

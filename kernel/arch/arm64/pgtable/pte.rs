@@ -3,8 +3,12 @@
 use crate::mm::page::PAGE_SHIFT;
 use crate::arch::arm64::pgtable::hard::PTDESC_TABLE_SHIFT;
 
-pub(crate) struct Pte {
-}
+/// Pte value
+pub type PteVal = u64;
+
+/// Pte
+pub struct Pte(pub PteVal);
+
 
 #[allow(dead_code)]
 impl Pte {
@@ -46,4 +50,14 @@ impl Pte {
     const CONT_PTRS: usize = 1 << Self::CONT_SHIFT - PAGE_SHIFT;
     // Mask for aligning to a contiguous PTE entry
     const CONT_MASK: usize = !(Self::CONT_SIZE - 1);
+
+    /// Create a new Pte
+    pub const fn new(val: PteVal) -> Self {
+        Self(val)
+    }
+
+    /// Get the value of the Pte
+    pub const fn pte_value(&self) -> PteVal {
+        self.0
+    }
 }

@@ -176,17 +176,25 @@ pub fn paste(input: TokenStream) -> TokenStream {
 use quote::quote;
 
 #[proc_macro_attribute]
-pub fn cacheline_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::aligned_section_impl(
-        quote!(section = ".data..cacheline_aligned", align = 64).into(),
+pub fn section_cache_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".data..cacheline_aligned").into(),
         item,
     )
 }
 
 #[proc_macro_attribute]
-pub fn init_data(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn section_init_data(_attr: TokenStream, item: TokenStream) -> TokenStream {
     link::section_impl(
         quote!(section = ".init.data").into(),
+        item,
+    )
+}
+
+#[proc_macro_attribute]
+pub fn section_init_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".init.text").into(),
         item,
     )
 }

@@ -7,4 +7,4 @@
 //! ```
 
 pub use crate::size::*;
-pub use klib::*;
+pub use crate::klib::*;

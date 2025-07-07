@@ -25,8 +25,8 @@
 //!
 
 use crate::size::*;
+use crate::cfg_if;
 use crate::mm::page::{PAGE_SHIFT, Page};
-use klib::cfg_if;
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64_VA_BITS_36)] {

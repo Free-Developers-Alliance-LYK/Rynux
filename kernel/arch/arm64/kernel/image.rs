@@ -1,7 +1,7 @@
 //! Rynux arm64 image header
 
 use crate::mm::page::PAGE_SHIFT;
-use klib::*;
+use crate::{cfg_if, const_str_to_u8_array_with_null};
 use const_format::concatcp;
 use crate::static_assertions::const_assert_eq;
 
