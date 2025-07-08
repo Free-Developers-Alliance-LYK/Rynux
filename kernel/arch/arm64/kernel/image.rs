@@ -1,9 +1,13 @@
 //! Rynux arm64 image header
 
-use crate::mm::page::PAGE_SHIFT;
-use crate::{cfg_if, const_str_to_u8_array_with_null};
-use const_format::concatcp;
-use crate::static_assertions::const_assert_eq;
+use crate::{
+    mm::page::PAGE_SHIFT,
+    cfg_if,
+    const_str_to_u8_array_with_null,
+    static_assertions::const_assert_eq,
+    macros::need_export,
+    const_format::concatcp,
+};
 
 cfg_if! {
     if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
@@ -140,6 +144,6 @@ cfg_if! {
     }
 }
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_HEAD_SYMBOLS: [u8; HEAD_SYMBOLS.len()+1] = const_str_to_u8_array_with_null!(HEAD_SYMBOLS);

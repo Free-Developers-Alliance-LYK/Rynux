@@ -1,9 +1,10 @@
 //! Constants for common sizes in bytes.
+use crate::macros::need_export;
 
 macro_rules! sz {
     ($name:ident, $val:expr) => {
         /// Constant for the size of `$name` in bytes.
-        #[no_mangle]
+        #[need_export]
         pub static $name: usize = $val;
     };
 }

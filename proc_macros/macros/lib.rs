@@ -198,3 +198,28 @@ pub fn section_init_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
         item,
     )
 }
+
+
+use syn::parse_macro_input;
+use syn::Item;
+
+#[proc_macro_attribute]
+pub fn need_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as Item);
+
+    let output = match input {
+        Item::Static(mut s) => {
+            s.attrs.insert(0, syn::parse_quote!(#[no_mangle]));
+            quote!(#s)
+        }
+        other => {
+            let err = "The #[need_export] attribute may only be applied to static variables.";
+            quote! {
+                compile_error!(#err);
+                #other
+            }
+            .into()
+        }
+    };
+    output.into()
+}

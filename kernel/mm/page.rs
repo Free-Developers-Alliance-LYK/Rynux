@@ -1,6 +1,9 @@
 //! Page management code.
 
-use crate::cfg_if;
+use crate:: {
+    cfg_if,
+    macros::need_export,
+};
 
 cfg_if! {
     if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
@@ -27,8 +30,12 @@ cfg_if! {
 }
 
 /// Size of a page PA SIZE in bytes.
-#[no_mangle]
+#[need_export]
 pub static PAGE_SIZE: usize = 1 << PAGE_SHIFT;
+
+/// Page mask
+pub const PAGE_MASK: usize = !(PAGE_SIZE - 1);
+
 
 /// Page structure.
 pub struct Page {

@@ -6,8 +6,15 @@ use super::{
 };
 
 use super::PGTABLE_LEVELS;
-use crate::mm::page::PAGE_SIZE;
-use crate::arch::arm64::va_layout::{KIMAGE_VADDR, KERNEL_IMAGE_SIZE, MIN_KIMG_ALIGN};
+use crate::{
+    mm::page::PAGE_SIZE,
+    arch::arm64::va_layout::{
+        KIMAGE_VADDR,
+        KERNEL_IMAGE_SIZE,
+        MIN_KIMG_ALIGN
+    },
+    macros::need_export,
+};
 
 const fn early_entries(lvl: usize, vstart: usize, vend: usize) -> usize {
     ((vend - 1) >> (SWAPPER_BLOCK_SHIFT + lvl * PTDESC_TABLE_SHIFT)) - (vstart >> (SWAPPER_BLOCK_SHIFT + lvl * PTDESC_TABLE_SHIFT)) + 1
@@ -88,15 +95,15 @@ const INIT_IDMAP_PGTABLE_LEVELS: usize = IDMAP_LEVELS - SWAPPER_SKIP_LEVEL;
 const _END: usize = KIMAGE_VADDR + KERNEL_IMAGE_SIZE;
 
 /// The number of page tables needed for the initial identity mapping.
-#[no_mangle]
+#[need_export]
 pub static INIT_IDMAP_DIR_PAGES: usize = early_pages(INIT_IDMAP_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
 
 /// The size of the initial identity mapping.
-#[no_mangle]
+#[need_export]
 pub static INIT_IDMAP_DIR_SIZE: usize = (INIT_IDMAP_DIR_PAGES + early_idmap_extra_pages()) * PAGE_SIZE;
 
 static INIT_DIR_PAGES: usize = early_pages(SWAPPER_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
 /// The size of the initial page tables.
-#[no_mangle]
+#[need_export]
 pub static INIT_DIR_SIZE: usize = (INIT_DIR_PAGES + early_segment_extra_pages()) * PAGE_SIZE;
 

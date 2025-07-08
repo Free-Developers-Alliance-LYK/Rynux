@@ -24,9 +24,12 @@
 //! |---------------|
 //!
 
-use crate::size::*;
-use crate::cfg_if;
-use crate::mm::page::{PAGE_SHIFT, Page};
+use crate::{
+    size::*,
+    cfg_if,
+    mm::page::{PAGE_SHIFT, Page},
+    macros::need_export,
+};
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64_VA_BITS_36)] {
@@ -88,7 +91,7 @@ pub const MODULES_VSIZE: usize = SZ_2G;
 pub const MODULES_END: usize = MODULES_VADDR + MODULES_VSIZE;
 
 /// KIMAGE_VADDR - the virtual address of the start of the kernel image.
-#[no_mangle]
+#[need_export]
 pub static KIMAGE_VADDR: usize = MODULES_END;
 
 /// VMEMMAP_RANGE - the range of the vmemmap

@@ -1,9 +1,12 @@
 //! Vmrynux for linker
 
-use crate::{cfg_if, const_str_to_u8_array_with_null};
-use crate::mm::page::PAGE_SIZE;
-use crate::linkage::FUNCTION_ALIGNMENT;
-use crate::arch::mm::ArchThreadMemLayout;
+use crate::{
+    cfg_if, const_str_to_u8_array_with_null,
+    macros::need_export,
+    mm::page::PAGE_SIZE,
+    linkage::FUNCTION_ALIGNMENT,
+    arch::mm::ArchThreadMemLayout,
+};
 
 use const_format::concatcp;
 
@@ -31,7 +34,7 @@ const EXIT_TEXT: &str = concat!(
     "*(.text.exit) ",
 );
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_EXIT_TEXT: [u8; EXIT_TEXT.len()+1] = const_str_to_u8_array_with_null!(EXIT_TEXT);
 
@@ -42,7 +45,7 @@ const EXIT_DATA: &str = concat!(
    "*(.dtors .dtors.*) ",
 );
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_EXIT_DATA: [u8; EXIT_DATA.len()+1] = const_str_to_u8_array_with_null!(EXIT_DATA);
 
@@ -68,14 +71,15 @@ pub const DISCARDS: &str = concatcp!{
      "}"
 };
 
+#[need_export]
 #[allow(missing_docs)]
-#[no_mangle]
 pub static EXPORT_DISCARDS: [u8; DISCARDS.len()+1] = const_str_to_u8_array_with_null!(DISCARDS);
 
 /// LINKD HEAD TEXT
 const HEAD_TEXT: &str = "KEEP(*(.head.text))";
+
+#[need_export]
 #[allow(missing_docs)]
-#[no_mangle]
 pub static EXPORT_HEAD_TEXT: [u8; HEAD_TEXT.len()+1] = const_str_to_u8_array_with_null!(HEAD_TEXT);
 
 const ALIGN_FUNCTION: &str = concatcp!{
@@ -95,7 +99,7 @@ const IRQENTRY_TEXT: &str = concatcp!{
     "__irqentry_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_IRQENTRY_TEXT: [u8; IRQENTRY_TEXT.len()+1] = const_str_to_u8_array_with_null!(IRQENTRY_TEXT);
 
@@ -107,7 +111,7 @@ const SOFTIRQENTRY_TEXT: &str = concatcp!{
     "__softirqentry_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_SOFTIRQENTRY_TEXT: [u8; SOFTIRQENTRY_TEXT.len()+1] = const_str_to_u8_array_with_null!(SOFTIRQENTRY_TEXT);
 
@@ -118,7 +122,7 @@ const ENTRY_TEXT: &str = concatcp!{
     "__entry_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_ENTRY_TEXT: [u8; ENTRY_TEXT.len()+1] = const_str_to_u8_array_with_null!(ENTRY_TEXT);
 
@@ -163,7 +167,7 @@ const TEXT_TEXT: &str = concatcp!{
     "*(.ref.text)  \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_TEXT_TEXT: [u8; TEXT_TEXT.len()+1] = const_str_to_u8_array_with_null!(TEXT_TEXT);
 
@@ -174,7 +178,7 @@ const SCHED_TEXT: &str = concatcp!{
     "__sched_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_SCHED_TEXT: [u8; SCHED_TEXT.len()+1] = const_str_to_u8_array_with_null!(SCHED_TEXT);
 
@@ -185,7 +189,7 @@ const LOCK_TEXT: &str = concatcp!{
     "__lock_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_LOCK_TEXT: [u8; LOCK_TEXT.len()+1] = const_str_to_u8_array_with_null!(LOCK_TEXT);
 
@@ -196,7 +200,7 @@ const KPROBES_TEXT: &str = concatcp!{
     "__kprobes_text_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_KPROBES_TEXT: [u8; KPROBES_TEXT.len()+1] = const_str_to_u8_array_with_null!(KPROBES_TEXT);
 
@@ -247,7 +251,7 @@ const RO_DATA: &str = concatcp!{
     "__end_rodata = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_RO_DATA: [u8; RO_DATA.len()+1] = const_str_to_u8_array_with_null!(RO_DATA);
 
@@ -265,7 +269,7 @@ const INIT_TEXT_SECTION: &str = concatcp!{
     "} \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_INIT_TEXT_SECTION: [u8; INIT_TEXT_SECTION.len()+1] = const_str_to_u8_array_with_null!(INIT_TEXT_SECTION);
 
@@ -275,7 +279,7 @@ const INIT_DATA: &str = concatcp!{
     "*(.init.rodata .init.rodata.*) \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_INIT_DATA: [u8; INIT_DATA.len()+1] = const_str_to_u8_array_with_null!(INIT_DATA);
 
@@ -286,7 +290,7 @@ const INIT_SETUP: &str = concatcp!{
     "__setup_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_INIT_SETUP: [u8; INIT_SETUP.len()+1] = const_str_to_u8_array_with_null!(INIT_SETUP);
 
@@ -305,7 +309,7 @@ const INIT_CALLS: &str = concatcp!{
     "__initcall_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_INIT_CALLS: [u8; INIT_CALLS.len()+1] = const_str_to_u8_array_with_null!(INIT_CALLS);
 
@@ -315,7 +319,7 @@ const CON_INITCALL: &str = concatcp!{
     "__con_initcall_end = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_CON_INITCALL: [u8; CON_INITCALL.len()+1] = const_str_to_u8_array_with_null!(CON_INITCALL);
 
@@ -327,7 +331,7 @@ const INIT_RAM_FS: &str = concatcp!{
     "KEEP(*(.init.ramfs.info)) \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_INIT_RAM_FS: [u8; INIT_RAM_FS.len()+1] = const_str_to_u8_array_with_null!(INIT_RAM_FS);
 
@@ -355,7 +359,7 @@ const PERCPU_SECTION: &str = concatcp!{
     "} \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_PERCPU_SECTION: [u8; PERCPU_SECTION.len()+1] = const_str_to_u8_array_with_null!(PERCPU_SECTION);
 
@@ -383,7 +387,7 @@ const RW_DATA: &str = concatcp!{
     "} \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_RW_DATA: [u8; RW_DATA.len()+1] = const_str_to_u8_array_with_null!(RW_DATA);
 
@@ -417,7 +421,7 @@ const BSS_SECTION: &str = concatcp!{
     "__bss_stop = .; \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_BSS_SECTION: [u8; BSS_SECTION.len()+1] = const_str_to_u8_array_with_null!(BSS_SECTION);
 
@@ -429,7 +433,7 @@ const STABS_DEBUG: &str = concatcp!{
     ".stab.index 0 : { *(.stab.index) } \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_STABS_DEBUG: [u8; STABS_DEBUG.len()+1] = const_str_to_u8_array_with_null!(STABS_DEBUG);
 
@@ -501,7 +505,7 @@ const DWARF_DEBUG: &str = concatcp!{
     DWARF_5,
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_DWARF_DEBUG: [u8; DWARF_DEBUG.len()+1] = const_str_to_u8_array_with_null!(DWARF_DEBUG);
 
@@ -512,6 +516,6 @@ const ELF_DETAILS: &str = concatcp!{
     ".shstrtab 0 : { *(.shstrtab) } \n",
 };
 
-#[no_mangle]
+#[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_ELF_DETAILS: [u8; ELF_DETAILS.len()+1] = const_str_to_u8_array_with_null!(ELF_DETAILS);
