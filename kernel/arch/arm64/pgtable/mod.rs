@@ -5,8 +5,11 @@ use crate::cfg_if;
 pub mod hard;
 pub mod pgdir;
 pub mod pte;
+pub mod pgprot;
+
 pub use pgdir::Pgdir;
 pub use pte::Pte;
+pub use pgprot::PtePgProt;
 
 pub mod idmap;
 pub mod pmd;

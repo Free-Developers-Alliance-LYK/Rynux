@@ -9,7 +9,6 @@
 //! modules written in Rust) depends on [`core`], [`alloc`] and this crate.
 
 #![no_std]
-
 #![feature(naked_functions)]
 
 
@@ -17,6 +16,10 @@
 //extern crate self as kernel;
 
 pub use macros;
+pub use static_assertions;
+pub use const_format;
+pub use bitflags;
+
 
 pub mod klib;
 pub mod arch;
@@ -25,9 +28,6 @@ pub mod vmrynux;
 pub mod mm;
 pub mod linkage;
 pub mod prelude;
-
-pub use static_assertions as static_assertions;
-pub use const_format as const_format;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

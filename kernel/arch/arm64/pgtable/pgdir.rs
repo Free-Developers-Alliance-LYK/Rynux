@@ -3,11 +3,10 @@
 use super::{PGTABLE_LEVELS, hard::arm64_hw_pgtable_levels_shift};
 use crate::arch::arm64::va_layout::VA_BITS;
 
-/// Pgd value
-pub type PgdVal = u64;
-
 /// Pgdir
-pub struct Pgdir(pub PgdVal);
+#[derive(Copy, Clone)]
+#[repr(transparent)]
+pub struct Pgdir(u64);
 
 impl Pgdir {
     /// determines the size a top-level page table entry can map
@@ -21,12 +20,12 @@ impl Pgdir {
 
 
     /// Create a new Pgd
-    pub const fn new(val: PgdVal) -> Self {
+    pub const fn new(val: u64) -> Self {
         Self(val)
     }
 
     /// Get the value of the Pgd
-    pub const fn pgd_value(&self) -> PgdVal {
+    pub const fn pgd_value(&self) -> u64 {
         self.0
     }
 }

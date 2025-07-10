@@ -3,7 +3,7 @@ KBUILD_RUSTFLAGS := $(KBUILD_RUSTFLAGS) -Crelocation-model=pie   \
              -Cforce-unwind-tables=n
 
 # this code may run with the MMU off so disable unaligned ac  cesses
-RUSTFLAGS_map_kernel.o += -Ctarget-feature=+strict-align
+RUSTFLAGS_map_range.o += -Ctarget-feature=+strict-align
 
 hostprogs := relacheck
 
@@ -21,7 +21,7 @@ $(obj)/lib-%.pi.o: OBJCOPYFLAGS += --prefix-alloc-sections=.  init
 $(obj)/lib-%.o: $(srctree)/lib/%.c FORCE
 	$(call if_changed_rule,cc_o_c)
 
-obj-y := map_kernel.pi.o
+obj-y := map_range.pi.o
 #map_range.pi.o
 extra-y := $(patsubst %.pi.o,%.o,$(obj-y))
 

@@ -199,6 +199,14 @@ pub fn section_init_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
     )
 }
 
+#[proc_macro_attribute]
+pub fn section_read_mostly(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".data..read_mostly").into(),
+        item,
+    )
+}
+
 
 use syn::parse_macro_input;
 use syn::Item;

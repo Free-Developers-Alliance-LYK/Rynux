@@ -1,14 +1,16 @@
 //! Arm64 Page table PTE
 
-use crate::mm::page::PAGE_SHIFT;
-use crate::arch::arm64::pgtable::hard::PTDESC_TABLE_SHIFT;
+use crate::{
+    mm::page::PAGE_SHIFT,
+    arch::arm64::pgtable::hard::PTDESC_TABLE_SHIFT,
+    cfg_if,
+};
 
-/// Pte value
-pub type PteVal = u64;
 
 /// Pte
-pub struct Pte(pub PteVal);
-
+#[derive(Copy, Clone)]
+#[repr(transparent)]
+pub struct Pte(u64);
 
 #[allow(dead_code)]
 impl Pte {
@@ -40,24 +42,89 @@ impl Pte {
     const SIZE: usize = 1 << Self::SHIFT;
     // Mask for aligning to a PTE entry
     const MASK: usize = !(Self::SIZE - 1);
-    // Number of entries per PTE
-    const PTRS: usize = 1 <<  PTDESC_TABLE_SHIFT;
+    /// Number of entries per PTE
+    pub const PTRS: usize = 1 <<  PTDESC_TABLE_SHIFT;
     // determines the continue PTE size map
     const CONT_SHIFT: usize =  Self::pte_cont_shift(PAGE_SHIFT) + PAGE_SHIFT;
-    // Size of a contiguous PTE entry in bytes.
-    const CONT_SIZE: usize = 1 << Self::CONT_SHIFT;
+    /// Size of a contiguous PTE entry in bytes.
+    pub const CONT_SIZE: usize = 1 << Self::CONT_SHIFT;
     // Number of entries per contiguous PTE
     const CONT_PTRS: usize = 1 << Self::CONT_SHIFT - PAGE_SHIFT;
     // Mask for aligning to a contiguous PTE entry
     const CONT_MASK: usize = !(Self::CONT_SIZE - 1);
 
+    // Address mask
+    const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - PAGE_SHIFT)) - 1) << PAGE_SHIFT;
+
+    cfg_if! {
+        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
+            if #[cfg(CONFIG_ARM64_64K_PAGES)] {
+                use klib::bits::genmask_ull;
+                const PTE_ADDR_HIGH_MASK: u64 = 0xf << 12;
+                const PTE_ADDR_HIGH_SHIFT: u64 = 36;
+                const PHYS_TO_PTE_ADDR_MASK: u64 = Self::PTE_ADDR_LOW_MASK | Self::PTE_ADDR_HIGH_MASK;
+            } else {
+                /*
+                 * PA is 52bit, lower 12 bit is not used(Page Aligned),
+                 * still need to store 40bit(12-52)
+                 * PTE only (12-50 bit) can store PA, still need to store 51-52bit
+                 * in PTE(9,10)
+                 */
+                const PTE_ADDR_HIGH_MASK: u64 = 0x3 << 8;
+                const PTE_ADDR_HIGH_SHIFT: u64 = 42;
+                const PHYS_TO_PTE_ADDR_MASK: u64 = genmask_ull(49, 8);
+            }
+        }
+    }
+
+    /// Check if the pte is none
+    pub fn is_none(&self) -> bool {
+        self.0 == 0
+    }
+
     /// Create a new Pte
-    pub const fn new(val: PteVal) -> Self {
+    pub fn new(val: u64) -> Self {
         Self(val)
     }
 
     /// Get the value of the Pte
-    pub const fn pte_value(&self) -> PteVal {
+    pub fn bits(&self) -> u64 {
         self.0
     }
+
+    cfg_if! {
+        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
+            /// Consume the pte and convert it to a physical address
+            #[inline(always)]
+            pub fn to_phys(self) -> u64 {
+                // remove the maybe shared bit
+                let val = self.0 & !PgProt::pte_maybe_shared().bits();
+                let low_addr = val & Self::PTE_ADDR_LOW_MASK;
+                let high_addr = (val & Self::PTE_ADDR_HIGH_MASK) << Self::PTE_ADDR_HIGH_SHIFT;
+                low_addr | high_addr
+            }
+
+            /// Convert a physical address to a pte
+            #[inline(always)]
+            pub fn from_phys(pa: usize) -> Self {
+                let pa = pa as u64;
+                Self((pa | (pa >> Self::PTE_ADDR_HIGH_SHIFT)) & Self::PHYS_TO_PTE_ADDR_MASK)
+            }
+
+        } else {
+            /// Consume the pte and convert it to a physical address
+            #[inline(always)]
+            pub fn to_phys(self) -> usize {
+                (self.0 & Self::PTE_ADDR_LOW_MASK) as usize
+            }
+
+            /// Convert a physical address to a pte
+            #[inline(always)]
+            pub fn from_phys(pa: usize) -> Self {
+                let pa = pa as u64;
+                Self(pa)
+            }
+        }
+    }
 }
+

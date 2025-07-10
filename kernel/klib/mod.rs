@@ -5,3 +5,4 @@
 pub mod cfg_if;
 pub mod math;
 pub mod string;
+pub mod bits;

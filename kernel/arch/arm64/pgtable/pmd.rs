@@ -7,7 +7,9 @@ use crate::mm::page::PAGE_SHIFT;
 pub type PmdVal = u64;
 
 /// Pmd
-pub struct Pmd(pub PmdVal);
+#[derive(Copy, Clone)]
+#[repr(transparent)]
+pub struct Pmd(u64);
 
 #[allow(dead_code)]
 impl Pmd {

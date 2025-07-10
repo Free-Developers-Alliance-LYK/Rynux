@@ -519,3 +519,4 @@ const ELF_DETAILS: &str = concatcp!{
 #[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_ELF_DETAILS: [u8; ELF_DETAILS.len()+1] = const_str_to_u8_array_with_null!(ELF_DETAILS);
+

@@ -1,6 +1,8 @@
 //! Arm64 Page table hardware definition
-use crate::klib::math::div_round_up;
-use crate::mm::page::PAGE_SHIFT;
+use crate::{
+    klib::math::div_round_up,
+    mm::page::PAGE_SHIFT,
+};
 
 const PTDESC_ORDER: usize = 3;
 
@@ -32,3 +34,4 @@ pub const fn arm64_hw_pgtable_levels(va_bits: usize) -> usize {
 pub const fn arm64_hw_pgtable_levels_shift(n: usize) -> usize {
     (4 - n) * PTDESC_TABLE_SHIFT + PTDESC_ORDER
 }
+

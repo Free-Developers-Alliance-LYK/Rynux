@@ -4,8 +4,9 @@
 
 third_lib= --extern const_format --extern static_assertions --extern bitflags
 
+allow_features= naked_functions
 $(obj)/kernel.o: private rustc_target_flags = --extern macros $(third_lib) \
-	-Zallow-features=naked_functions
+	-Zallow-features=$(allow_features)
 $(obj)/kernel.o: $(src)/kernel/lib.rs  $(obj)/third_lib/built-in.a FORCE
 	+$(call if_changed_rule,rustc_library)
 

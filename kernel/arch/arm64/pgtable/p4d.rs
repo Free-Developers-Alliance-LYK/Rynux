@@ -5,8 +5,13 @@ use super::hard::{arm64_hw_pgtable_levels_shift, PTDESC_TABLE_SHIFT};
 /// P4d value
 pub type P4dVal = u64;
 
+
+
+
 /// P4d
-pub struct P4d (pub P4dVal);
+#[derive(Copy, Clone)]
+#[repr(transparent)]
+pub struct P4d (u64);
 
 impl P4d {
     // determines the size a pte page table entry can map

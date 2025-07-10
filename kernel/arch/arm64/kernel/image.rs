@@ -9,6 +9,31 @@ use crate::{
     const_format::concatcp,
 };
 
+/// Image symbols
+pub mod symbols {
+
+    // Define in vmrynux.lds.S
+    extern "C" {
+        /// early init stack
+        pub static early_init_stack: usize;
+        /// init idmap page directory
+        pub static init_idmap_pg_dir: usize;
+        /// start of text
+        pub static _stext: usize;
+        /// start of init data
+        pub static __initdata_begin: usize;
+        /// end of text
+        pub static _etext: usize;
+        /// end of kernel
+        pub static _end: usize;
+
+        /// init idmap page directory end
+        pub static __pi_create_init_idmap: usize;
+    }
+
+}
+
+
 cfg_if! {
     if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
         const fn data_le32(data: u64) -> u64 {
@@ -147,3 +172,5 @@ cfg_if! {
 #[need_export]
 #[allow(missing_docs)]
 pub static EXPORT_HEAD_SYMBOLS: [u8; HEAD_SYMBOLS.len()+1] = const_str_to_u8_array_with_null!(HEAD_SYMBOLS);
+
+

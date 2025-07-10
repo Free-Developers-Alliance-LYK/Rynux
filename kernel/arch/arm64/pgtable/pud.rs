@@ -6,7 +6,9 @@ use super::hard::{arm64_hw_pgtable_levels_shift, PTDESC_TABLE_SHIFT};
 pub type PudVal = u64;
 
 /// Pud
-pub struct Pud(pub PudVal);
+#[derive(Copy, Clone)]
+#[repr(transparent)]
+pub struct Pud(u64);
 
 #[allow(dead_code)]
 impl Pud {

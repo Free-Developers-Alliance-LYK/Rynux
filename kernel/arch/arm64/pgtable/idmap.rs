@@ -80,27 +80,37 @@ const fn early_segment_extra_pages() -> usize {
     }
 }
 
-// The virtual address space size for the initial identity mapping.
-const IDMAP_VA_BITS: usize = 48;
-// Number of page-table levels required to address IDMAP_VA_BITS wide
-// address, without section mapping.
-const IDMAP_LEVELS: usize = arm64_hw_pgtable_levels(IDMAP_VA_BITS);
-// The root level of the initial identity mapping.
-#[allow(dead_code)]
-const IDMAP_ROOT_LEVEL: usize = 4 - IDMAP_LEVELS;
-// Number of page-table levels required to address IDMAP_VA_BITS wide
-// address,but it may use section mapping.
-const INIT_IDMAP_PGTABLE_LEVELS: usize = IDMAP_LEVELS - SWAPPER_SKIP_LEVEL;
+/// Idmap
+pub struct Idmap;
+
+impl Idmap {
+    // The virtual address space size for the initial identity mapping.
+    const VA_BITS: usize = 48;
+
+    // Number of page-table levels required to address IDMAP_VA_BITS wide
+    // address, without section mapping.
+    const LEVELS: usize = arm64_hw_pgtable_levels(Self::VA_BITS);
+
+    /// The root level of the initial identity mapping.
+    pub const ROOT_LEVEL: usize = 4 - Self::LEVELS;
+
+    /// Number of page-table levels required to address IDMAP_VA_BITS wide
+    /// address,but it may use section mapping.
+    pub const INIT_PGTABLE_LEVELS: usize = Self::LEVELS - SWAPPER_SKIP_LEVEL;
+
+}
+
 // kernel end vaddr
 const _END: usize = KIMAGE_VADDR + KERNEL_IMAGE_SIZE;
 
 /// The number of page tables needed for the initial identity mapping.
 #[need_export]
-pub static INIT_IDMAP_DIR_PAGES: usize = early_pages(INIT_IDMAP_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
+pub static INIT_IDMAP_DIR_PAGES: usize = early_pages(Idmap::INIT_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
 
 /// The size of the initial identity mapping.
 #[need_export]
 pub static INIT_IDMAP_DIR_SIZE: usize = (INIT_IDMAP_DIR_PAGES + early_idmap_extra_pages()) * PAGE_SIZE;
+
 
 static INIT_DIR_PAGES: usize = early_pages(SWAPPER_PGTABLE_LEVELS, KIMAGE_VADDR, _END, 1);
 /// The size of the initial page tables.

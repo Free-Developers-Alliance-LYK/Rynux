@@ -2,6 +2,7 @@
 
 use kernel::arch::arm64::{
     sysreg,
+    kernel::image::symbols::*,
 };
 
 use kernel::{cpu_le, cpu_be, adr_l, str_l};
@@ -82,7 +83,7 @@ unsafe extern "C" fn record_mmu_state() -> ! {
             "ret",
             "1:", //TODO: now we do nothing if EE is not match
             sctlr_elx_ee_shift =  const sysreg::SctlrElx::EE_SHIFT,
-            CurrentEL_EL2 = const sysreg::CurrentEL::EL2,
+            CurrentEL_EL2 = const sysreg::CurrentELFlags::EL2.bits(),
             sctlr_elx_c = const sysreg::SctlrElx::C,
             sctlr_elx_m = const sysreg::SctlrElx::M,
         );
@@ -113,9 +114,3 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
     }
 }
 
-// Define in vmrynux.lds.S
-extern "C" {
-    static early_init_stack: u8;
-    static init_idmap_pg_dir: u8;
-    static __pi_create_init_idmap: u8;
-}

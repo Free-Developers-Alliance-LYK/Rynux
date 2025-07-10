@@ -36,6 +36,10 @@ pub static PAGE_SIZE: usize = 1 << PAGE_SHIFT;
 /// Page mask
 pub const PAGE_MASK: usize = !(PAGE_SIZE - 1);
 
+/// Align a value to the nearest page boundary.
+pub const fn page_align(addr: usize) -> usize {
+    (addr + PAGE_SIZE - 1) & !(PAGE_SIZE - 1)
+}
 
 /// Page structure.
 pub struct Page {
