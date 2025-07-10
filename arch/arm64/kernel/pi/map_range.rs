@@ -6,6 +6,7 @@ use core::{
 
 use kernel::{
     arch::arm64::{
+        early_debug::early_uart_putchar,
         pgtable::{
             hard::PTDESC_TABLE_SHIFT,
             PtePgProt,
@@ -25,19 +26,6 @@ use kernel::{
     macros::section_init_text,
 };
 
-#[inline(always)]
-fn early_uart_putchar(c: u8) {
-    unsafe {
-        core::arch::asm!(
-            "mov x0, {uart_addr}",
-            "str w1, [x0]",
-            uart_addr = const 0x09000000_u64,
-            in("w1") c,
-            options(nomem, nostack, preserves_flags)
-        );
-    }
-}
-
 /// map-range - Map a contiguous range of physical pages into virtual memory
 ///
 /// # Arguments
@@ -54,7 +42,7 @@ fn early_uart_putchar(c: u8) {
 /// * `va_offset` - Offset between a physical page and its current mapping in the VA space
 #[no_mangle]
 #[section_init_text]
-pub unsafe  extern "C" fn map_range(
+pub unsafe extern "C" fn map_range(
     pte: &mut usize,
     start: usize,
     end: usize,
@@ -70,6 +58,7 @@ pub unsafe  extern "C" fn map_range(
     if level == 3 {
         cmask = Pte::CONT_SIZE - 1;
     }
+
 
     // remove type
     let mut protval = PtePgProt::from_bits_truncate(prot.bits() & !PtePgProt::PTE_TYPE_MASK);
@@ -155,12 +144,10 @@ pub unsafe  extern "C" fn map_range(
     }
 }
 
-
 /// Create initial ID map
 #[no_mangle]
 #[section_init_text]
 pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> usize {
-
     let mut pte = (pg_dir as usize) + PAGE_SIZE;
 
     let mut text_prot = PtePgProt::PAGE_KERNEL_ROX;
@@ -168,31 +155,33 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
     let clrmask = PtePgProt::from_bits_truncate(clrmask);
     text_prot &= !clrmask;
     data_prot &= !clrmask;
+    early_uart_putchar(b'A');
 
-    early_uart_putchar(b'B');
     unsafe {
         map_range(
             &mut pte,
-            _stext,
-            __initdata_begin,
-            _stext,
+            _stext as usize,
+            __initdata_begin as usize,
+            _stext as usize,
             text_prot,
             Idmap::INIT_PGTABLE_LEVELS,
             pg_dir as *mut Pte,
             false,
             0,
         );
+    early_uart_putchar(b'B');
         map_range(
             &mut pte,
-            __initdata_begin,
-            _end,
-            __initdata_begin,
+            __initdata_begin as usize,
+            _end as usize,
+            __initdata_begin as usize,
             data_prot,
             Idmap::INIT_PGTABLE_LEVELS,
             pg_dir as *mut Pte,
             false,
             0,
         );
+    early_uart_putchar(b'C');
     }
     pte
 }

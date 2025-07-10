@@ -6,3 +6,4 @@ pub mod kernel;
 pub mod linkage;
 pub mod sysreg;
 pub mod assembler;
+pub mod early_debug;

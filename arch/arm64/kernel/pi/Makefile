@@ -1,7 +1,7 @@
 
 # disable overflow check, it would create rela code
 KBUILD_RUSTFLAGS := $(KBUILD_RUSTFLAGS) -Crelocation-model=pie   \
-             -Copt-level=s \
+             -Copt-level=s -g  \
              -Cforce-unwind-tables=n \
 			 -Coverflow-checks=n
 

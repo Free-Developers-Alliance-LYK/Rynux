@@ -15,20 +15,20 @@ pub mod symbols {
     // Define in vmrynux.lds.S
     extern "C" {
         /// early init stack
-        pub static early_init_stack: usize;
+        pub fn early_init_stack();
         /// init idmap page directory
-        pub static init_idmap_pg_dir: usize;
+        pub fn init_idmap_pg_dir();
         /// start of text
-        pub static _stext: usize;
+        pub fn _stext();
         /// start of init data
-        pub static __initdata_begin: usize;
+        pub fn __initdata_begin();
         /// end of text
-        pub static _etext: usize;
+        pub fn _etext();
         /// end of kernel
-        pub static _end: usize;
+        pub fn _end();
 
         /// init idmap page directory end
-        pub static __pi_create_init_idmap: usize;
+        pub fn __pi_create_init_idmap();
     }
 
 }
