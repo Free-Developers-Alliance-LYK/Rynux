@@ -373,6 +373,12 @@ const INIT_TASK_DATA: &str = concatcp!{
     "__end_init_task = .; \n",
 };
 
+const READ_MOSTLY_DATA: &str = concatcp!{
+    ". = ALIGN(", CACHE_ALIGN, "); \n",
+    "*(.data..read_mostly) \n",
+    ". = ALIGN(", CACHE_ALIGN, "); \n",
+};
+
 const CACHELINE_ALIGNED_DATA: &str = concatcp!{
     ". = ALIGN(", CACHE_ALIGN, "); \n",
     "*(.data..cacheline_aligned) \n",
@@ -384,6 +390,7 @@ const RW_DATA: &str = concatcp!{
     ".data : AT(ADDR(.data) -", LOAD_OFFSET, ") { \n",
     INIT_TASK_DATA,
     CACHELINE_ALIGNED_DATA,
+    READ_MOSTLY_DATA,
     "} \n",
 };
 

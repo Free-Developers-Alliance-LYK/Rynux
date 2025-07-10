@@ -1,26 +1,22 @@
-$(obj)/unicode_ident.rlib: $(src)/unicode-ident/src/lib.rs FORCE
+$(obj)/libunicode_ident.rlib: $(src)/unicode-ident/src/lib.rs FORCE
 	+$(call if_changed_dep,host_rustlib)
-always-y := $(obj)/unicode_ident.rlib
 
-$(obj)/unicode_xid.rlib: $(src)/unicode-xid/src/lib.rs FORCE
+$(obj)/libunicode_xid.rlib: $(src)/unicode-xid/src/lib.rs FORCE
 	+$(call if_changed_dep,host_rustlib)
-always-y += $(obj)/unicode_xid.rlib
 
 proc_macro2_cfg = \
 	--cfg 'feature="default"'  --cfg 'feature="proc-macro"' \
 	--cfg wrap_proc_macro
 
-$(obj)/proc_macro2.rlib: private rustc_target_flags = --extern unicode_ident \
+$(obj)/libproc_macro2.rlib: private rustc_target_flags = --extern unicode_ident \
 	$(proc_macro2_cfg)
-$(obj)/proc_macro2.rlib: $(src)/proc-macro2/src/lib.rs $(obj)/unicode_ident.rlib FORCE
+$(obj)/libproc_macro2.rlib: $(src)/proc-macro2/src/lib.rs $(obj)/libunicode_ident.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
-always-y += $(obj)/proc_macro2.rlib
 
 quote_cfg = --cfg 'feature="proc-macro"'
-$(obj)/quote.rlib: private rustc_target_flags = --extern proc_macro2 $(quote_cfg)
-$(obj)/quote.rlib: $(src)/quote/src/lib.rs $(obj)/proc_macro2.rlib FORCE
+$(obj)/libquote.rlib: private rustc_target_flags = --extern proc_macro2 $(quote_cfg)
+$(obj)/libquote.rlib: $(src)/quote/src/lib.rs $(obj)/libproc_macro2.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
-always += $(obj)/quote.rlib
 
 syn_cfg = --cfg 'feature="derive"' \
 		  --cfg 'feature="parsing"' \
@@ -28,11 +24,10 @@ syn_cfg = --cfg 'feature="derive"' \
 		  --cfg 'feature="proc-macro"' \
 		  --cfg 'feature="full"' \
 		  --cfg 'feature="clone-impls"'
-$(obj)/syn.rlib: private rustc_target_flags = --extern proc_macro2 --extern quote --extern unicode_ident $(syn_cfg)
-$(obj)/syn.rlib: private skip_flags = -Wrust_2018_idioms
-$(obj)/syn.rlib: $(src)/syn/src/lib.rs $(obj)/proc_macro2.rlib $(obj)/unicode_ident.rlib $(obj)/quote.rlib FORCE
+$(obj)/libsyn.rlib: private rustc_target_flags = --extern proc_macro2 --extern quote --extern unicode_ident $(syn_cfg)
+$(obj)/libsyn.rlib: private skip_flags = -Wrust_2018_idioms
+$(obj)/libsyn.rlib: $(src)/syn/src/lib.rs $(obj)/libproc_macro2.rlib $(obj)/libunicode_ident.rlib $(obj)/libquote.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
-always += $(obj)/syn.rlib
 
 libmacros_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name macros --crate-type proc-macro - </dev/null)
 libmacros_extension := $(patsubst libmacros.%,%,$(libmacros_name))
@@ -44,13 +39,13 @@ libstatic_assertions_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file
 # Procedural macros can only be used with the `rustc` that compiled it.
 $(obj)/$(libmacros_name): private rustc_target_flags = \
  	--extern quote --extern syn
-$(obj)/$(libmacros_name): $(src)/macros/lib.rs $(obj)/quote.rlib $(obj)/syn.rlib FORCE
+$(obj)/$(libmacros_name): $(src)/macros/lib.rs $(obj)/libquote.rlib $(obj)/libsyn.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
 $(obj)/$(libconst_format_proc_macro_name): private rustc_target_flags = \
 	--extern proc_macro2 --extern quote --extern unicode_xid
 $(obj)/$(libconst_format_proc_macro_name): $(src)/const_format_proc_macros/src/lib.rs \
-	$(obj)/proc_macro2.rlib $(obj)/quote.rlib $(obj)/unicode_xid.rlib FORCE
+	$(obj)/libproc_macro2.rlib $(obj)/libquote.rlib $(obj)/libunicode_xid.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
 $(obj)/$(libstatic_assertions_proc_macro_name): $(src)/static_assertions_proc_macros/src/lib.rs FORCE
@@ -63,9 +58,15 @@ fake-rustlib := y
 
 prepare: $(obj)/$(libmacros_name) $(obj)/$(libconst_format_proc_macro_name) $(obj)/$(libstatic_assertions_proc_macro_name)
 
+always-y += libunicode_ident.rlib
+always-y += libunicode_xid.rlib
+always-y += libquote.rlib
+always-y += libsyn.rlib
+always-y += libproc_macro2.rlib
+
 always-y += $(libmacros_name)
 always-y += $(libconst_format_proc_macro_name)
 always-y += $(libstatic_assertions_proc_macro_name)
 
-no-clean-files += proc_macro2.rlib quote.rlib unicode_ident.rlib unicode_xid.rlib
+no-clean-files += libproc_macro2.rlib libquote.rlib libunicode_ident.rlib libunicode_xid.rlib
 no-clean-files += $(libmacros_name) $(libconst_format_proc_macro_name) $(libstatic_assertions_proc_macro_name)

@@ -1,6 +1,9 @@
+
+# disable overflow check, it would create rela code
 KBUILD_RUSTFLAGS := $(KBUILD_RUSTFLAGS) -Crelocation-model=pie   \
-             -Copt-level=s  \
-             -Cforce-unwind-tables=n
+             -Copt-level=s \
+             -Cforce-unwind-tables=n \
+			 -Coverflow-checks=n
 
 # this code may run with the MMU off so disable unaligned ac  cesses
 RUSTFLAGS_map_range.o += -Ctarget-feature=+strict-align
@@ -11,7 +14,7 @@ quiet_cmd_piobjcopy = $(quiet_cmd_objcopy)
       cmd_piobjcopy = $(cmd_objcopy) && $(obj)/relacheck $(@) $(<)
 
 $(obj)/%.pi.o: OBJCOPYFLAGS := --prefix-symbols=__pi_ \
-                   --remove-section=.note.gnu.property
+                   --remove-section=.note.gnu.property 
 $(obj)/%.pi.o: $(obj)/%.o $(obj)/relacheck FORCE
 	$(call if_changed,piobjcopy)
 

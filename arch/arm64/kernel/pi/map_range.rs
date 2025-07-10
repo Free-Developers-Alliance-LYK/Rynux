@@ -1,6 +1,9 @@
 //! Map range
 
-use core::cmp::min;
+use core::{
+    cmp::min,
+};
+
 use kernel::{
     arch::arm64::{
         pgtable::{
@@ -17,11 +20,23 @@ use kernel::{
         PAGE_MASK,
         PAGE_SIZE,
         PAGE_SHIFT,
-        page_align,
     },
-
+    page_align,
     macros::section_init_text,
 };
+
+#[inline(always)]
+fn early_uart_putchar(c: u8) {
+    unsafe {
+        core::arch::asm!(
+            "mov x0, {uart_addr}",
+            "str w1, [x0]",
+            uart_addr = const 0x09000000_u64,
+            in("w1") c,
+            options(nomem, nostack, preserves_flags)
+        );
+    }
+}
 
 /// map-range - Map a contiguous range of physical pages into virtual memory
 ///
@@ -37,7 +52,9 @@ use kernel::{
 /// * `tbl` - The level `level` page table to create the mappings in
 /// * `may_use_cont` - Whether the use of the contiguous attribute is allowed
 /// * `va_offset` - Offset between a physical page and its current mapping in the VA space
-pub unsafe fn map_range(
+#[no_mangle]
+#[section_init_text]
+pub unsafe  extern "C" fn map_range(
     pte: &mut usize,
     start: usize,
     end: usize,
@@ -49,8 +66,7 @@ pub unsafe fn map_range(
     va_offset: usize,
 ) {
     // continue map mask
-    //let mut cmask = usize::MAX;
-    let mut cmask = 0;
+    let mut cmask = usize::MAX;
     if level == 3 {
         cmask = Pte::CONT_SIZE - 1;
     }
@@ -58,11 +74,11 @@ pub unsafe fn map_range(
     // remove type
     let mut protval = PtePgProt::from_bits_truncate(prot.bits() & !PtePgProt::PTE_TYPE_MASK);
 
-    let lshift: usize = (3 - level) * PTDESC_TABLE_SHIFT;
+    let lshift: usize = (3-level) * PTDESC_TABLE_SHIFT;
     let lmask: usize = (PAGE_SIZE << lshift) - 1;
 
     let mut start = start & PAGE_MASK;
-    let mut  pa = pa &PAGE_MASK;
+    let mut pa = pa &PAGE_MASK;
 
     // Advance tbl to the entry that covers start
     let mut tbl: *mut Pte = unsafe {tbl.add((start >> (lshift + PAGE_SHIFT)) % Pte::PTRS)};
@@ -77,7 +93,7 @@ pub unsafe fn map_range(
     }
 
      while start < end {
-        let next = min((start | lmask).wrapping_add(1), page_align(end));
+        let next = min((start | lmask) + 1, page_align!(end));
 
         if level < 2 || (level == 2 && ((start | next | pa) & lmask) != 0) {
             // finer grained mapping
@@ -128,7 +144,8 @@ pub unsafe fn map_range(
                 *tbl = tbl_content;
             }
         }
-        pa = pa.wrapping_add(next - start);
+
+        pa += next - start;
         start = next;
 
         // move tbl to next entry
@@ -143,6 +160,7 @@ pub unsafe fn map_range(
 #[no_mangle]
 #[section_init_text]
 pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> usize {
+
     let mut pte = (pg_dir as usize) + PAGE_SIZE;
 
     let mut text_prot = PtePgProt::PAGE_KERNEL_ROX;
@@ -151,6 +169,7 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
     text_prot &= !clrmask;
     data_prot &= !clrmask;
 
+    early_uart_putchar(b'B');
     unsafe {
         map_range(
             &mut pte,
@@ -175,6 +194,5 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
             0,
         );
     }
-
     pte
 }

@@ -5,9 +5,9 @@ import sys
 # 需要提取的变量及类型："name": "type"
 # type: "int" 或 "str"
 INTERESTED_VARS = {
-    "SZ_4K": "int",
-    "SZ_2K": "int",
-    "PAGE_SIZE": "int",
+    "EXPORT_SZ_4K": "int",
+    "EXPORT_SZ_2K": "int",
+    "EXPORT_PAGE_SIZE": "int",
     "KIMAGE_VADDR": "int",
     "SEGMENT_ALIGN": "int",
     "INIT_IDMAP_DIR_SIZE":"int",

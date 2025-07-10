@@ -48,13 +48,14 @@ unsafe extern "C" fn primary_entry() -> ! {
             "adrp x1, {early_init_stack}",
             "mov sp, x1",
             "mov x29, xzr",
+
             "adrp x0, {init_idmap_pg_dir}",
             "mov x1, xzr",
             "bl {__pi_create_init_idmap}",
 
-            "mov x0, 0x09000000",
-            "mov w1, #65",
-            "str w1, [x0]",
+            //"mov x0, 0x09000000",
+            //"mov w1, #65",
+            //"str w1, [x0]",
             early_init_stack = sym early_init_stack,
             init_idmap_pg_dir = sym init_idmap_pg_dir,
             __pi_create_init_idmap = sym __pi_create_init_idmap,

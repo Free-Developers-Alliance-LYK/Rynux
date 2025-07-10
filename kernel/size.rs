@@ -1,11 +1,18 @@
 //! Constants for common sizes in bytes.
 use crate::macros::need_export;
 
-macro_rules! sz {
+macro_rules! sz_export {
     ($name:ident, $val:expr) => {
         /// Constant for the size of `$name` in bytes.
         #[need_export]
         pub static $name: usize = $val;
+    };
+}
+
+macro_rules! sz {
+    ($name:ident, $val:expr) => {
+        /// Constant for the size of `$name` in bytes.
+        pub const $name: usize = $val;
     };
 }
 
@@ -22,7 +29,9 @@ sz!(SZ_512,  0x0000_0200);
 
 sz!(SZ_1K,  0x0000_0400);
 sz!(SZ_2K,  0x0000_0800);
+sz_export!(EXPORT_SZ_2K,  0x0000_0800);
 sz!(SZ_4K,  0x0000_1000);
+sz_export!(EXPORT_SZ_4K,  0x0000_1000);
 sz!(SZ_8K,  0x0000_2000);
 sz!(SZ_16K, 0x0000_4000);
 sz!(SZ_32K, 0x0000_8000);

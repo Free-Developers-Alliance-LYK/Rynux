@@ -251,7 +251,8 @@ targets += $(lib-y) $(always-y)
 # Linker scripts preprocessor (.lds.S -> .lds)
 # ---------------------------------------------------------------------------
 quiet_cmd_cpp_lds_S = LDS     $@
-      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -U$(ARCH) -o $@ $<
+      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -U$(ARCH) \
+					  -DLINKER_SCRIPT -o $@ $<
 
 $(obj)/%.lds: $(src)/%.lds.S $(objtree)/layout.h FORCE
 	$(call if_changed_dep,cpp_lds_S)

@@ -29,16 +29,22 @@ cfg_if! {
     }
 }
 
+/// Page size in bytes const.
+pub const PAGE_SIZE: usize = 1 << PAGE_SHIFT;
+
 /// Size of a page PA SIZE in bytes.
 #[need_export]
-pub static PAGE_SIZE: usize = 1 << PAGE_SHIFT;
+pub static EXPORT_PAGE_SIZE: usize = 1 << PAGE_SHIFT;
 
 /// Page mask
 pub const PAGE_MASK: usize = !(PAGE_SIZE - 1);
 
-/// Align a value to the nearest page boundary.
-pub const fn page_align(addr: usize) -> usize {
-    (addr + PAGE_SIZE - 1) & !(PAGE_SIZE - 1)
+/// Page align macro
+#[macro_export]
+macro_rules! page_align {
+    ($addr:expr) => {
+        (($addr + $crate::mm::page::PAGE_SIZE - 1) & !($crate::mm::page::PAGE_SIZE - 1))
+    };
 }
 
 /// Page structure.
