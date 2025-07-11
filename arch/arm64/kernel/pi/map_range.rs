@@ -6,7 +6,7 @@ use core::{
 
 use kernel::{
     arch::arm64::{
-        early_debug::early_uart_putchar,
+        early_debug::{early_uart_putchar, uart_put_u64_hex},
         pgtable::{
             hard::PTDESC_TABLE_SHIFT,
             PtePgProt,
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn map_range(
         cmask = Pte::CONT_SIZE - 1;
     }
 
-
+    uart_put_u64_hex(pa as u64);
     // remove type
     let mut protval = PtePgProt::from_bits_truncate(prot.bits() & !PtePgProt::PTE_TYPE_MASK);
 
@@ -143,6 +143,7 @@ pub unsafe extern "C" fn map_range(
         }
     }
 }
+
 
 /// Create initial ID map
 #[no_mangle]

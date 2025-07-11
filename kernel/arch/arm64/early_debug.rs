@@ -22,9 +22,11 @@ fn nibble_to_ascii(n: u8) -> u8 {
     }
 }
 
-#[allow(dead_code)]
+
 #[section_init_text]
-fn uart_put_u64_hex(val: u64) {
+#[no_mangle]
+/// Print u64 in hex
+pub fn uart_put_u64_hex(val: u64) {
     for i in (0..8).rev() {
         let byte = ((val >> (i * 8)) & 0xff) as u8;
         uart_put_hex(byte);

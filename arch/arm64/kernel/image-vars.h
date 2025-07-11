@@ -28,5 +28,6 @@ PROVIDE(__pi___initdata_end       	= __initdata_end);
 PROVIDE(__pi__data                	= _data);
 PROVIDE(__pi___bss_start		= __bss_start);
 PROVIDE(__pi__end			= _end);
+PROVIDE(__pi_uart_put_u64_hex			= uart_put_u64_hex);
 
 #endif /* __ARM64_KERNEL_IMAGE_VARS_H */
