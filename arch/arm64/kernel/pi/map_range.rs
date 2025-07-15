@@ -59,7 +59,6 @@ pub unsafe extern "C" fn map_range(
         cmask = Pte::CONT_SIZE - 1;
     }
 
-    uart_put_u64_hex(pa as u64);
     // remove type
     let mut protval = PtePgProt::from_bits_truncate(prot.bits() & !PtePgProt::PTE_TYPE_MASK);
 
@@ -85,6 +84,12 @@ pub unsafe extern "C" fn map_range(
         let next = min((start | lmask) + 1, page_align!(end));
 
         if level < 2 || (level == 2 && ((start | next | pa) & lmask) != 0) {
+            /*
+            uart_put_u64_hex(start as u64);
+            uart_put_u64_hex(next as u64);
+            uart_put_u64_hex(pa as u64);
+            uart_put_u64_hex(lmask as u64);
+            */
             // finer grained mapping
             unsafe {
                 if (*tbl).is_none() {
@@ -157,7 +162,6 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
     text_prot &= !clrmask;
     data_prot &= !clrmask;
     early_uart_putchar(b'A');
-
     unsafe {
         map_range(
             &mut pte,
@@ -165,24 +169,24 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
             __initdata_begin as usize,
             _stext as usize,
             text_prot,
-            Idmap::INIT_PGTABLE_LEVELS,
+            Idmap::ROOT_LEVEL,
             pg_dir as *mut Pte,
             false,
             0,
         );
-    early_uart_putchar(b'B');
+    early_uart_putchar(b'M');
         map_range(
             &mut pte,
             __initdata_begin as usize,
             _end as usize,
             __initdata_begin as usize,
             data_prot,
-            Idmap::INIT_PGTABLE_LEVELS,
+            Idmap::ROOT_LEVEL,
             pg_dir as *mut Pte,
             false,
             0,
         );
-    early_uart_putchar(b'C');
     }
+    uart_put_u64_hex(pte as u64);
     pte
 }

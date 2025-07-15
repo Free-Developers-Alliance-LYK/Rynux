@@ -12,7 +12,7 @@ use crate::{
 /// Image symbols
 pub mod symbols {
 
-    // Define in vmrynux.lds.S
+    // Sections define in vmrynux.lds.S
     extern "C" {
         /// early init stack
         pub fn early_init_stack();
@@ -26,11 +26,17 @@ pub mod symbols {
         pub fn _etext();
         /// end of kernel
         pub fn _end();
+        /// start of idmap text
+        pub fn __idmap_text_start();
+        /// end of idmap text
+        pub fn __idmap_text_end();
+    }
 
+    // Extern c function define in pi
+    extern "C" {
         /// init idmap page directory end
         pub fn __pi_create_init_idmap();
     }
-
 }
 
 

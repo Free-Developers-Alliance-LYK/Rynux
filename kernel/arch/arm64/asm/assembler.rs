@@ -58,3 +58,16 @@ macro_rules! str_l {
                 "str\t", $src, ", [", $tmp, ", :lo12:", $sym, "]\n")
     };
 }
+
+
+/// Exception return
+///
+/// Will jump to wherever the corresponding link register points to, and therefore never return.
+#[inline(always)]
+pub fn eret() -> ! {
+    unsafe {
+        core::arch::asm!("eret", options(nomem, nostack));
+        core::hint::unreachable_unchecked()
+    }
+}
+

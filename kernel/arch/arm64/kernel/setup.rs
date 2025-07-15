@@ -31,3 +31,9 @@ pub static MMU_ENABLED_AT_BOOT: usize = 0;
 
 /// Whether the MMU was enabled at boot.
 pub static MMU_ENABLED_AT_BOOT2: usize = 0;
+
+
+/// BOOT CPU MODE from EL1
+pub const BOOT_CPU_MODE_EL1: usize = 0xe11;
+/// BOOT CPU MODE from EL2
+pub const BOOT_CPU_MODE_EL2: usize = 0xe12;

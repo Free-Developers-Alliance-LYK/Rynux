@@ -4,6 +4,6 @@ pub mod pgtable;
 pub mod mm;
 pub mod kernel;
 pub mod linkage;
-pub mod sysreg;
-pub mod assembler;
+pub mod sysregs;
 pub mod early_debug;
+pub mod asm;
