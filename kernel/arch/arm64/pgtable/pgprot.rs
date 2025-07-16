@@ -4,11 +4,13 @@ use crate::{
     cfg_if,
     bitflags::bitflags,
     klib::bits::genmask,
+    arch::arm64::sysregs::MairAttrIdx,
 };
+
 
 cfg_if! {
     if #[cfg(CONFIG_ARM64_LPA2)] {
-        use crate::arch::arm64::sysreg::TcrFlags;
+        use crate::arch::arm64::sysreg::Tcr;
     }
 }
 
@@ -71,25 +73,15 @@ impl PtePgProt {
     pub const PTE_SWBITS_MASK: u64 = (1 << 63) | genmask(58, 55);
     /// Type mask
     pub const PTE_TYPE_MASK: u64  = 3 << 0;
-    /// Attribute index mask
-    pub const PTE_ATTRINDX_MASK: u64 = 7 << 2;
-
     /// Type page PTE_VALID | PTE_NON_BLOCK
     pub const PTE_TYPE_PAGE: Self = Self::from_bits_truncate(Self::PTE_VALID.bits() | Self::PTE_NON_BLOCK.bits());
 
-
-    /// Memory type normal
-    pub const PTE_MT_NORMAL: Self = Self::from_bits_truncate(0b000 << 2);
-    /// Memory type normal non cacheable
-    pub const PTE_MT_NORMAL_TAGGED: Self = Self::from_bits_truncate(0b001 << 2);
-    /// Memory type normal non cacheable
-    pub const PTE_MT_NORMAL_NC: Self = Self::from_bits_truncate(0b010 << 2);
-    /// Memory type device nGnRnE
-    #[allow(non_upper_case_globals)]
-    pub const PTE_MT_DEVICE_nGnRnE: Self = Self::from_bits_truncate(0b011 << 2);
-    /// Memory type device nGnRE
-    #[allow(non_upper_case_globals)]
-    pub const PTE_MT_DEVICE_nGnRE: Self = Self::from_bits_truncate(0b100 << 2);
+    /// Attribute index mask
+    pub const PTE_ATTRINDX_MASK: u64 = 7 << 2;
+    const PTE_ATTRINDX_SHIFT: u64 = 2;
+    const fn pte_mair_attridx(mairidx: MairAttrIdx) -> Self {
+        Self::from_bits_truncate((mairidx as u64) << Self::PTE_ATTRINDX_SHIFT)
+    }
 
     cfg_if! {
         if #[cfg(CONFIG_ARM64_LPA2)] {
@@ -137,7 +129,44 @@ impl PtePgProt {
 
     /// Page Normal
     pub const PROT_NORMAL: Self = Self::from_bits_truncate(
-        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits() | Self::PTE_UXN.bits() | Self::PTE_WRITE.bits() | Self::PTE_MT_NORMAL.bits()
+        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        | Self::PTE_UXN.bits()
+        | Self::PTE_WRITE.bits()
+        | Self::pte_mair_attridx(MairAttrIdx::Normal).bits()
+    );
+
+    /// PROT_DEVICE_nGnRnE
+    #[allow(non_upper_case_globals)]
+    pub const PROT_DEVICE_nGnRnE: Self = Self::from_bits_truncate(
+        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        | Self::PTE_UXN.bits()
+        | Self::PTE_WRITE.bits()
+        | Self::pte_mair_attridx(MairAttrIdx::DeviceNgnRnE).bits()
+    );
+
+    /// PROT_DEVICE_nGnRE
+    #[allow(non_upper_case_globals)]
+    pub const PROT_DEVICE_nGnRE: Self = Self::from_bits_truncate(
+        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        | Self::PTE_UXN.bits()
+        | Self::PTE_WRITE.bits()
+        | Self::pte_mair_attridx(MairAttrIdx::DeviceNgnRE).bits()
+    );
+    
+    /// PROT_NORMAL_NC
+    pub const PROT_NORMAL_NC: Self = Self::from_bits_truncate(
+        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        | Self::PTE_UXN.bits()
+        | Self::PTE_WRITE.bits()
+        | Self::pte_mair_attridx(MairAttrIdx::NormalNc).bits()
+    );
+
+    /// PROT_NORMAL_TAGGED
+    pub const PROT_NORMAL_TAGGED: Self = Self::from_bits_truncate(
+        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        | Self::PTE_UXN.bits()
+        | Self::PTE_WRITE.bits()
+        | Self::pte_mair_attridx(MairAttrIdx::NormalTagged).bits()
     );
 
     /// Page kernel

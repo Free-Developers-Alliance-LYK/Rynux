@@ -15,6 +15,7 @@ mod pmuserenr_el0;
 mod id_aa64dfr0_el1;
 mod id_aa64pfr0_el1;
 mod amuserenr_el0;
+mod mair_el1;
 
 pub use current_el::CurrentEL;
 pub use sctlr_el1::SctlrEl1;
@@ -28,3 +29,4 @@ pub use pmuserenr_el0::PmuserenrEl0;
 pub use id_aa64dfr0_el1::IdAa64dfr0El1;
 pub use id_aa64pfr0_el1::IdAa64pfr0El1;
 pub use amuserenr_el0::AmuserenrEl0;
+pub use mair_el1::{MairEl1, MairAttrIdx, MairAttr};
