@@ -1,12 +1,32 @@
 //! Rynux arm64 boot head
+//! TODO: 
+//!  - head:  efi support
+//!  - record_mmu_state: big endian support
+//!  - init_kernel_el: boot from el2
+//!  - __cpu_setup: 
+//!     - MTE support V
+//!     - VA_BITS_52 SUPPORT
+//!     - CONFIG_ARM64_HW_AFDBM
+//!     - S1PIE not support
 
-use kernel::arch::arm64::{
-    kernel::image::symbols::*,
-    sysregs::*,
+
+use kernel::{
+    cpu_le, cpu_be, adr_l, str_l,
+
+    arch::arm64::{
+        kernel::image::symbols::*,
+        sysregs::*,
+        pgtable::idmap::Idmap,
+        va_layout::VA_BITS_MIN,
+    },
+
+    macros::{
+        section_idmap_text,
+        section_init_text
+    },
 };
 
-use kernel::{cpu_le, cpu_be, adr_l, str_l};
-use kernel::macros::{section_idmap_text, section_init_text};
+use kernel::arch::arm64::early_debug::early_uart_putchar;
 
 core::arch::global_asm!(r#"
     .section .head.text, "ax"
@@ -23,7 +43,6 @@ _head:
     .quad 0
     .ascii "ARM\x64"
     .long 0
-    .section .idmap.text, "ax"
 "#);
 
 
@@ -141,7 +160,7 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
         "cbnz x19, 0f", // skip cache invalidation if MMU is on
         "dmb sy", // needed before dc ivac with MMU off
         "add x1, x0, #0x20", // 4 x 8 bytes
-        "b {dcache_inval_poc}",
+        "b {dcache_inval_poc}", // dcache would ret,mmu_enabled_at_boot set to default 0
         "0:",
         str_l!("x19", "{mmu_enabled_at_boot}", "x0"),
         "ret",
@@ -167,7 +186,6 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
  */
 #[section_idmap_text]
 unsafe extern "C" fn init_kernel_el() {
-    use kernel::arch::arm64::early_debug::early_uart_putchar;
     use kernel::arch::arm64::asm::barrier::isb;
     use kernel::arch::arm64::asm::eret;
     use kernel::arch::arm64::kernel::setup::BOOT_CPU_MODE_EL1;
@@ -205,11 +223,41 @@ unsafe extern "C" fn __cpu_setup() {
     // Reset cpacr_el1
     CpacrEl1::write_raw(0);
     // Reset mdscr_el1 and disable access to the DCC from EL0
-    MdscrEl1::TDCC.write(); 
+    MdscrEl1::TDCC.write();
+    // Disable PMU access from EL0
     PmuserenrEl0::reset();
+    // Disable AMU access from EL0
     AmuserenrEl0::reset();
+    
+    /* Default values for VMSA control registers. These will be adjusted
+     * below depending on detected CPU features.
+     */
+    let mair = MairEl1::MAIR_EL1_SET;
+    let mut tcr = Tcr::from_bits_truncate(Tcr::t0sz(Idmap::VA_BITS as u64) |
+        Tcr::t1sz(VA_BITS_MIN as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
+        Tcr::TG_FLAGS | Tcr::AS.bits() | Tcr::TBI0.bits() |
+        Tcr::A1.bits());
+    tcr.clear_errata_bits();
+    // Set the IPS
+    tcr.compute_set_pa_size();
+    tcr.write();
+    mair.write();
+
+    let tcr2 = Tcr2El1::from_bits_truncate(0);
+    let pie_support = IdAa64mmfr3El1::read().s1pie_support();
+    if pie_support {
+        //TODO: init pire0 pir_el1 
+    }
+    if IdAa64mmfr3El1::read().tcrx_support() {
+        tcr2.write();
+    }
+
+    use kernel::arch::arm64::asm::barrier::isb;
+    isb();
+    early_uart_putchar('G' as u8);
 }
 
-#[section_init_text]
+#[section_idmap_text]
 unsafe extern "C" fn __primary_switch() {
+
 }

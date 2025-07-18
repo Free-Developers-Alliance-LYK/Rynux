@@ -47,9 +47,6 @@ cfg_if! {
     } else if #[cfg(CONFIG_ARM64_VA_BITS_48)] {
         #[allow(missing_docs)]
         pub const VA_BITS: usize = 48;
-    } else if #[cfg(CONFIG_ARM64_VA_BITS_52)] {
-        #[allow(missing_docs)]
-        pub const VA_BITS: usize = 52;
     } else {
         compile_error!("Unknown VA_BITS");
     }

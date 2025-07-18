@@ -1,18 +1,10 @@
 //! Arm64 Page table properties
 
 use crate::{
-    cfg_if,
     bitflags::bitflags,
     klib::bits::genmask,
     arch::arm64::sysregs::MairAttrIdx,
 };
-
-
-cfg_if! {
-    if #[cfg(CONFIG_ARM64_LPA2)] {
-        use crate::arch::arm64::sysreg::Tcr;
-    }
-}
 
 bitflags! {
     /// No address, only include page table attributes
@@ -83,38 +75,20 @@ impl PtePgProt {
         Self::from_bits_truncate((mairidx as u64) << Self::PTE_ATTRINDX_SHIFT)
     }
 
-    cfg_if! {
-        if #[cfg(CONFIG_ARM64_LPA2)] {
-            /// LPA2 is enabled
-            #[inline(always)]
-            pub fn lpa2_is_enabled() -> bool {
-                TcrFlags::read_tcr().contains(TcrFlags::TCR_DS)
-            }
-
-            /// Maybe shared is dynamic control by LPA2
-            pub fn pte_maybe_shared() -> Self {
-                if lpa2_is_enabled() {
-                    Self::from_bits_truncate(0)
-                } else {
-                    Self::PTE_SHARED
-                }
-            }
-        } else {
-
-            /// Always false when CONFIG_ARM64_LPA2 disable
-            #[inline(always)]
-            pub fn lpa2_is_enabled() -> bool {
-                false
-            }
-
-            /// Maybe shared bits is fixed
-            pub const fn pte_maybe_shared() -> Self {
-                Self::PTE_SHARED
-            }
-        }
+    /// Always false now
+    #[inline(always)]
+    pub fn lpa2_is_enabled() -> bool {
+        false
     }
 
+    /// Maybe shared bits is fixed
+    #[inline(always)]
+    pub const fn pte_maybe_shared() -> Self {
+        Self::PTE_SHARED
+    }
+  
     /// Maybe not global
+    #[inline(always)]
     pub const fn pte_maybe_ng() -> Self {
         use crate::arch::arm64::kernel::cpufeature::ARM64_USE_NG_MAPPINGS;
         if ARM64_USE_NG_MAPPINGS {

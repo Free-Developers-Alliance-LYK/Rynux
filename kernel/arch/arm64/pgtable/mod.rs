@@ -32,26 +32,15 @@ cfg_if! {
         /// Number of page-table levels
         pub const PGTABLE_LEVELS: usize = 3;
         pub(crate) const HAS_PMD: bool = true;
-    } else if #[cfg(all(CONFIG_ARM64_64K_PAGES,any(CONFIG_ARM64_VA_BITS_48, CONFIG_ARM64_VA_BITS_52)))] {
+    } else if #[cfg(all(CONFIG_ARM64_64K_PAGES,CONFIG_ARM64_VA_BITS_48))] {
         /// Number of page-table levels
         pub const PGTABLE_LEVELS: usize = 3;
         pub(crate) const HAS_PMD: bool = true;
-    } else if #[cfg(all(CONFIG_ARM64_16K_PAGES,any(CONFIG_ARM64_VA_BITS_48, CONFIG_ARM64_VA_BITS_52)))] {
-        /// Number of page-table levels
-        pub const PGTABLE_LEVELS: usize = 4;
-        pub(crate) const HAS_PMD: bool = true;
-        pub mod pud;
     } else if #[cfg(all(not(CONFIG_ARM64_64K_PAGES),CONFIG_ARM64_VA_BITS_48))] {
         /// Number of page-table levels
         pub const PGTABLE_LEVELS: usize = 4;
         pub(crate) const HAS_PMD: bool = true;
         pub mod pud;
-    } else if #[cfg(all(CONFIG_ARM64_4K_PAGES, CONFIG_ARM64_VA_BITS_52))] {
-        /// Number of page-table levels
-        pub const PGTABLE_LEVELS: usize = 5;
-        pub(crate) const HAS_PMD: bool = true;
-        pub mod pud;
-        pub mod p4d;
     } else {
         compile_error!("Unknown page-table levels");
     }

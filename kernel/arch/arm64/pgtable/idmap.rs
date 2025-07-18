@@ -84,8 +84,8 @@ const fn early_segment_extra_pages() -> usize {
 pub struct Idmap;
 
 impl Idmap {
-    // The virtual address space size for the initial identity mapping.
-    const VA_BITS: usize = 48;
+    /// The virtual address space size for the initial identity mapping.
+    pub const VA_BITS: usize = 48;
 
     // Number of page-table levels required to address IDMAP_VA_BITS wide
     // address, without section mapping.

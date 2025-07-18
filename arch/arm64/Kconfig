@@ -77,6 +77,27 @@ config ARM64_ERRATUM_843419
 
 config ARM64_LD_HAS_FIX_ERRATUM_843419
 	def_bool $(ld-option,--fix-cortex-a53-843419)
+
+
+config FUJITSU_ERRATUM_010001
+	bool "Fujitsu-A64FX erratum E#010001: Undefined fault may occur wrongly"
+	default y
+	help
+	  This option adds a workaround for Fujitsu-A64FX erratum E#010001.
+	  On some variants of the Fujitsu-A64FX cores ver(1.0, 1.1), memory
+	  accesses may cause undefined fault (Data abort, DFSC=0b111111).
+	  This fault occurs under a specific hardware condition when a
+	  load/store instruction performs an address translation using:
+	  case-1  TTBR0_EL1 with TCR_EL1.NFD0 == 1.
+	  case-2  TTBR0_EL2 with TCR_EL2.NFD0 == 1.
+	  case-3  TTBR1_EL1 with TCR_EL1.NFD1 == 1.
+	  case-4  TTBR1_EL2 with TCR_EL2.NFD1 == 1.
+
+	  The workaround is to ensure these bits are clear in TCR_ELx.
+	  The workaround only affects the Fujitsu-A64FX.
+
+	  If unsure, say Y.
+
 endmenu # ARM errata workarounds via the alternatives framework
 
 
@@ -140,21 +161,6 @@ config ARM64_VA_BITS_47
 config ARM64_VA_BITS_48
 	bool "48-bit"
 
-config ARM64_VA_BITS_52
-	bool "52-bit"
-	help
-	  Enable 52-bit virtual addressing for userspace when explicitly
-	  requested via a hint to mmap(). The kernel will also use 52-bit
-	  virtual addresses for its own mappings (provided HW support for
-	  this feature is available, otherwise it reverts to 48-bit).
-
-	  NOTE: Enabling 52-bit virtual addressing in conjunction with
-	  ARMv8.3 Pointer Authentication will result in the PAC being
-	  reduced from 7 bits to 3 bits, which may have a significant
-	  impact on its susceptibility to brute-force attacks.
-
-	  If unsure, select 48-bit virtual addressing instead.
-
 endchoice
 
 config ARM64_VA_BITS
@@ -164,7 +170,6 @@ config ARM64_VA_BITS
 	default 42 if ARM64_VA_BITS_42
 	default 47 if ARM64_VA_BITS_47
 	default 48 if ARM64_VA_BITS_48
-	default 52 if ARM64_VA_BITS_52
 
 choice
 	prompt "Physical address space size"
@@ -175,11 +180,12 @@ choice
 
 config ARM64_PA_BITS_48
 	bool "48-bit"
-	depends on ARM64_64K_PAGES || !ARM64_VA_BITS_52
+	help 
+	  This feature enables 48-bit physical address space support.
 
 config ARM64_PA_BITS_52
 	bool "52-bit"
-	depends on ARM64_64K_PAGES || ARM64_VA_BITS_52
+	depends on ARM64_64K_PAGES
 	help
 	  Enable support for a 52-bit physical address space, introduced as
 	  part of the ARMv8.2-LPA extension.
@@ -195,9 +201,6 @@ config ARM64_PA_BITS
 	default 48 if ARM64_PA_BITS_48
 	default 52 if ARM64_PA_BITS_52
 
-config ARM64_LPA2
-	def_bool y
-	depends on ARM64_PA_BITS_52 && !ARM64_64K_PAGES
 endmenu # ARM64 Mem Management options
 
 config RELOCATABLE
