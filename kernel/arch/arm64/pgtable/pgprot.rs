@@ -99,7 +99,7 @@ impl PtePgProt {
     }
 
     /// Default page table attributes
-    pub const PROT_DEFAULT: Self = Self::from_bits_truncate(Self::PTE_TYPE_PAGE.bits() | Self::pte_maybe_shared().bits() | Self::pte_maybe_ng().bits());
+    pub const PROT_DEFAULT: Self = Self::from_bits_truncate(Self::PTE_TYPE_PAGE.bits() | Self::pte_maybe_shared().bits() | Self::pte_maybe_ng().bits() | Self::PTE_AF.bits());
 
     /// Page Normal
     pub const PROT_NORMAL: Self = Self::from_bits_truncate(
@@ -112,7 +112,8 @@ impl PtePgProt {
     /// PROT_DEVICE_nGnRnE
     #[allow(non_upper_case_globals)]
     pub const PROT_DEVICE_nGnRnE: Self = Self::from_bits_truncate(
-        Self::PROT_DEFAULT.bits() | Self::PTE_PXN.bits()
+        Self::PROT_DEFAULT.bits() 
+        | Self::PTE_PXN.bits()
         | Self::PTE_UXN.bits()
         | Self::PTE_WRITE.bits()
         | Self::pte_mair_attridx(MairAttrIdx::DeviceNgnRnE).bits()
