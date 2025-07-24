@@ -13,6 +13,7 @@ mod concat_idents;
 mod helpers;
 mod paste;
 mod link;
+mod aligned;
 
 use proc_macro::TokenStream;
 
@@ -237,4 +238,33 @@ pub fn need_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     output.into()
+}
+
+
+#[cfg(CONFIG_ARM64)]
+#[proc_macro_attribute]
+pub fn cache_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // L1 cache aligend
+    aligned::aligned_impl(
+        quote!(align = 64).into(),
+        item,
+    )
+}
+
+#[cfg(CONFIG_PAGE_SIZE_4KB)]
+#[proc_macro_attribute]
+pub fn page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    aligned::aligned_impl(
+        quote!(align = 4096).into(),
+        item,
+    )
+}
+
+#[cfg(CONFIG_PAGE_SIZE_16KB)]
+#[proc_macro_attribute]
+pub fn page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    aligned::aligned_impl(
+        quote!(align = 16384).into(),
+        item,
+    )
 }

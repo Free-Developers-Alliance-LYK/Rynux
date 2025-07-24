@@ -11,14 +11,18 @@
 
 
 use kernel::{
-    cpu_le, cpu_be, adr_l, str_l,
-
+    cpu_le, cpu_be, adr_l, str_l,write_gpr,
+    arch::ptrace::PtRegs,
     arch::arm64::{
         kernel::image::symbols::*,
         sysregs::*,
-        pgtable::idmap::Idmap,
-        va_layout::VA_BITS_MIN,
+        pgtable::idmap::InitIdmap,
+        VaLayout,
+        early_debug::{early_uart_putchar, early_uart_put_u64_hex},
+        asm::barrier::isb,
     },
+    schedule::task::Task,
+    init::init_task::INIT_TASK,
 
     macros::{
         section_idmap_text,
@@ -26,7 +30,6 @@ use kernel::{
     },
 };
 
-use kernel::arch::arm64::early_debug::early_uart_putchar;
 
 core::arch::global_asm!(r#"
     .section .head.text, "ax"
@@ -60,8 +63,8 @@ _head:
 #[section_idmap_text]
 unsafe extern "C" fn primary_entry() -> ! {
         core::arch::naked_asm!(
-            "bl record_mmu_state",
-            "bl preserve_boot_args",
+            "bl record_mmu_state", // x19 save mmu state
+            "bl preserve_boot_args", // x21 save fdt
 
             // init stack
             "adrp x1, {early_init_stack}",
@@ -143,8 +146,8 @@ unsafe extern "C" fn record_mmu_state() -> ! {
             "1:", //TODO: now we do nothing if EE is not match
             CurrentEL_EL2 = const CurrentEL::EL2.bits(),
             sctlr_elx_ee_shift =  const SctlrEl1::ELX_EE_SHIFT,
-            sctlr_elx_c = const SctlrEl1::ELX_C.bits(),
-            sctlr_elx_m = const SctlrEl1::ELX_M.bits(),
+            sctlr_elx_c = const SctlrEl1::C.bits(),
+            sctlr_elx_m = const SctlrEl1::M.bits(),
         );
 }
 
@@ -185,18 +188,17 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
  * x0: whether we are being called from the primary boot path with the MMU on
  */
 #[section_idmap_text]
-unsafe extern "C" fn init_kernel_el() {
+unsafe extern "C" fn init_kernel_el(mmu_state: usize) {
     use kernel::arch::arm64::asm::barrier::isb;
     use kernel::arch::arm64::asm::eret;
     use kernel::arch::arm64::kernel::setup::BOOT_CPU_MODE_EL1;
-    use kernel::write_gpr;
     let current_el = CurrentEL::read();
     if current_el.contains(CurrentEL::EL2) {
-        early_uart_putchar('2' as u8);
+        early_uart_putchar('X' as u8);
+        early_uart_put_u64_hex(mmu_state as u64);
         // TODO: init el2
     } else if current_el.contains(CurrentEL::EL1) {
         // init el1
-        early_uart_putchar('M' as u8);
         isb();
         SctlrEl1::INIT_SCTLR_EL1_MMU_OFF.write();
         isb();
@@ -233,8 +235,8 @@ unsafe extern "C" fn __cpu_setup() {
      * below depending on detected CPU features.
      */
     let mair = MairEl1::MAIR_EL1_SET;
-    let mut tcr = Tcr::from_bits_truncate(Tcr::t0sz(Idmap::VA_BITS as u64) |
-        Tcr::t1sz(VA_BITS_MIN as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
+    let mut tcr = Tcr::from_bits_truncate(Tcr::t0sz(InitIdmap::VA_BITS as u64) |
+        Tcr::t1sz(VaLayout::VA_BITS as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
         Tcr::TG_FLAGS | Tcr::AS.bits() | Tcr::TBI0.bits() |
         Tcr::A1.bits());
     tcr.clear_errata_bits();
@@ -251,13 +253,75 @@ unsafe extern "C" fn __cpu_setup() {
     if IdAa64mmfr3El1::read().tcrx_support() {
         tcr2.write();
     }
-
     use kernel::arch::arm64::asm::barrier::isb;
     isb();
-    early_uart_putchar('G' as u8);
+}
+
+#[unsafe(naked)]
+#[section_idmap_text]
+unsafe extern "C" fn __primary_switch() {
+    core::arch::naked_asm!(
+        "adrp x0, {reserved_pg_dir}",
+        "adrp x1, {init_idmap_pg_dir}",
+        "bl {__enable_mmu}",
+
+        "adrp x1, {early_init_stack}",
+        "mov sp, x1",
+        "mov x29, xzr",
+
+        "mov x0, x20",
+        "mov x1, x21",
+        "bl {__pi_early_map_kernel}",
+
+        "ldr x8, ={__primary_switched}",
+        "adrp x0, {KERNEL_START}",
+        "mov x1, x21",
+        "br x8",
+        reserved_pg_dir = sym reserved_pg_dir,
+        init_idmap_pg_dir = sym init_idmap_pg_dir,
+        early_init_stack = sym early_init_stack,
+        __enable_mmu = sym __enable_mmu,
+        __pi_early_map_kernel = sym __pi_early_map_kernel,
+        __primary_switched = sym __primary_switched,
+        KERNEL_START = sym _text,
+    );
 }
 
 #[section_idmap_text]
-unsafe extern "C" fn __primary_switch() {
+unsafe extern "C" fn __enable_mmu(_ttbr1: u64, ttbr0: u64) {
+    IdAa64mmfr0El1::read().tgran_check();
+    Ttbr0El1::write_pg_dir(ttbr0);
+    Ttbr1El1::write_pg_dir(ttbr0);
+    isb();
+    SctlrEl1::INIT_SCTLR_EL1_MMU_ON.write();
+}
 
+extern "C" {
+    /// init stack
+    pub fn init_stack();
+}
+
+#[inline(always)]
+fn __init_cpu_task() {
+    // save init task to sp_el0
+    let init_task_ptr: *const Task = &INIT_TASK;
+    SpEl0::write_raw(init_task_ptr as u64);
+    // prepare sp
+    let mut sp = INIT_TASK.stack_top().as_ptr() as u64;
+    // save ptregs space
+    sp  -= core::mem::size_of::<PtRegs>() as u64;
+    write_gpr!(sp, sp);
+}
+
+#[section_init_text]
+unsafe extern "C" fn __primary_switched(kernel_start: usize, fdt: usize) {
+    use kernel::arch::arm64::kernel::setup::set_fdt_pointer;
+    use kernel::mm::addr::PhysAddr;
+    // init cpu task
+    __init_cpu_task();
+    // save fdt
+    set_fdt_pointer(PhysAddr::from(fdt));
+    // init vbar
+    VbarEl1::write_raw(kernel_start + vectors as u64);
+    isb();
 }

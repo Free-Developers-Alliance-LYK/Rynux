@@ -20,6 +20,8 @@ pub(crate) mod mair_el1;
 pub(crate) mod midr_el1;
 pub(crate) mod id_aa64mmfr3_el1;
 pub(crate) mod tcr2_el1;
+pub(crate) mod ttbr_el1;
+pub(crate) mod sp_el0;
 
 pub use current_el::CurrentEL;
 pub use sctlr_el1::SctlrEl1;
@@ -38,3 +40,5 @@ pub use midr_el1::MidrEl1;
 pub use id_aa64mmfr0_el1::IdAa64mmfr0El1;
 pub use id_aa64mmfr3_el1::IdAa64mmfr3El1;
 pub use tcr2_el1::Tcr2El1;
+pub use ttbr_el1::{Ttbr0El1, Ttbr1El1};
+pub use sp_el0::SpEl0;

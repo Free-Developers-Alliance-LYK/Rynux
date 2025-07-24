@@ -1,7 +1,7 @@
 //! Arm64 Page table PMD
 //!
-use super::hard::{arm64_hw_pgtable_levels_shift, PTDESC_TABLE_SHIFT};
-use crate::mm::page::PAGE_SHIFT;
+use crate::mm::page::PageConfig;
+use crate::arch::arm64::pgtable::Arm64PgtableConfig;
 
 /// Pmd value
 pub type PmdVal = u64;
@@ -36,15 +36,15 @@ impl Pmd {
     }
 
     // determines the size a pmd page table entry can map
-    pub(crate) const SHIFT: usize = arm64_hw_pgtable_levels_shift(2);
+    pub(crate) const SHIFT: usize = Arm64PgtableConfig::hw_pgtable_levels_shift(2);
     // Size of a PMD entry in bytes.
     pub(crate) const SIZE: usize = 1 << Self::SHIFT;
     // Number of entries per PMD
-    const PTRS: usize = 1 <<  PTDESC_TABLE_SHIFT;
+    const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     // Mask for PMD entry
     const MASK: usize = !(Self::SIZE - 1);
     // determines the continue Pmd size map
-    const CONT_SHIFT: usize = Self::pmd_cont_shift(PAGE_SHIFT) + Self::SHIFT;
+    const CONT_SHIFT: usize = Self::pmd_cont_shift(PageConfig::PAGE_SHIFT) + Self::SHIFT;
     // Size of a continue PMD entry in bytes.
     const CONT_SIZE: usize = 1 << Self::CONT_SHIFT;
     // Number of entries per continue PMD

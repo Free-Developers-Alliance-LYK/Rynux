@@ -181,6 +181,7 @@ quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
 		-L$(objtree)/proc_macros \
 		--emit=dep-info=$(depfile) --emit=link=$@ --extern proc_macro \
 		--crate-type proc-macro \
+		@./include/generated/rustc_cfg \
         --crate-name $(patsubst lib%.$(libmacros_extension),%,$(notdir $@)) $<
 
 targets += $(host-csingle) $(host-cmulti) $(host-cobjs) \

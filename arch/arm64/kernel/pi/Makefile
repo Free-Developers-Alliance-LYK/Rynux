@@ -5,7 +5,7 @@ KBUILD_RUSTFLAGS := $(KBUILD_RUSTFLAGS) -Crelocation-model=static   \
              -Cforce-unwind-tables=n \
 			 -Coverflow-checks=n
 
-# this code may run with the MMU off so disable unaligned ac  cesses
+# this code may run with the MMU off so disable unaligned accesses
 RUSTFLAGS_map_range.o += -Ctarget-feature=+strict-align
 
 hostprogs := relacheck
@@ -19,7 +19,7 @@ $(obj)/%.pi.o: $(obj)/%.o $(obj)/relacheck FORCE
 	$(call if_changed,piobjcopy)
 
 # ensure that all the lib- code ends up as __init code and data
-$(obj)/lib-%.pi.o: OBJCOPYFLAGS += --prefix-alloc-sections=.  init
+$(obj)/lib-%.pi.o: OBJCOPYFLAGS += --prefix-alloc-sections=.init
 
 $(obj)/lib-%.o: $(srctree)/lib/%.c FORCE
 	$(call if_changed_rule,cc_o_c)

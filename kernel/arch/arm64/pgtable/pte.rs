@@ -1,8 +1,8 @@
 //! Arm64 Page table PTE
 
 use crate::{
-    mm::page::PAGE_SHIFT,
-    arch::arm64::pgtable::hard::PTDESC_TABLE_SHIFT,
+    mm::page::PageConfig,
+    arch::arm64::pgtable::config::Arm64PgtableConfig,
     cfg_if,
 };
 
@@ -37,24 +37,24 @@ impl Pte {
     }
 
     // determines the size a pte page table entry can map
-    const SHIFT: usize = PAGE_SHIFT;
+    const SHIFT: usize = PageConfig::PAGE_SHIFT;
     // Size of a PTE entry in bytes.
     const SIZE: usize = 1 << Self::SHIFT;
     // Mask for aligning to a PTE entry
     const MASK: usize = !(Self::SIZE - 1);
     /// Number of entries per PTE
-    pub const PTRS: usize = 1 <<  PTDESC_TABLE_SHIFT;
+    pub const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     // determines the continue PTE size map
-    const CONT_SHIFT: usize =  Self::pte_cont_shift(PAGE_SHIFT) + PAGE_SHIFT;
+    const CONT_SHIFT: usize =  Self::pte_cont_shift(PageConfig::PAGE_SHIFT) + PageConfig::PAGE_SHIFT;
     /// Size of a contiguous PTE entry in bytes.
     pub const CONT_SIZE: usize = 1 << Self::CONT_SHIFT;
     // Number of entries per contiguous PTE
-    const CONT_PTRS: usize = 1 << Self::CONT_SHIFT - PAGE_SHIFT;
+    const CONT_PTRS: usize = 1 << Self::CONT_SHIFT - PageConfig::PAGE_SHIFT;
     // Mask for aligning to a contiguous PTE entry
     const CONT_MASK: usize = !(Self::CONT_SIZE - 1);
 
     // Address mask
-    const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - PAGE_SHIFT)) - 1) << PAGE_SHIFT;
+    const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - Self::SHIFT)) - 1) << Self::SHIFT;
 
     cfg_if! {
         if #[cfg(CONFIG_ARM64_PA_BITS_52)] {

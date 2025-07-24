@@ -2,6 +2,7 @@
 
 pub mod cache;
 pub mod thread_layout;
+pub mod mmu;
 
 use crate::size::*;
 use crate::macros::need_export;

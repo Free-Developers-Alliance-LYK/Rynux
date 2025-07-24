@@ -52,7 +52,8 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, count: usize) -> *mut u8
 
     while i < count {
         unsafe {
-            *tmp = *s;
+            //*tmp = *s;
+            core::ptr::write_volatile(tmp, *s);
             tmp = tmp.add(1);
             s = s.add(1);
         }
@@ -81,7 +82,7 @@ pub extern "C" fn memset(s: *mut u8, c: i32, count: usize) -> *mut u8 {
 
     while i < count {
         unsafe {
-            *xs = c;
+            core::ptr::write_volatile(xs, c);
             xs = xs.add(1);
         }
         i += 1;

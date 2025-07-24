@@ -16,6 +16,7 @@ PROVIDE(__pi_init_idmap_pg_end		= init_idmap_pg_end);
 PROVIDE(__pi_init_pg_dir		= init_pg_dir);
 PROVIDE(__pi_init_pg_end		= init_pg_end);
 PROVIDE(__pi_swapper_pg_dir		= swapper_pg_dir);
+PROVIDE(__pi_reserved_pg_dir		= reserved_pg_dir);
 
 PROVIDE(__pi__text			= _text);
 PROVIDE(__pi__stext               	= _stext);
@@ -29,5 +30,7 @@ PROVIDE(__pi__data                	= _data);
 PROVIDE(__pi___bss_start		= __bss_start);
 PROVIDE(__pi__end			= _end);
 PROVIDE(__pi_uart_put_u64_hex			= uart_put_u64_hex);
+PROVIDE(__pi_memset			= memset);
+PROVIDE(__pi_memcpy			= memcpy);
 
 #endif /* __ARM64_KERNEL_IMAGE_VARS_H */

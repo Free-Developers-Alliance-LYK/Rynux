@@ -1,14 +1,14 @@
 //! Rynux arm64 setup
 
-use crate::arch::arm64::mm::cache::L1_CACHE_BYTES;
-use crate::macros::section_cache_aligned;
-use crate::macros::section_init_data;
-use crate::static_assertions::const_assert_eq;
+use crate::{
+    macros::{section_cache_aligned, section_init_data, cache_aligned},
+    mm::addr::PhysAddr,
+    types::OnceCell,
+};
 
-const_assert_eq!(L1_CACHE_BYTES, 64);
 /// Have to define this struct with repr align
 #[allow(dead_code)]
-#[repr(align(64))]
+#[cache_aligned]
 pub struct BootArgs {
     x0: usize,
     x1: usize,
@@ -37,3 +37,13 @@ pub static MMU_ENABLED_AT_BOOT2: usize = 0;
 pub const BOOT_CPU_MODE_EL1: usize = 0xe11;
 /// BOOT CPU MODE from EL2
 pub const BOOT_CPU_MODE_EL2: usize = 0xe12;
+
+
+/// FDT phys addr
+#[section_init_data]
+static FDT_POINTER : OnceCell<PhysAddr> = OnceCell::new();
+
+/// Set FDT pointer
+pub fn set_fdt_pointer(pa: PhysAddr) {
+    FDT_POINTER.set(pa);
+}

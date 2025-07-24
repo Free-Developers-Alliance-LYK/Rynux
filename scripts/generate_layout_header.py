@@ -8,7 +8,7 @@ INTERESTED_VARS = {
     "EXPORT_SZ_4K": "int",
     "EXPORT_SZ_2K": "int",
     "EXPORT_PAGE_SIZE": "int",
-    "KIMAGE_VADDR": "int",
+    "EXPORT_KIMAGE_VADDR": "int",
     "SEGMENT_ALIGN": "int",
     "INIT_IDMAP_DIR_SIZE":"int",
     "INIT_IDMAP_DIR_PAGES": "int",

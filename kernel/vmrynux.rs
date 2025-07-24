@@ -3,7 +3,7 @@
 use crate::{
     cfg_if, const_str_to_u8_array_with_null,
     macros::need_export,
-    mm::page::PAGE_SIZE,
+    mm::page::PageConfig,
     linkage::FUNCTION_ALIGNMENT,
     arch::mm::ArchThreadMemLayout,
 };
@@ -16,10 +16,9 @@ cfg_if! {
        const EXIT_DISCARDS: &str = "";
        static LOAD_OFFSET: usize = 0;
        const INIT_TEXT_ALIGN: usize = 8;
-       const RO_DATA_ALIGN: usize = PAGE_SIZE;
+       const RO_DATA_ALIGN: usize = PageConfig::PAGE_SIZE;
        const INIT_SETUP_ALIGN: usize = 16;
        const PERCPU_CACHE_ALIGN: usize = L1_CACHE_BYTES;
-       const INIT_TASK_ALIGN: usize = ArchThreadMemLayout::THREAD_ALIGN;
 
        const SBSS_ALIGN: usize = 0;
        const BSS_ALIGN: usize = 0;
@@ -160,7 +159,7 @@ const TEXT_TEXT: &str = concatcp!{
     "*(.text.unknown .text.unknown.*) \n",
     TEXT_SPLIT,
     TEXT_UNLIKELY,
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     TEXT_HOT,
     "*(.text .text.fixup) \n",
     NOINSTR_TEXT,
@@ -338,7 +337,7 @@ pub static EXPORT_INIT_RAM_FS: [u8; INIT_RAM_FS.len()+1] = const_str_to_u8_array
 
 const PERCPU_INPUT: &str = concatcp!{
     "__per_cpu_start = .; \n",
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     "*(.data..percpu..page_aligned) \n",
     ". = ALIGN(", PERCPU_CACHE_ALIGN, "); \n",
     "__per_cpu_hot_start = .; \n",
@@ -353,7 +352,7 @@ const PERCPU_INPUT: &str = concatcp!{
 };
 
 const PERCPU_SECTION: &str = concatcp!{
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     ".data..percpu   : AT(ADDR(.data..percpu) -", LOAD_OFFSET, ") { \n",
     PERCPU_INPUT,
     "} \n",
@@ -364,7 +363,7 @@ const PERCPU_SECTION: &str = concatcp!{
 pub static EXPORT_PERCPU_SECTION: [u8; PERCPU_SECTION.len()+1] = const_str_to_u8_array_with_null!(PERCPU_SECTION);
 
 const INIT_TASK_DATA: &str = concatcp!{
-    ". = ALIGN(", INIT_TASK_ALIGN, "); \n",
+    ". = ALIGN(", ArchThreadMemLayout::THREAD_ALIGN, "); \n",
     "__start_init_stack = .; \n",
     "init_thread_union = .; \n",
     "init_stack = .; \n",
@@ -386,7 +385,7 @@ const CACHELINE_ALIGNED_DATA: &str = concatcp!{
 
 
 const RW_DATA: &str = concatcp!{
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     ".data : AT(ADDR(.data) -", LOAD_OFFSET, ") { \n",
     INIT_TASK_DATA,
     CACHELINE_ALIGNED_DATA,
@@ -410,9 +409,9 @@ const SBSS: &str = concatcp!{
 const BSS: &str = concatcp!{
     ". = ALIGN(", BSS_ALIGN, "); \n",
     ".bss : AT(ADDR(.bss) -", LOAD_OFFSET, ") { \n",
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     "*(.bss..page_aligned) \n",
-    ". = ALIGN(", PAGE_SIZE, "); \n",
+    ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
     "*(.dynbss) \n",
     "*(.bss) \n",
     "*(COMMON) \n",

@@ -7,3 +7,6 @@ pub mod linkage;
 pub mod sysregs;
 pub mod early_debug;
 pub mod asm;
+pub mod ptrace;
+
+pub use va_layout::VaLayout;

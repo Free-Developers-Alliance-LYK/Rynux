@@ -28,6 +28,9 @@ pub mod vmrynux;
 pub mod mm;
 pub mod linkage;
 pub mod prelude;
+pub mod schedule;
+pub mod init;
+pub mod types;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

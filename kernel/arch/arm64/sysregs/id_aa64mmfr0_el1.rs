@@ -121,4 +121,28 @@ impl IdAa64mmfr0El1 {
             sys_pa_size
         }
     }
+
+    cfg_if! {
+        if #[cfg(CONFIG_ARM64_4K_PAGES) ] {
+            const TGRAN_OFFSET: u64 = 28;
+            const TGRAN_SUPPORT_MIN: u64 = 0b0000;
+            const TGRAN_SUPPORT_MAX: u64 = 0b0111;
+        } else if #[cfg(CONFIG_ARM64_16K_PAGES) ] {
+            const TGRAN_OFFSET: u64 = 20;
+            const TGRAN_SUPPORT_MIN: u64 = 0b0001;
+            const TGRAN_SUPPORT_MAX: u64 = 0b1111;
+        } else if #[cfg(CONFIG_ARM64_64K_PAGES) ] {
+            const TGRAN_OFFSET: u64 = 24;
+            const TGRAN_SUPPORT_MIN: u64 = 0b0000;
+            const TGRAN_SUPPORT_MAX: u64 = 0b0111;
+        }
+    }
+    /// Read TGRAN
+    #[inline(always)]
+    pub fn tgran_check(&self) {
+        let tg = (self.bits() >> Self::TGRAN_OFFSET) & 0b1111;
+        if tg < Self::TGRAN_SUPPORT_MIN || tg > Self::TGRAN_SUPPORT_MAX {
+            panic!("tgran check failed");
+        } 
+    }
 }

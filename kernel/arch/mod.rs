@@ -10,6 +10,11 @@ cfg_if! {
         pub mod mm {
             pub use super::arm64::mm::thread_layout::ArchThreadMemLayout;
         }
+
+        /// ARM64-specific ptrace code.
+        pub mod ptrace {
+            pub use super::arm64::ptrace::PtRegs;
+        }
     }
 }
 
