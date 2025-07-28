@@ -2,38 +2,6 @@
 
 use crate::cfg_if;
 
-cfg_if! {
-    if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
-        /// Execute instruction only on big endian systems.
-        #[macro_export]
-        macro_rules! cpu_be {
-            ($instr:expr) => {
-                $instr
-            };
-        }
-
-        /// Execute instruction only on little endian systems.
-        #[macro_export]
-        macro_rules! cpu_le {
-            ($instr:expr) => { "" };
-        }
-    } else {
-        /// Execute instruction only on big endian systems.
-        #[macro_export]
-        macro_rules! cpu_be {
-            ($instr:expr) => { "" };
-        }
-
-        /// Execute instruction only on little endian systems.
-        #[macro_export]
-        macro_rules! cpu_le {
-            ($instr:expr) => {
-                $instr
-            };
-        }
-    }
-}
-
 /// Generate an absolute address instruction.
 /// @dst: destination register (64 bit wide)
 /// @sym: name of the symbol

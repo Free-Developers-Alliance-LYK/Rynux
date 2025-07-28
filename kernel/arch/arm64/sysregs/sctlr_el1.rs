@@ -128,14 +128,7 @@ bitflags! {
 }
 
 impl SctlrEl1 {
-    cfg_if!{
-        if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
-            const ENDIAN_SET: Self = Self::from_bits_truncate(Self::EE.bits() | Self::E0E.bits());
-        } else {
-            const ENDIAN_SET: Self = Self::from_bits_truncate(0);
-        }
-    }
-
+    const ENDIAN_SET: Self = Self::from_bits_truncate(0);
 
     /// INIT_SCTLR_EL1_MMU_OFF
     pub const INIT_SCTLR_EL1_MMU_OFF: Self = Self::from_bits_truncate(Self::ENDIAN_SET.bits() | Self::LSMAOE.bits() | Self::nTLSMD.bits() | Self::EIS.bits() | Self::TSCXT.bits() | Self::EOS.bits());

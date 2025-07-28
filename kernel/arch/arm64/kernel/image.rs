@@ -84,36 +84,15 @@ pub mod symbols {
 }
 
 
-cfg_if! {
-    if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
-        const fn data_le32(data: u64) -> u64 {
-            ((data & 0x000000ff) << 24) |
-            ((data & 0x0000ff00) << 8)  |
-            ((data & 0x00ff0000) >> 8)  |
-            ((data & 0xff000000) >> 24)
-        }
-        macro_rules! data_le32_macro {
-            ($data:expr) => {
-                concat!(
-                    "(((", $data, ") & 0x000000ff) << 24) | ",
-                    "((", $data, ") & 0x0000ff00) << 8)  | ",
-                    "((", $data, ") & 0x00ff0000) >> 8)  | ",
-                    "((", $data, ") & 0xff000000) >> 24)\n"
-                )
-            };
-        }
-    } else {
-        #[allow(dead_code)]
-        const fn data_le32(data: u64) -> u64 {
-            data & 0xffffffff
-        }
+#[allow(dead_code)]
+const fn data_le32(data: u64) -> u64 {
+    data & 0xffffffff
+}
 
-        macro_rules! data_le32_macro {
-            ($data:expr) => {
-                concat!("((", $data, ") & 0xffffffff)\n")
-            };
-        }
-    }
+macro_rules! data_le32_macro {
+    ($data:expr) => {
+        concat!("((", $data, ") & 0xffffffff)\n")
+    };
 }
 
 macro_rules! define_image_le64_macro {
@@ -148,13 +127,7 @@ impl HeadFlags {
     const _HEAD_FLAG_PAGE_SIZE: u64 = (PageConfig::PAGE_SHIFT as u64 - 10) / 2;
     const _HEAD_FLAG_PHYS_BASE: u64 = 1;
 
-    cfg_if! {
-        if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
-            const _HEAD_FLAG_BE: u64 = Self::ARM64_IMAGE_FLAG_BE;
-        } else {
-            const _HEAD_FLAG_BE: u64 = Self::ARM64_IMAGE_FLAG_LE;
-        }
-    }
+    const _HEAD_FLAG_BE: u64 = Self::ARM64_IMAGE_FLAG_LE;
 
     const fn head_flag(field: u64, shift: u64) -> u64 {
         field << shift
@@ -168,54 +141,26 @@ impl HeadFlags {
 }
 
 cfg_if! {
-    if #[cfg(CONFIG_CPU_BIG_ENDIAN)] {
-        cfg_if! {
-        if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1011),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1011);
-        } else if #[cfg(CONFIG_PAGE_SIZE_16KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1101),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1101);
-        } else if #[cfg(CONFIG_PAGE_SIZE_64KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1111),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1111);
-        } else {
-            compile_error!("Unsupported page size");
-        }
-        }
+    if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
+            const HEAD_SYMBOLS: &str = concatcp!{
+                define_image_le64_macro!("_kernel_size_le", "_end - _text"),
+                define_image_le64_macro!("_kernel_flags_le", 0b1010),
+            };
+            const_assert_eq!(HeadFlags::head_flags(), 0b1010);
+    } else if #[cfg(CONFIG_PAGE_SIZE_16KB)] {
+            const HEAD_SYMBOLS: &str = concatcp!{
+                define_image_le64_macro!("_kernel_size_le", "_end - _text"),
+                define_image_le64_macro!("_kernel_flags_le", 0b1100),
+            };
+            const_assert_eq!(HeadFlags::head_flags(), 0b1100);
+    } else if #[cfg(CONFIG_PAGE_SIZE_64KB)] {
+            const HEAD_SYMBOLS: &str = concatcp!{
+                define_image_le64_macro!("_kernel_size_le", "_end - _text"),
+                define_image_le64_macro!("_kernel_flags_le", 0b1110),
+            };
+            const_assert_eq!(HeadFlags::head_flags(), 0b1110);
     } else {
-        cfg_if! {
-        if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1010),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1010);
-        } else if #[cfg(CONFIG_PAGE_SIZE_16KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1100),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1100);
-        } else if #[cfg(CONFIG_PAGE_SIZE_64KB)] {
-                const HEAD_SYMBOLS: &str = concatcp!{
-                    define_image_le64_macro!("_kernel_size_le", "_end - _text"),
-                    define_image_le64_macro!("_kernel_flags_le", 0b1110),
-                };
-                const_assert_eq!(HeadFlags::head_flags(), 0b1110);
-        } else {
-            compile_error!("Unsupported page size");
-        }
-        }
+        compile_error!("Unsupported page size");
     }
 }
 

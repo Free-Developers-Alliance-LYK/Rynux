@@ -112,11 +112,7 @@ gen_btf()
 		--strip-all ${1} "${btf_data}" 2>/dev/null
 	# Change e_type to ET_REL so that it can be used to link final vmrynux.
 	# GNU ld 2.35+ and lld do not allow an ET_EXEC input.
-	if is_enabled CONFIG_CPU_BIG_ENDIAN; then
-		et_rel='\0\1'
-	else
-		et_rel='\1\0'
-	fi
+	et_rel='\1\0'
 	printf "${et_rel}" | dd of="${btf_data}" conv=notrunc bs=1 seek=16 status=none
 
 	btf_vmrynux_bin_o=${btf_data}

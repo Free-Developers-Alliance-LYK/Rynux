@@ -5,6 +5,7 @@ config ARM64
 	select HAVE_ARCH_VMAP_STACK
 	select 64BIT
 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+        select THREAD_INFO_IN_TASK
 
 menu "Arm64 architecture options"
 
@@ -15,13 +16,6 @@ choice
 	  Select the endianness of data accesses performed by the CPU. Userspace
 	  applications will need to be compiled and linked for the endianness
 	  that is selected here.
-
-config CPU_BIG_ENDIAN
-	bool "Build big-endian kernel"
-	# https://github.com/llvm/llvm-project/commit/1379b150991f70a5782e9a143c2ba5308da1161c
-	depends on AS_IS_GNU || AS_VERSION >= 150000
-	help
-	  Say Y if you plan on running a kernel with a big-endian userspace.
 
 config CPU_LITTLE_ENDIAN
 	bool "Build little-endian kernel"
