@@ -26,7 +26,6 @@ bitflags! {
 
 
 impl MpidrEl1 {
-    
     /// Invalid HWID
     pub const INVALID_HWID: u64 = u64::MAX;
 

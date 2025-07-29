@@ -19,6 +19,7 @@ pub use macros;
 pub use static_assertions;
 pub use const_format;
 pub use bitflags;
+pub use tock_registers;
 
 
 pub mod klib;

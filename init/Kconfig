@@ -22,18 +22,14 @@ config RUSTC_LLVM_VERSION
 	int
 	default $(rustc-llvm-version)
 
-config AS_IS_GNU
-	def_bool $(success,test "$(as-name)" = GNU)
-
-config AS_IS_LLVM
-	def_bool $(success,test "$(as-name)" = LLVM)
+config CLANG_VERSION
+	int
+        default $(cc-version)
 
 config AS_VERSION
 	int
 	# Use clang version if this is the integrated assembler
-	default CLANG_VERSION if AS_IS_LLVM
-	default $(as-version)
-
+	default CLANG_VERSION
 
 choice
 	prompt "Compiler optimization level"

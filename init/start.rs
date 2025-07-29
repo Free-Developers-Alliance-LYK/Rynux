@@ -8,7 +8,6 @@ use kernel::arch::arm64::early_debug::early_uart_putchar;
 extern "C" fn start_kernel() -> ! {
     INIT_TASK.set_stack_end_magic();
     early_uart_putchar('1' as u8);
-
     loop {}
 }
 

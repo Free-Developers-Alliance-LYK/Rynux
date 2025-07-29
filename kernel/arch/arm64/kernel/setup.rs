@@ -57,8 +57,8 @@ pub struct Arm64ProcessorInit;
 impl ArchProcessorInit for Arm64ProcessorInit {
     #[section_init_text]
     fn smp_setup_processor_id() {
-        let aff = MpidrEl1::read().affinity();
-        set_cpu_logical_map(0, aff);
+        //let aff = MpidrEl1::read().affinity();
+        //set_cpu_logical_map(0, aff);
     }
 }
 

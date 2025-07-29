@@ -6,6 +6,30 @@ config ARM64
 	select 64BIT
 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
 
+choice
+	prompt "Platform"
+	default QEMU
+	help
+	  Select the platform you are building for.
+
+config QEMU
+	bool "QEMU"
+	help
+	  Platform for Qemu
+
+config RASPI4B
+	bool "Raspberry Pi 4B"
+	help
+	  Platform for Raspberry Pi 4B
+
+endchoice
+
+
+
+config BROKEN_GAS_INST
+	def_bool !$(as-instr,1:\n.inst 0\n.rept . - 1b\n\nnop\n.endr\n)
+
+
 menu "Arm64 architecture options"
 
 choice

@@ -2,6 +2,7 @@
 
 use crate::cfg_if;
 
+/// Arch processor init
 pub trait ArchProcessorInit {
     /// Setup processor id
     fn smp_setup_processor_id();

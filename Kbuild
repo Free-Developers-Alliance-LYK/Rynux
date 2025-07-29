@@ -2,7 +2,8 @@
 #
 # Kbuild for top-level directory of the kernel
 
-third_lib= --extern const_format --extern static_assertions --extern bitflags
+third_lib= --extern const_format --extern static_assertions --extern bitflags \
+ --extern tock_registers
 
 allow_features= naked_functions
 $(obj)/kernel.o: private rustc_target_flags = --extern macros $(third_lib) \
