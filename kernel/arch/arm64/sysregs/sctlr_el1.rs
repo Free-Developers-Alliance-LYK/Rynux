@@ -1,7 +1,6 @@
 //! ARM64 system registers
 
 use crate::bitflags::bitflags;
-use crate::cfg_if;
 
 bitflags! {
     /// SCRCTLR_ELx

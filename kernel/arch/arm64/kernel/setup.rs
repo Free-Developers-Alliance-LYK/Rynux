@@ -1,9 +1,12 @@
 //! Rynux arm64 setup
 
 use crate::{
-    macros::{section_cache_aligned, section_init_data, cache_aligned},
+    macros::{section_cache_aligned, section_init_data, cache_aligned, section_init_text},
     mm::addr::PhysAddr,
     types::OnceCell,
+    arch::setup::ArchProcessorInit,
+    arch::arm64::sysregs::MpidrEl1,
+    arch::cpu::MAX_CPUS,
 };
 
 /// Have to define this struct with repr align
@@ -47,3 +50,18 @@ static FDT_POINTER : OnceCell<PhysAddr> = OnceCell::new();
 pub fn set_fdt_pointer(pa: PhysAddr) {
     FDT_POINTER.set(pa);
 }
+
+/// Arm64 processor init
+pub struct Arm64ProcessorInit;
+
+impl ArchProcessorInit for Arm64ProcessorInit {
+    #[section_init_text]
+    fn smp_setup_processor_id() {
+        let aff = MpidrEl1::read().affinity();
+        set_cpu_logical_map(0, aff);
+    }
+}
+
+static __CPU_LOGICAL_MAP: [u64; MAX_CPUS] = [MpidrEl1::INVALID_HWID; MAX_CPUS];
+
+

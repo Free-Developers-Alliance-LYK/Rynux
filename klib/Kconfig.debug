@@ -63,6 +63,4 @@ config VMLINUX_MAP
 	  when linking vmlinux. That file can be useful for verifying
 	  and debugging magic section games
 
-
-
 endmenu # Kernel hacking

@@ -13,6 +13,8 @@ pub struct TaskStack {
 }
 
 impl TaskStack {
+    const STACK_END_MAGIC: u64 = 0x57AC6E9D;
+
     /// Create a new task stack
     pub const fn new(ptr: NonNull<u8>, layout: Layout, is_static: bool) -> Self {
         Self {
@@ -29,6 +31,28 @@ impl TaskStack {
          unsafe {
              core::mem::transmute(self.ptr.as_ptr().add(self.layout.size()))
          }
+    }
+
+    /// Get end stack
+    #[inline(always)]
+    pub const fn end(&self) -> NonNull<u8> {
+        self.ptr
+    }
+
+    #[inline(always)]
+    /// Set stack end magic
+    pub fn set_stack_end_magic(&self) {
+        unsafe {
+            core::ptr::write_volatile(self.ptr.as_ptr() as *mut u64, Self::STACK_END_MAGIC);
+        }
+    }
+
+    /// Zero stack
+    #[inline(always)]
+    pub const fn zeroed(&self) {
+        unsafe {
+            core::ptr::write_bytes(self.ptr.as_ptr(), 0, self.layout.size());
+        }
     }
 }
 

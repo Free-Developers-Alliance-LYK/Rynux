@@ -1,7 +1,5 @@
 //! ARM64-specific assembler code.
 
-use crate::cfg_if;
-
 /// Generate an absolute address instruction.
 /// @dst: destination register (64 bit wide)
 /// @sym: name of the symbol

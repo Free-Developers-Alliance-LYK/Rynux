@@ -8,13 +8,15 @@
 //!     - VA_BITS_52 SUPPORT
 //!     - CONFIG_ARM64_HW_AFDBM
 //!     - S1PIE not support
+//!  - __primary_switched:
+//!    - not support vhe
 
 
 use kernel::{
-    cpu_le, cpu_be, adr_l, str_l,write_gpr,
+    adr_l, str_l,
+    global_sym::*,
     arch::ptrace::PtRegs,
     arch::arm64::{
-        kernel::image::symbols::*,
         sysregs::*,
         pgtable::idmap::InitIdmap,
         VaLayout,
@@ -22,7 +24,6 @@ use kernel::{
         asm::barrier::isb,
     },
     schedule::task::Task,
-    init::init_task::INIT_TASK,
 
     macros::{
         section_idmap_text,
@@ -137,8 +138,7 @@ unsafe extern "C" fn record_mmu_state() -> ! {
             "b.ne 0f",
             "mrs x19, sctlr_el2",
             "0:",
-            cpu_le!("tbnz x19, {sctlr_elx_ee_shift}, 1f"),
-            cpu_be!("tbz x19, {sctlr_elx_ee_shift}, 1f"),
+            "tbnz x19, {sctlr_elx_ee_shift}, 1f",
             "tst x19, {sctlr_elx_c}", // Z := (C == 0)
             "and x19, x19, {sctlr_elx_m}", // isolate M bit
             "csel x19, xzr, x19, eq", // clear x19 if Z
@@ -204,7 +204,7 @@ unsafe extern "C" fn init_kernel_el(mmu_state: usize) {
         isb();
         SpsrEl1::INIT_PSTATE_EL1.write();
         ElrEl1::write_raw(Lr::read_raw());
-        write_gpr!(x0, BOOT_CPU_MODE_EL1);
+        X0::write_raw(BOOT_CPU_MODE_EL1 as u64);
         eret();
     }
 }
@@ -276,6 +276,7 @@ unsafe extern "C" fn __primary_switch() {
         "ldr x8, ={__primary_switched}",
         "adrp x0, {KERNEL_START}",
         "mov x1, x21",
+        "mov x2, x20",
         "br x8",
         reserved_pg_dir = sym reserved_pg_dir,
         init_idmap_pg_dir = sym init_idmap_pg_dir,
@@ -302,26 +303,50 @@ extern "C" {
 }
 
 #[inline(always)]
-fn __init_cpu_task() {
-    // save init task to sp_el0
-    let init_task_ptr: *const Task = &INIT_TASK;
-    SpEl0::write_raw(init_task_ptr as u64);
-    // prepare sp
-    let mut sp = INIT_TASK.stack_top().as_ptr() as u64;
-    // save ptregs space
+fn __init_cpu_task(task: &Task) {
+    // write task raw ptr to sp_el0
+    SpEl0::write_raw(task as *const _ as u64);
+    // prepare stack
+    task.zero_stack();
+    let mut sp = task.top_of_stack().as_ptr() as u64;
+    // reserve ptregs space and init sp
     sp  -= core::mem::size_of::<PtRegs>() as u64;
-    write_gpr!(sp, sp);
+    Sp::write_raw(sp);
+
+    // init pt_regs
+    let mut pt_regs = unsafe {PtRegs::from_raw(sp as *const _)};
+    pt_regs.init_stackframe();
+    
+    // init last task stack frame(X29) point to pt_regs
+    X29::write_raw(pt_regs.stackframe.as_ptr() as u64);
+
+    // save percpu offset into tpidr_el1
+    let cpu = task.thread_info().cpu;
+    let percpu_offset = kernel::mm::percpu::get_per_cpu_offset(cpu);
+    TpidrEl1::write_raw(percpu_offset as u64);
 }
 
+// on this function, we can safety access kernel VA symbol.
 #[section_init_text]
-unsafe extern "C" fn __primary_switched(kernel_start: usize, fdt: usize) {
-    use kernel::arch::arm64::kernel::setup::set_fdt_pointer;
+extern "C" fn __primary_switched(kernel_start_pa: usize, fdt_pa: usize, _cpu_boot_mode: usize) {
     use kernel::mm::addr::PhysAddr;
-    // init cpu task
-    __init_cpu_task();
+    // set kimage_va_offset
+    let kimage_va_offset = _text as usize - kernel_start_pa;
+    kernel::arch::arm64::mm::mmu::set_kimage_va_offset(kimage_va_offset);
     // save fdt
-    set_fdt_pointer(PhysAddr::from(fdt));
+    kernel::arch::arm64::kernel::setup::set_fdt_pointer(PhysAddr::from(fdt_pa));
     // init vbar
-    VbarEl1::write_raw(kernel_start + vectors as u64);
+    //VbarEl1::write_raw();
     isb();
+
+    // init cpu task, reset sp equal task sp
+    __init_cpu_task(&kernel::init::init_task::INIT_TASK);
+
+    // Actively simulate functions pushing into the stack and save the stack
+    // frame operation
+    unsafe {
+        core::arch::asm!("stp x29, x30, [sp, #-16]!");
+        core::arch::asm!("mov x29, sp");
+        start_kernel();
+    }
 }

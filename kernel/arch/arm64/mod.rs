@@ -8,5 +8,8 @@ pub mod sysregs;
 pub mod early_debug;
 pub mod asm;
 pub mod ptrace;
+pub mod symbols;
+pub mod thread_info;
 
 pub use va_layout::VaLayout;
+

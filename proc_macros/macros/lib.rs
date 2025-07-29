@@ -216,6 +216,14 @@ pub fn section_idmap_text(_attr: TokenStream, item: TokenStream) -> TokenStream 
     )
 }
 
+#[proc_macro_attribute]
+pub fn section_rodata_after_init(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".data..ro_after_init").into(),
+        item,
+    )
+}
+
 use syn::parse_macro_input;
 use syn::Item;
 

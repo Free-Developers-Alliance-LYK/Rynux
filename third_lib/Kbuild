@@ -60,8 +60,6 @@ $(obj)/bitflags.o: private skip_flags = -Wunreachable_pub
 $(obj)/bitflags.o: $(src)/bitflags/src/lib.rs  $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
-
-
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
 obj-y			+= core.o

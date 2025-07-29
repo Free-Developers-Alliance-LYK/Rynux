@@ -10,6 +10,10 @@
 // - not support CONFIG_SHADOW_CALL_STACK
 // - not supoort CONFIG_ARM64_PSEUDO_NMI
 // - not supoort CONFIG_PID_IN_CONTEXTIDR
+// - not supoort OVERFLOW_STACK CHECK
+// - not support CONFIG_QCOM_FALKOR_ERRATUM_1003
+
+#include <layout.h>
 
 	.macro	clear_gp_regs
 	.irp	n,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29
@@ -34,52 +38,10 @@
 	.endif
 .Lskip_tramp_vectors_cleanup\@:
 	.endif
-
 	sub	sp, sp, #PT_REGS_SIZE
-#ifdef CONFIG_VMAP_STACK
-	/*
-	 * Test whether the SP has overflowed, without corrupting a GPR.
-	 * Task and IRQ stacks are aligned so that SP & (1 << THREAD_SHIFT)
-	 * should always be zero.
-	 */
-	add	sp, sp, x0			// sp' = sp + x0
-	sub	x0, sp, x0			// x0' = sp' - x0 = (sp + x0) - x0 = sp
-	tbnz	x0, #THREAD_SHIFT, 0f
-	sub	x0, sp, x0			// x0'' = sp' - x0' = (sp + x0) - sp = x0
-	sub	sp, sp, x0			// sp'' = sp' - x0 = (sp + x0) - x0 = sp
+
 	b	el\el\ht\()_\regsize\()_\label
 
-0:
-	/*
-	 * Either we've just detected an overflow, or we've taken an exception
-	 * while on the overflow stack. Either way, we won't return to
-	 * userspace, and can clobber EL0 registers to free up GPRs.
-	 */
-
-	/* Stash the original SP (minus PT_REGS_SIZE) in tpidr_el0. */
-	msr	tpidr_el0, x0
-
-	/* Recover the original x0 value and stash it in tpidrro_el0 */
-	sub	x0, sp, x0
-	msr	tpidrro_el0, x0
-
-	/* Switch to the overflow stack */
-	adr_this_cpu sp, overflow_stack + OVERFLOW_STACK_SIZE, x0
-
-	/*
-	 * Check whether we were already on the overflow stack. This may happen
-	 * after panic() re-enables interrupts.
-	 */
-	mrs	x0, tpidr_el0			// sp of interrupted context
-	sub	x0, sp, x0			// delta with top of overflow stack
-	tst	x0, #~(OVERFLOW_STACK_SIZE - 1)	// within range?
-	b.ne	__bad_stack			// no? -> bad stack pointer
-
-	/* We were already on the overflow stack. Restore sp/x0 and carry on. */
-	sub	sp, sp, x0
-	mrs	x0, tpidrro_el0
-#endif
-	b	el\el\ht\()_\regsize\()_\label
 .org .Lventry_start\@ + 128	// Did we overflow the ventry slot?
 	.endm
 
@@ -269,37 +231,6 @@ SYM_CODE_START(vectors)
 	kernel_ventry	0, t, 32, error		// Error 32-bit EL0
 SYM_CODE_END(vectors)
 
-#ifdef CONFIG_VMAP_STACK
-SYM_CODE_START_LOCAL(__bad_stack)
-	/*
-	 * We detected an overflow in kernel_ventry, which switched to the
-	 * overflow stack. Stash the exception regs, and head to our overflow
-	 * handler.
-	 */
-
-	/* Restore the original x0 value */
-	mrs	x0, tpidrro_el0
-
-	/*
-	 * Store the original GPRs to the new stack. The orginal SP (minus
-	 * PT_REGS_SIZE) was stashed in tpidr_el0 by kernel_ventry.
-	 */
-	sub	sp, sp, #PT_REGS_SIZE
-	kernel_entry 1
-	mrs	x0, tpidr_el0
-	add	x0, x0, #PT_REGS_SIZE
-	str	x0, [sp, #S_SP]
-
-	/* Stash the regs for handle_bad_stack */
-	mov	x0, sp
-
-	/* Time to die */
-	bl	handle_bad_stack
-	ASM_BUG()
-SYM_CODE_END(__bad_stack)
-#endif /* CONFIG_VMAP_STACK */
-
-
 	.macro entry_handler el:req, ht:req, regsize:req, label:req
 SYM_CODE_START_LOCAL(el\el\ht\()_\regsize\()_\label)
 	kernel_entry \el, \regsize
@@ -343,9 +274,6 @@ SYM_CODE_END(ret_to_kernel)
 SYM_CODE_START_LOCAL(ret_to_user)
 	ldr	x19, [tsk, #TSK_TI_FLAGS]	// re-check for single-step
 	enable_step_tsk x19, x2
-#ifdef CONFIG_GCC_PLUGIN_STACKLEAK
-	bl	stackleak_erase_on_task_stack
-#endif
 	kernel_exit 0
 SYM_CODE_END(ret_to_user)
 
@@ -357,18 +285,6 @@ SYM_CODE_END(ret_to_user)
 	add	\tmp, \tmp, #TRAMP_SWAPPER_OFFSET
 	bic	\tmp, \tmp, #USER_ASID_FLAG
 	msr	ttbr1_el1, \tmp
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
-alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
-	/* ASID already in \tmp[63:48] */
-	movk	\tmp, #:abs_g2_nc:(TRAMP_VALIAS >> 12)
-	movk	\tmp, #:abs_g1_nc:(TRAMP_VALIAS >> 12)
-	/* 2MB boundary containing the vectors, so we nobble the walk cache */
-	movk	\tmp, #:abs_g0_nc:((TRAMP_VALIAS & ~(SZ_2M - 1)) >> 12)
-	isb
-	tlbi	vae1, \tmp
-	dsb	nsh
-alternative_else_nop_endif
-#endif /* CONFIG_QCOM_FALKOR_ERRATUM_1003 */
 	.endm
 
 	// Move from swapper_pg_dir to tramp_pg_dir
@@ -509,92 +425,36 @@ alternative_else_nop_endif
 /* The order must match tramp_vecs and the arm64_bp_harden_el1_vectors enum. */
 	.pushsection ".entry.text", "ax"
 	.align	11
-SYM_CODE_START(__bp_harden_el1_vectors)
-#ifdef CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
-	generate_el1_vector	bhb=BHB_MITIGATION_LOOP
-	generate_el1_vector	bhb=BHB_MITIGATION_FW
-	generate_el1_vector	bhb=BHB_MITIGATION_INSN
-#endif /* CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY */
-SYM_CODE_END(__bp_harden_el1_vectors)
 	.popsection
 
 
-/*
- * Register switch for AArch64. The callee-saved registers need to be saved
- * and restored. On entry:
- *   x0 = previous task_struct (must be preserved across the switch)
- *   x1 = next task_struct
- * Previous and next are guaranteed not to be the same.
- *
- */
-SYM_FUNC_START(cpu_switch_to)
-	mov	x10, #THREAD_CPU_CONTEXT
-	add	x8, x0, x10
-	mov	x9, sp
-	stp	x19, x20, [x8], #16		// store callee-saved registers
-	stp	x21, x22, [x8], #16
-	stp	x23, x24, [x8], #16
-	stp	x25, x26, [x8], #16
-	stp	x27, x28, [x8], #16
-	stp	x29, x9, [x8], #16
-	str	lr, [x8]
-	add	x8, x1, x10
-	ldp	x19, x20, [x8], #16		// restore callee-saved registers
-	ldp	x21, x22, [x8], #16
-	ldp	x23, x24, [x8], #16
-	ldp	x25, x26, [x8], #16
-	ldp	x27, x28, [x8], #16
-	ldp	x29, x9, [x8], #16
-	ldr	lr, [x8]
-	mov	sp, x9
-	msr	sp_el0, x1
-	ptrauth_keys_install_kernel x1, x8, x9, x10
-	scs_save x0
-	scs_load_current
-	ret
-SYM_FUNC_END(cpu_switch_to)
-NOKPROBE(cpu_switch_to)
+.section .text
+.p2align 11
+.global exception_vector_base
+exception_vector_base:
+    // current EL, with SP_EL0
+    INVALID_EXCP 0 0
+    INVALID_EXCP 1 0
+    INVALID_EXCP 2 0
+    INVALID_EXCP 3 0
 
-/*
- * This is how we return from a fork.
- */
-SYM_CODE_START(ret_from_fork)
-	bl	schedule_tail
-	cbz	x19, 1f				// not a kernel thread
-	mov	x0, x20
-	blr	x19
-1:	get_current_task tsk
-	mov	x0, sp
-	bl	asm_exit_to_user_mode
-	b	ret_to_user
-SYM_CODE_END(ret_from_fork)
-NOKPROBE(ret_from_fork)
+    // current EL, with SP_ELx
+    HANDLE_SYNC
+    HANDLE_IRQ
+    INVALID_EXCP 2 1
+    INVALID_EXCP 3 1
 
-/*
- * void call_on_irq_stack(struct pt_regs *regs,
- * 		          void (*func)(struct pt_regs *));
- *
- * Calls func(regs) using this CPU's irq stack and shadow irq stack.
- */
-SYM_FUNC_START(call_on_irq_stack)
+    // lower EL, aarch64
+    HANDLE_SYNC
+    HANDLE_IRQ
+    INVALID_EXCP 2 2
+    INVALID_EXCP 3 2
 
-	/* Create a frame record to save our LR and SP (implicit in FP) */
-	stp	x29, x30, [sp, #-16]!
-	mov	x29, sp
+    // lower EL, aarch32
+    INVALID_EXCP 0 3
+    INVALID_EXCP 1 3
+    INVALID_EXCP 2 3
 
-	ldr_this_cpu x16, irq_stack_ptr, x17
 
-	/* Move to the new stack and call the function there */
-	add	sp, x16, #IRQ_STACK_SIZE
-	blr	x1
 
-	/*
-	 * Restore the SP from the FP, and restore the FP and LR from the frame
-	 * record.
-	 */
-	mov	sp, x29
-	ldp	x29, x30, [sp], #16
-	scs_load_current
-	ret
-SYM_FUNC_END(call_on_irq_stack)
-NOKPROBE(call_on_irq_stack)
+

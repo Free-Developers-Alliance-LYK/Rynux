@@ -1,5 +1,13 @@
 //! Early put in qemu
 
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_QEMU)] {
+        const EARLY_UART_BASE: usize = 0x0900_0000;
+    } else if #[cfg(CONFIG_RASPI4B)] { 
+        const EARLY_UART_BASE: usize = 0xFE20_1000;
+    }
+}
+
 #[allow(dead_code)]
 #[inline(always)]
 fn uart_put_hex(byte: u8) {
@@ -31,7 +39,7 @@ fn uart_put_u64_hex_le(val: u64) {
 #[inline(always)]
 pub fn early_uart_putchar(c: u8) {
     unsafe {
-        core::ptr::write_volatile(0x09000000 as *mut u32, c as u32);
+        core::ptr::write_volatile(EARLY_UART_BASE as *mut u32, c as u32);
     }
 }
 

@@ -31,6 +31,7 @@ pub mod prelude;
 pub mod schedule;
 pub mod init;
 pub mod types;
+pub mod global_sym;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

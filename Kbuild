@@ -26,4 +26,5 @@ prepare: $(obj)/kernel.o $(objtree)/layout.h
 # ---------------------------------------------------------------------------
 obj-y			+= third_lib/
 obj-y 			+= kernel.o
+obj-y			+= init/
 obj-y			+= arch/$(SRCARCH)/
