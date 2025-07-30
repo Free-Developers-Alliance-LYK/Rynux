@@ -201,11 +201,12 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
 
         let device_prot = PtePgProt::PROT_DEVICE_nGnRnE;
         let mut pte2 = &raw const DEVICE_PTES.0 as *mut DevicePtes as usize;
+        let uart_device = kernel::arch::arm64::early_debug::EARLY_UART_BASE;
         map_range(
             &mut pte2,
-            0x08FFF000,
-            0x09000000 + 0x1000,
-            0x08FFF000,
+            uart_device - 0x1000,
+            uart_device + 0x1000,
+            uart_device - 0x1000,
             device_prot,
             InitIdmap::ROOT_LEVEL,
             pg_dir as *mut Pte,
@@ -343,11 +344,12 @@ fn map_kernel(va_offset: usize) {
     unsafe {
         let device_prot = PtePgProt::PROT_DEVICE_nGnRnE;
         let mut pte2 = &raw const DEVICE_PTES.0 as *mut DevicePtes as usize;
+        let uart_device = kernel::arch::arm64::early_debug::EARLY_UART_BASE;
         map_range(
             &mut pte2,
-            0x08FFF000,
-            0x09000000 + 0x1000,
-            0x08FFF000,
+            uart_device - 0x1000,
+            uart_device + 0x1000,
+            uart_device - 0x1000,
             device_prot,
             rootlevel,
             init_pg_dir as *mut Pte,

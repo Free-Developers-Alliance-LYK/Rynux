@@ -27,6 +27,7 @@ pub mod arch;
 pub mod size;
 pub mod vmrynux;
 pub mod mm;
+pub mod sync;
 pub mod linkage;
 pub mod prelude;
 pub mod schedule;

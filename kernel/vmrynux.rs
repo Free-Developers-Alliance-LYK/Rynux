@@ -383,6 +383,11 @@ const CACHELINE_ALIGNED_DATA: &str = concatcp!{
     "*(.data..cacheline_aligned) \n",
 };
 
+// .data section
+const DATA_DATA: &str = concatcp!{
+    "*(.xiptext) \n",
+    "*(.data .data.rel .data.rel.local) \n"
+};
 
 const RW_DATA: &str = concatcp!{
     ". = ALIGN(", PageConfig::PAGE_SIZE, "); \n",
@@ -390,6 +395,7 @@ const RW_DATA: &str = concatcp!{
     INIT_TASK_DATA,
     CACHELINE_ALIGNED_DATA,
     READ_MOSTLY_DATA,
+    DATA_DATA,
     "} \n",
 };
 

@@ -6,7 +6,6 @@ use crate::{
     types::OnceCell,
     arch::setup::ArchProcessorInit,
     arch::arm64::sysregs::MpidrEl1,
-    arch::cpu::MAX_CPUS,
 };
 
 /// Have to define this struct with repr align
@@ -57,11 +56,11 @@ pub struct Arm64ProcessorInit;
 impl ArchProcessorInit for Arm64ProcessorInit {
     #[section_init_text]
     fn smp_setup_processor_id() {
-        //let aff = MpidrEl1::read().affinity();
-        //set_cpu_logical_map(0, aff);
+        use crate::arch::arm64::kernel::smp;
+        use crate::arch::arm64::early_debug::early_uart_put_u64_hex;
+        let aff = MpidrEl1::read().affinity();
+        early_uart_put_u64_hex(aff);
+        smp::set_main_cpu_hwid(aff);
     }
 }
-
-static __CPU_LOGICAL_MAP: [u64; MAX_CPUS] = [MpidrEl1::INVALID_HWID; MAX_CPUS];
-
 

@@ -10,6 +10,7 @@ pub mod asm;
 pub mod ptrace;
 pub mod symbols;
 pub mod thread_info;
+pub mod irq;
 
 pub use va_layout::VaLayout;
 

@@ -15,3 +15,4 @@ pub mod symbols;
 pub mod thread;
 pub mod cpu;
 pub mod setup;
+pub mod irq;
