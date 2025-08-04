@@ -51,7 +51,7 @@ $(obj)/const_format.o: $(src)/const_format/src/lib.rs  $(base_libs) FORCE
 
 # ------------------------------------- static assertions ------------------------
 $(obj)/static_assertions.o: private rustc_target_flags = --extern static_assertions_proc_macros
-$(obj)/static_assertions.o: $(src)/static_assertions/src/lib.rs $(base_libs) FORCE
+$(obj)/static_assertions.o: $(src)/static_assertions-1.1.0/src/lib.rs $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
 

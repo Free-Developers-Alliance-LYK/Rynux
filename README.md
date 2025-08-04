@@ -64,7 +64,7 @@ library you want to import
 
 ```bash
 cd third_lib
-cargo-download -x tock-registers=0.10.0
+cargo download -x tock-registers=0.10.0
 ```
 now, we have a `tock-registers-0.10.0` directory in `third_lib` directory.
 
