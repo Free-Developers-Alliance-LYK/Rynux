@@ -11,6 +11,8 @@ macro_rules! adr_l {
     };
 }
 
+pub use adr_l;
+
 /// Generate a load instruction.
 /// @dst: destination register (32 or 64 bit wide)
 /// @sym: name of the symbol
@@ -25,6 +27,7 @@ macro_rules! str_l {
     };
 }
 
+pub use str_l;
 
 /// Exception return
 ///
@@ -36,4 +39,3 @@ pub fn eret() -> ! {
         core::hint::unreachable_unchecked()
     }
 }
-

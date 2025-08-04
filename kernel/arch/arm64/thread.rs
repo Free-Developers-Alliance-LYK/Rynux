@@ -62,3 +62,21 @@ impl Arm64ThreadInfo {
         }
     }
 }
+
+/*
+/// Arm64 Current
+pub struct Arm64Current;
+
+use crate::arch::thread::ArchCurrent;
+impl ArchCurrent for Arm64Current {
+    #[inline(always)]
+    fn read() -> *const Task {
+        SpEl0::read_raw() as *const Task
+    }
+
+    #[inline(always)]
+    fn write(task: *const Task) {
+        SpEl0::write_raw(task as u64);
+    }
+}
+*/

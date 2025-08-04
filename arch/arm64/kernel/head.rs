@@ -13,15 +13,15 @@
 
 
 use kernel::{
-    adr_l, str_l,
     global_sym::*,
     arch::ptrace::PtRegs,
     arch::arm64::{
+        asm::assembler::{adr_l, str_l, eret},
+        asm::barrier::isb,
         sysregs::*,
         pgtable::idmap::InitIdmap,
         VaLayout,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
-        asm::barrier::isb,
     },
     schedule::task::Task,
 
@@ -189,8 +189,6 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
  */
 #[section_idmap_text]
 unsafe extern "C" fn init_kernel_el(mmu_state: usize) {
-    use kernel::arch::arm64::asm::barrier::isb;
-    use kernel::arch::arm64::asm::eret;
     use kernel::arch::arm64::kernel::setup::BOOT_CPU_MODE_EL1;
     let current_el = CurrentEL::read();
     if current_el.contains(CurrentEL::EL2) {

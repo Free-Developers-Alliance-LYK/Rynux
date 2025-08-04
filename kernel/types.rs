@@ -10,7 +10,6 @@ pub struct OnceCell<T> {
     is_set: UnsafeCell<bool>,
 }
 
-
 impl<T> OnceCell<T> {
     /// Create a new OnceCell.
     pub const fn new() -> Self {

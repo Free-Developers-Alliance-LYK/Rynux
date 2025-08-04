@@ -3,12 +3,6 @@
 use crate::cfg_if;
 
 cfg_if! {
-    if #[cfg(CONFIG_ARM64)] {
-        pub use crate::arch::arm64::linkage::__ALIGN_STR;
-    }
-}
-
-cfg_if! {
     if #[cfg(CONFIG_FUNCTION_ALIGNMENT_4B)] {
         /// Function alignment
         pub const FUNCTION_ALIGNMENT: usize = 4;
