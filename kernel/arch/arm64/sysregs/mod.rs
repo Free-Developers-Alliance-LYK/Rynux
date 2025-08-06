@@ -25,6 +25,7 @@ pub(crate) mod ttbr_el1;
 pub(crate) mod sp_el0;
 pub(crate) mod tpidr_elx;
 pub(crate) mod general;
+pub(crate) mod daif;
 
 pub use current_el::CurrentEL;
 pub use sctlr_el1::SctlrEl1;
@@ -47,4 +48,5 @@ pub use ttbr_el1::{Ttbr0El1, Ttbr1El1};
 pub use sp_el0::SpEl0;
 pub use tpidr_elx::TpidrEl1;
 pub use mpidr_el1::MpidrEl1;
+pub use daif::Daif;
 pub use general::*;

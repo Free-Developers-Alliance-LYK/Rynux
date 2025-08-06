@@ -9,7 +9,9 @@ pub trait ArchProcessorInit {
 }
 
 cfg_if! {
-    if #[cfg(CONFIG_ARM64)] {
+    if #[cfg(test)] {
+        // do nothing
+    }else if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::kernel::setup::Arm64ProcessorInit as ProcessorInit;
     }
 }

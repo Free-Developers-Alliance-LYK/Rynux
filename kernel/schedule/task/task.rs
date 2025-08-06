@@ -8,6 +8,7 @@ use super::{
 };
 
 use crate::macros::cache_aligned;
+//use crate::arch::thread::{ArchThreadInfo, ArchCurrent, Current};
 use crate::arch::thread::ArchThreadInfo;
 
 /// Task struct
@@ -19,15 +20,33 @@ pub struct Task {
     state: TaskState,
     // stack
     stack: TaskStack,
+    // boot task?
+    is_boot_task: bool,
+    // magic number
+    pub(crate) magic: u64,
 }
 
 impl Task {
+    const BOOT_TASK_MAGIC: u64 = 0x12345678;
     /// Create a new task
-    pub const fn new(state: TaskState, stack: TaskStack) -> Self {
+    pub fn new(state: TaskState, stack: TaskStack) -> Self {
         Self {
             thread_info: ArchThreadInfo::default(),
             state,
             stack,
+            is_boot_task: false,
+            magic: 0,
+        }
+    }
+
+    /// Create boot task
+    pub(crate) const fn new_boot(stack: TaskStack) -> Self {
+        Self {
+            thread_info: ArchThreadInfo::default(),
+            state: TaskState::RUNNING,
+            stack,
+            is_boot_task: true,
+            magic: Self::BOOT_TASK_MAGIC,
         }
     }
 
@@ -62,6 +81,6 @@ impl Task {
     }
 }
 
-
 unsafe impl Send for Task {}
 unsafe impl Sync for Task {}
+

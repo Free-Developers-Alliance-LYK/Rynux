@@ -67,3 +67,14 @@ pub type NotThreadSafe = PhantomData<*mut ()>;
 /// [`NotThreadSafe`]: type@NotThreadSafe
 #[allow(non_upper_case_globals)]
 pub const NotThreadSafe: NotThreadSafe = PhantomData;
+
+/// for loop closure return value
+pub enum ForStepResult {
+    /// continue
+    Next,
+    /// jump to
+    JumpTo(usize),
+    /// break
+    Break
+}
+

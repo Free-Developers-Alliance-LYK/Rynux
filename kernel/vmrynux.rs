@@ -1,7 +1,59 @@
 //! Vmrynux for linker
+//!
+//! /*
+//! Helper macros to support writing architecture specific
+//! linker scripts.
+//! 
+//! A minimal linker scripts has following content:
+//! [This is a sample, architectures may have special requirements]
+//! 
+//! OUTPUT_FORMAT(...)
+//! OUTPUT_ARCH(...)
+//! ENTRY(...)
+//! SECTIONS
+//! {
+//!      . = START;
+//!      __init_begin = .;
+//!      HEAD_TEXT_SECTION
+//!      INIT_TEXT_SECTION(PAGE_SIZE)
+//!      INIT_DATA_SECTION(...)
+//!      PERCPU_SECTION(CACHELINE_SIZE)
+//!      __init_end = .;
+//! 
+//!      _stext = .;
+//!      TEXT_SECTION = 0
+//!      _etext = .;
+//! 
+//!      _sdata = .;
+//!      RO_DATA(PAGE_SIZE)
+//!      RW_DATA(...)
+//!      _edata = .;
+//! 
+//!      EXCEPTION_TABLE(...)
+//! 
+//!      BSS_SECTION(0, 0, 0)
+//!      _end = .;
+//! 
+//!      STABS_DEBUG
+//!      DWARF_DEBUG
+//!      ELF_DETAILS
+//! 
+//!      DISCARDS                // must be the last
+//! }
+//! 
+//! [__init_begin, __init_end] is the init section that may be freed after init
+//!      // __init_begin and __init_end should be page aligned, so that we can
+//!      // free the whole .init memory
+//! [_stext, _etext] is the text section
+//! [_sdata, _edata] is the data section
+//! 
+//! Some of the included output section have their own set of constants.
+//! Examples are: [__initramfs_start, __initramfs_end] for initramfs and
+//!               [__nosave_begin, __nosave_end] for the nosave data
+//! 
 
 use crate::{
-    cfg_if, const_str_to_u8_array_with_null,
+    const_str_to_u8_array_with_null,
     macros::need_export,
     mm::page::PageConfig,
     linkage::FUNCTION_ALIGNMENT,
@@ -9,24 +61,8 @@ use crate::{
 };
 
 use const_format::concatcp;
+use crate::arch::vmrynux::*;
 
-cfg_if! {
-    if #[cfg(CONFIG_ARM64)] {
-       use crate::arch::arm64::mm::cache::L1_CACHE_BYTES;
-       const EXIT_DISCARDS: &str = "";
-       static LOAD_OFFSET: usize = 0;
-       const INIT_TEXT_ALIGN: usize = 8;
-       const RO_DATA_ALIGN: usize = PageConfig::PAGE_SIZE;
-       const INIT_SETUP_ALIGN: usize = 16;
-       const PERCPU_CACHE_ALIGN: usize = L1_CACHE_BYTES;
-
-       const SBSS_ALIGN: usize = 0;
-       const BSS_ALIGN: usize = 0;
-       const BSS_STOP_ALIGN: usize = 0;
-    }
-}
-
-const CACHE_ALIGN: usize = crate::arch::cache::SMP_CACHE_BYTES;
 
 const EXIT_TEXT: &str = concat!(
     "*(.exit.text) ",

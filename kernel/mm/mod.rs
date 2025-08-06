@@ -1,5 +1,8 @@
 //! Memory management code.
 
 pub mod page;
-pub mod addr;
+mod addr;
 pub mod percpu;
+pub mod memblock;
+
+pub use addr::{PhysAddr, VirtAddr};

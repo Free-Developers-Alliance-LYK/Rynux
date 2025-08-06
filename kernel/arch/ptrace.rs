@@ -4,7 +4,9 @@ use crate::cfg_if;
 use crate::macros::need_export;
 
 cfg_if! {
-    if #[cfg(CONFIG_ARM64)] {
+    if #[cfg(test)] {
+        pub use super::dummy::ptrace::PtRegs; 
+    } else if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::ptrace::PtRegs;
     }
 }

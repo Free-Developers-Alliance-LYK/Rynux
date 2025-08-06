@@ -6,7 +6,6 @@ use core::alloc::Layout;
 use crate::{
     schedule::task::{
         Task,
-        TaskState,
         TaskStack,
     },
     arch::mm::ArchThreadMemLayout,
@@ -25,10 +24,7 @@ static INIT_TASK_STACK: TaskStack = TaskStack::new(
 );
 
 /// Init First task
-pub static INIT_TASK: Task = Task::new(
-    TaskState::RUNNING,
-    INIT_TASK_STACK,
-);
+pub static INIT_TASK: Task = Task::new_boot(INIT_TASK_STACK);
 
 extern "C" {
     /// init_stack define in vmrynux.rs

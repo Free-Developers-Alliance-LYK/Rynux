@@ -2,7 +2,7 @@
 
 use crate::{
     macros::{section_cache_aligned, section_init_data, cache_aligned, section_init_text},
-    mm::addr::PhysAddr,
+    mm::PhysAddr,
     types::OnceCell,
     arch::setup::ArchProcessorInit,
     arch::arm64::sysregs::MpidrEl1,
@@ -32,8 +32,8 @@ pub static BOOT_ARGS: BootArgs = BootArgs {
 pub static MMU_ENABLED_AT_BOOT: usize = 0;
 
 /// Whether the MMU was enabled at boot.
+#[section_init_data]
 pub static MMU_ENABLED_AT_BOOT2: usize = 0;
-
 
 /// BOOT CPU MODE from EL1
 pub const BOOT_CPU_MODE_EL1: usize = 0xe11;
@@ -57,9 +57,7 @@ impl ArchProcessorInit for Arm64ProcessorInit {
     #[section_init_text]
     fn smp_setup_processor_id() {
         use crate::arch::arm64::kernel::smp;
-        use crate::arch::arm64::early_debug::early_uart_put_u64_hex;
         let aff = MpidrEl1::read().affinity();
-        early_uart_put_u64_hex(aff);
         smp::set_main_cpu_hwid(aff);
     }
 }

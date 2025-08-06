@@ -23,7 +23,7 @@ MAKEFLAGS += -rR
 unexport LC_ALL
 LC_COLLATE=C
 LC_NUMERIC=C
-export LC_COLLATE LC_NUMERIC
+export LC_COLLATE RC_NUMERIC
 
 # Avoid interference with shell env settings
 unexport GREP_OPTIONS
@@ -1004,12 +1004,12 @@ rustavailable:
 # Using the singular to avoid running afoul of `no-dot-config-targets`.
 PHONY += rustdoc
 rustdoc: prepare
-	$(Q)$(MAKE) $(build)=kernel $@
+	$(Q)$(MAKE) $(build)=. $@
 
 # Testing target
 PHONY += rusttest
 rusttest: prepare
-	$(Q)$(MAKE) $(build)=kernel $@
+	$(Q)$(MAKE) $(build)=. $@
 
 # Formatting targets
 PHONY += rustfmt rustfmtcheck

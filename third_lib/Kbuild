@@ -49,25 +49,51 @@ $(obj)/const_format.o: private rustc_target_flags = --extern const_format_proc_m
 $(obj)/const_format.o: $(src)/const_format/src/lib.rs  $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
+rusttestlib-const_format: private skip_flags = -Wunreachable_pub
+rusttestlib-const_format: private rustc_target_flags = --extern const_format_proc_macros
+rusttestlib-const_format: $(src)/const_format/src/lib.rs  FORCE
+	+$(call if_changed,rustc_test_library)
+
 # ------------------------------------- static assertions ------------------------
 $(obj)/static_assertions.o: private rustc_target_flags = --extern static_assertions_proc_macros
 $(obj)/static_assertions.o: $(src)/static_assertions-1.1.0/src/lib.rs $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
+rusttestlib-static_assertions: private rustc_target_flags = --extern static_assertions_proc_macros
+rusttestlib-static_assertions: $(src)/static_assertions-1.1.0/src/lib.rs  FORCE
+	+$(call if_changed,rustc_test_library)
 
 # --------------------------------------------- bitflags -------------------
 $(obj)/bitflags.o: private skip_flags = -Wunreachable_pub
 $(obj)/bitflags.o: $(src)/bitflags/src/lib.rs  $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
-tock_cfg = --cfg 'feature="register_types"'
+rusttestlib-bitflags: private skip_flags = -Wunreachable_pub
+rusttestlib-bitflags: $(src)/bitflags/src/lib.rs  FORCE
+	+$(call if_changed,rustc_test_library)
 
 # ----------------------------------tock registers ------------------------
-$(obj)/tock_registers.o: private skip_flags = -Wunreachable_pub -Wmissing_docs
-$(obj)/tock_registers.o: private rustc_target_flags = -Aelided-lifetimes-in-paths \
-	$(tock_cfg)
+tock_cfg = --cfg 'feature="register_types"'
+tock_skip_flags = -Wunreachable_pub -Wmissing_docs
+tock_target_flags = $(tock_cfg) -Aelided-lifetimes-in-paths
+
+$(obj)/tock_registers.o: private skip_flags = $(tock_skip_flags)
+$(obj)/tock_registers.o: private rustc_target_flags = $(tock_target_flags)
 $(obj)/tock_registers.o: $(src)/tock-registers-0.10.0/src/lib.rs  $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
+
+rusttestlib-tock_registers: private skip_flags = $(tock_skip_flags)
+rusttestlib-tock_registers: private rustc_target_flags = $(tock_target_flags)
+rusttestlib-tock_registers: $(src)/tock-registers-0.10.0/src/lib.rs  FORCE
+	+$(call if_changed,rustc_test_library)
+
+#PHONY += rusttestlib-const_format 
+
+rusttest: rusttestlib-const_format rusttestlib-static_assertions \
+	rusttestlib-bitflags rusttestlib-tock_registers
+
+#rusttestlib-static_assertions \
+#	rusttestlib-bitflags rusttestlib-tock_registers
 
 # Ordinary directory descending
 # ---------------------------------------------------------------------------

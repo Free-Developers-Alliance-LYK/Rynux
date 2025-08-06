@@ -2,7 +2,7 @@
 
 use crate::{
     bitflags::bitflags,
-    klib::bits::genmask,
+    klib::bits::genmask64,
     arch::arm64::sysregs::MairAttrIdx,
 };
 
@@ -62,7 +62,7 @@ impl PtePgProt {
     pub const PTE_WRITE: Self =  Self::PTE_DBM;
 
     /// Software bits mask
-    pub const PTE_SWBITS_MASK: u64 = (1 << 63) | genmask(58, 55);
+    pub const PTE_SWBITS_MASK: u64 = (1 << 63) | genmask64(58, 55);
     /// Type mask
     pub const PTE_TYPE_MASK: u64  = 3 << 0;
     /// Type page PTE_VALID | PTE_NON_BLOCK

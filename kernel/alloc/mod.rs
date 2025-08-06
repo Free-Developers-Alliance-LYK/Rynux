@@ -1,4 +1,4 @@
 //! kernel alloc module
 
-pub mod kbox;
-pub mod layout;
+//pub mod kbox;
+//pub mod layout;

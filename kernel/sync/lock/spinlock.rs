@@ -9,16 +9,14 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use crate::{
     arch::irq::{IRQ, ArchIrq},
     schedule::preempt::{preempt_disable, preempt_enable},
+    macros::section_spinlock_text,
 };
-
 
 /// A IRQ-Safe no-preempt spinlock.
 ///
 /// When multiple CPUs attempt to lock the same spinlock, only one at a time
 /// is allowed to progress, the others will block (spinning) until the spinlock is
 /// unlocked, at which point another CPU will be allowed to make progress.
-///
-/// Disable IRQ and IRQ-safe.
 ///
 /// The following example shows how to use interior mutability to modify the contents of a struct
 /// protected by a spinlock despite only having a shared reference:
@@ -72,6 +70,7 @@ impl super::Backend for RawSpinLockIrqBackend {
     type Inner = SpinLockInner;
     type GuardState = <IRQ as ArchIrq>::IrqState;
 
+    #[section_spinlock_text]
     fn lock(inner: &mut Self::Inner) -> Self::GuardState {
         let irq = IRQ::local_save_and_disable();
         preempt_disable();
@@ -84,12 +83,14 @@ impl super::Backend for RawSpinLockIrqBackend {
         irq
     }
 
+    #[section_spinlock_text]
     fn unlock(inner: &mut Self::Inner, guard_state: &Self::GuardState) {
         inner.lock.store(false, Ordering::Release);
         IRQ::local_restore(*guard_state);
         preempt_enable();
     }
 
+    #[section_spinlock_text]
     fn try_lock(inner: &mut Self::Inner) -> Option<Self::GuardState> {
         let irq = IRQ::local_save_and_disable();
         preempt_disable();

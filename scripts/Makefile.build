@@ -204,6 +204,30 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
         --sysroot=/dev/null \
     $(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
+quiet_cmd_rustc_test_library = $(RUSTC_OR_CLIPPY_QUIET) TL $<
+cmd_rustc_test_library = \
+	OBJTREE=$(abspath $(objtree)) \
+	$(RUSTC_OR_CLIPPY) \
+    $(filter-out $(skip_flags),$(rust_common_flags) $(rustc_target_flags)) \
+	@$(objtree)/include/generated/rustc_cfg \
+	--crate-type rlib \
+	--out-dir $(objtree)/$(obj)/test --cfg testlib \
+ 	-L$(objtree)/proc_macros \
+	-L$(objtree)/$(obj)/test \
+	--crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
+
+quiet_cmd_rustc_test = $(RUSTC_OR_CLIPPY_QUIET) T  $<
+      cmd_rustc_test = \
+	OBJTREE=$(abspath $(objtree)) \
+	$(RUSTC_OR_CLIPPY) --test $(rust_common_flags) \
+		@$(objtree)/include/generated/rustc_cfg \
+		$(rustc_target_flags) --out-dir $(objtree)/$(obj)/test \
+		-L$(objtree)/$(obj)/test -L$(objtree)/third_lib/test \
+ 		-L$(objtree)/proc_macros \
+		--crate-name $(subst rusttest-,,$@) $<; \
+	$(objtree)/$(obj)/test/$(subst rusttest-,,$@) $(rust_test_quiet) \
+		$(rustc_test_run_flags)
+
 
 # Compile assembler sources (.S)
 # ---------------------------------------------------------------------------

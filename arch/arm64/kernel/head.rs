@@ -327,7 +327,7 @@ fn __init_cpu_task(task: &Task) {
 // on this function, we can safety access kernel VA symbol.
 #[section_init_text]
 extern "C" fn __primary_switched(kernel_start_pa: usize, fdt_pa: usize, _cpu_boot_mode: usize) {
-    use kernel::mm::addr::PhysAddr;
+    use kernel::mm::PhysAddr;
     // set kimage_va_offset
     let kimage_va_offset = _text as usize - kernel_start_pa;
     kernel::arch::arm64::mm::mmu::set_kimage_va_offset(kimage_va_offset);

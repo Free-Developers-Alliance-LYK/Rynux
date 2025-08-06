@@ -4,9 +4,9 @@ use crate::mm::page::PageConfig;
 use crate::cfg_if;
 
 /// ARM64-specific thread memory layout
-pub struct ArchThreadMemLayout();
+pub struct Arm64ThreadMemLayout();
 
-impl ArchThreadMemLayout {
+impl Arm64ThreadMemLayout {
     /// Minimum thread shift
     pub const MIN_THREAD_SHIFT: usize = 14;
     /// Thread size

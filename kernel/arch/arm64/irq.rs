@@ -1,6 +1,7 @@
 //! ARM64-specific IRQ handling code.
 
-use core::arch::asm;
+use crate::compiler::barrier;
+use crate::arch::arm64::sysregs::Daif;
 use crate::arch::irq::ArchIrq;
 
 /// Arm64 IRQ
@@ -8,19 +9,33 @@ pub struct Arm64Irq;
 
 impl ArchIrq for Arm64Irq {
     /// ARM64 IRQ state
-    type IrqState = usize;
+    type IrqState = u64;
+
+    #[inline(always)]
+    fn local_disable() {
+        barrier();
+        Daif::disable_irq();
+        barrier();
+    }
+
+    #[inline(always)]
+    fn local_enable() {
+        barrier();
+        Daif::enable_irq();
+        barrier();
+    }
 
     #[inline(always)]
     fn local_save_and_disable() -> Self::IrqState {
-        let flags: usize;
-        // save `DAIF` flags, mask `I` bit (disable IRQs)
-        unsafe { asm!("mrs {}, daif; msr daifset, #2", out(reg) flags) };
+        let flags = Daif::read_raw();
+        Self::local_disable();
         flags
     }
 
     #[inline(always)]
     fn local_restore(flags: Self::IrqState) {
-        // restore `DAIF` flags
-        unsafe { asm!("msr daif, {}", in(reg) flags) };
+        barrier();
+        Daif::write_raw(flags);
+        barrier();
     }
 }
