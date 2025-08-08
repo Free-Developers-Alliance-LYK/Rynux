@@ -1,7 +1,7 @@
 //! Arm64 Page table PGDIR
 
 use super::Arm64PgtableConfig;
-use crate::arch::arm64::VaLayout;
+use crate::arch::arm64::va_layout::Arm64VaLayout;
 
 /// Pgdir
 #[derive(Copy, Clone)]
@@ -16,7 +16,7 @@ impl Pgdir {
     /// Mask for PGDIR entry
     pub const MASK: usize = !(Self::SIZE - 1);
     /// Number of entries per Pgd
-    pub const PTRS: usize = 1 << (VaLayout::VA_BITS - Self::SHIFT);
+    pub const PTRS: usize = 1 << (Arm64VaLayout::VA_BITS - Self::SHIFT);
 
 
     /// Create a new Pgd

@@ -1,12 +1,13 @@
 # Rynux Quick Start Guide
 Rustix is a modern, secure, and high-performance Linux kernel reimagined and rewritten in Rust. This project aims to leverage Rust’s safety guarantees and concurrency features to build a reliable and efficient operating system kernel from the ground up.
 
-
 ## Features
 
 - Now only supports arm64 architecture.
 
-## Build Check
+## Build
+
+### Check Requirements
 it simlar to the Linux kernel build process, you can use `make` to compile the kernel. The build system is designed to be modular and extensible, allowing for easy customization and configuration.
 
 To easily check whether the requirements are met, the following target can be used:
@@ -29,11 +30,20 @@ make LLVM=-17  O=build_dir menuconfig
 make LLVM=-17 O=build_dir
 ```
 
-### Run Image o qemu
+### Run Image on QEMU
 
 ```bash
 qemu-system-aarch64 -M virt -cpu cortex-a57 -smp 1 -m 4G   -kernel build_dir/arch/arm64/boot/Image  -nographic    -append " earlycon root=/dev/ram rdinit=/bin/sh "
 ```
+
+## Build and Run Tests
+
+To build and run tests, you can use the following command:
+
+```bash
+make LLVM=-17 O=build_dir rusttest
+```
+This command compiles the kernel and runs the tests defined in the `tests` directory. The tests are designed to verify the functionality and stability of the kernel components.
 
 
 ## Develop Guide

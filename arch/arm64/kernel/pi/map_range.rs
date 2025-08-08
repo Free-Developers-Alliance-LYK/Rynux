@@ -31,7 +31,7 @@ use kernel::{
             tlb::local_flush_tlb_all,
         },
         sysregs::Ttbr1El1,
-        VaLayout,
+        va_layout::Arm64VaLayout,
     },
 
     mm::page::PageConfig,
@@ -259,8 +259,8 @@ fn map_segment(
     unsafe {
         map_range(
             pte,
-            ((start + va_offset) & !VaLayout::KERNNEL_VA_START) as usize,
-            ((end + va_offset) & !VaLayout::KERNNEL_VA_START) as usize,
+            ((start + va_offset) & !Arm64VaLayout::KERNNEL_VA_START) as usize,
+            ((end + va_offset) & !Arm64VaLayout::KERNNEL_VA_START) as usize,
             start,
             prot,
             root_level,
@@ -376,7 +376,7 @@ pub unsafe extern "C" fn early_map_kernel(_boot_status: usize, fdt: usize) {
     map_fdt(fdt);
     // clear ZERO section
     memset(__bss_start as *mut u8, 0, init_pg_end as usize - __bss_start as usize);
-    let va_base = VaLayout::KIMAGE_VADDR;
+    let va_base = Arm64VaLayout::KIMAGE_VADDR;
     let pa_base = _text as usize;
     map_kernel(va_base - pa_base);
 }

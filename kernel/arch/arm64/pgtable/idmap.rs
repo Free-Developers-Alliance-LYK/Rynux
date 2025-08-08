@@ -5,7 +5,7 @@ use crate::{
         mm::SEGMENT_ALIGN,
         pgtable::Arm64PgtableConfig,
         kernel::image::KERNEL_IMAGE_SIZE,
-        VaLayout,
+        va_layout::Arm64VaLayout,
     },
     mm::page::PageConfig,
     macros::need_export,
@@ -34,7 +34,7 @@ const fn early_pages(lvls: usize, vstart: usize, vend: usize, add: usize) -> usi
 
 
 // kernel end vaddr
-const _END: usize = VaLayout::KIMAGE_VADDR + KERNEL_IMAGE_SIZE;
+const _END: usize = Arm64VaLayout::KIMAGE_VADDR + KERNEL_IMAGE_SIZE;
 
 /// Idmap
 pub struct InitIdmap;
@@ -72,7 +72,7 @@ impl InitIdmap {
     /// address,but it may use section mapping.
     pub const PGTABLE_LEVELS: usize = Self::LEVELS - Arm64PgtableConfig::SWAPPER_SKIP_LEVEL;
     /// The number of page tables needed for the initial identity mapping.
-    pub const DIR_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, VaLayout::KIMAGE_VADDR, _END, 1);
+    pub const DIR_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, Arm64VaLayout::KIMAGE_VADDR, _END, 1);
     /// The size of the initial identity mapping.
     pub const DIR_SIZE: usize = (Self::DIR_PAGES + Self::early_idmap_extra_pages()) * PageConfig::PAGE_SIZE;
 
@@ -116,7 +116,7 @@ impl InitMap {
 
     /// The number of page tables needed for the initial mapping.
     pub const DIR_PAGES: usize = early_pages(Arm64PgtableConfig::SWAPPER_PGTABLE_LEVELS,
-        VaLayout::KIMAGE_VADDR, _END, Self::EXTRA_PAGE);
+        Arm64VaLayout::KIMAGE_VADDR, _END, Self::EXTRA_PAGE);
 
     /// The size of the initial page tables.
     pub const DIR_SIZE: usize = (Self::DIR_PAGES + Self::early_segment_extra_pages()) * PageConfig::PAGE_SIZE;

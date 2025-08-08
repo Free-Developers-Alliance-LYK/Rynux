@@ -4,11 +4,17 @@
 //!  - not support double array
 //!  - not support numa
 
-use crate::mm::PhysAddr;
+use core::ptr::NonNull;
+
+use crate::mm::{
+    PhysAddr,
+    page::PageConfig,
+};
 use crate::macros::{section_init_data, section_init_text};
 use crate::types::ForStepResult;
 use crate::sync::lock::RawSpinLockIrq;
 use crate::bitflags::bitflags;
+use crate::alloc::{AllocError, AllocFlags};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -508,31 +514,18 @@ static MEMBLOCK: RawSpinLockIrq<MemBlock> = RawSpinLockIrq::new(MemBlock {
 }, Some("MEMBLOCK"));
 
 impl MemBlock {
-    /*
-    #[section_init_text]
-    // for each memblock memory region
-    // except nomap
-    fn for_each_mem_range(&mut self,
-        start: &mut PhysAddr,
-        end: &mut PhysAddr,
-        mut f: impl FnMut(&mut PhysAddr, &mut PhysAddr) -> ForStepResult) 
-    {
-        let mut idx = 0;
-        self.memory.for_each(&mut idx, |this, id| {
-            if this.should_skip_region(id, MemBlockTypeFlags::DRIVER_MANAGED) {
-                return ForStepResult::Next;
-            }
-            *start = this.regions.index(id).base;
-            *end = *start + this.regions.index(id).size;
-            match f(start, end) {
-                ForStepResult::Next  => ForStepResult::Next,
-                ForStepResult::Break => ForStepResult::Break,
-                ForStepResult::JumpTo(j) => ForStepResult::JumpTo(j),
-            }
-            ForStepResult::Next
-        });
+    // When set MEMBLOCK_ALLOC_ACCESSIBLE, it will limit with memblock 
+    // current limit
+    const MEMBLOCK_ALLOC_ACCESSIBLE: PhysAddr = PhysAddr::from(0);
+
+    // Our default alloc policy is top-down, so it is safe to use 0
+    // but should never use the first page
+    const MEMBLOCK_ALLOC_LOW_LIMIT: PhysAddr = PhysAddr::from(PageConfig::PAGE_SIZE);
+
+    /// is the allocator bottom-up?
+    pub fn bottom_up(&self) -> bool {
+        self.bottom_up
     }
-    */
 
     /// Add new memory region
     /// 
@@ -581,6 +574,83 @@ impl MemBlock {
     pub fn remove_reserved(base: PhysAddr, size: usize) {
         MEMBLOCK.lock().reserved.remove_range(base, size);
     }
+
+    /// Find a range of memory that is available for allocation
+    fn find_range(
+        &mut self,
+        _start: PhysAddr,
+        _end: PhysAddr,
+        _align: usize,
+        _size: usize,
+        _flags: MemBlockTypeFlags,
+    ) -> Option<PhysAddr> {
+        None
+    }
+
+    #[section_init_text]
+    #[allow(dead_code)]
+    fn alloc_phys_with_limit(
+        _size: usize,
+        align: usize,
+        low_limit: PhysAddr,
+        high_limit: PhysAddr,
+    ) -> Result<PhysAddr, AllocError> {
+        let mut memblock = MEMBLOCK.lock();
+        let mut start = low_limit;
+        let mut end = high_limit;
+
+        // if high_limit is MEMBLOCK_ALLOC_ACCESSIBLE, we should limit it to current limit
+        if end == Self::MEMBLOCK_ALLOC_ACCESSIBLE {
+            end = memblock.current_limit;
+        } else {
+            end = high_limit.min(memblock.current_limit);
+        }
+
+        // The first page should never be allocated
+        start = start.max(PhysAddr::from(PageConfig::PAGE_SIZE));
+
+        // check align
+        if align == 0 || !align.is_power_of_two() {
+            return Err(AllocError::InvalidAlign);
+        }
+
+        memblock.find_range(
+            start,
+            end,
+            align,
+            _size,
+            MemBlockTypeFlags::NORMAL,
+        ).ok_or(AllocError::NoMemory)
+    }
+
+
+    /// Alloc memory from the memblock allocator
+    #[inline]
+    pub fn alloc(size: usize, align: usize, _flags: AllocFlags) -> Result<NonNull<u8>, AllocError> {
+        // Check size
+        if size == 0 {
+            return Err(AllocError::InvalidSize);
+        }
+
+        let phys = Self::alloc_phys_with_limit(size, align, Self::MEMBLOCK_ALLOC_LOW_LIMIT, Self::MEMBLOCK_ALLOC_ACCESSIBLE)?;
+
+        let virt_addr = phys.to_virt();
+
+        // Zero the memory
+        // SAFETY: virt_addr is a valid virtual address and size is valid
+        unsafe {
+            let raw_ptr = virt_addr.as_mut_ptr();
+            raw_ptr.write_bytes(0, size);
+            Ok(NonNull::new(raw_ptr).ok_or(AllocError::NoMemory)?)
+        }
+    }
+
+    /// Free memory allocated by the memblock allocator
+    #[inline]
+    pub fn free(_ptr: NonNull<u8>, _size: usize) {
+        todo!("Free memory allocated by the memblock allocator");
+    }
+
 }
 
 #[cfg(test)]
@@ -753,11 +823,7 @@ mod tests {
         assert_eq!(memblock.regions.index(0).base, PhysAddr::from(0x2000));
         assert_eq!(memblock.regions.index(0).size, 0x1000);
         assert_eq!(memblock.total_size, 0x1000);
-
         // now region is [0x2000, 0x3000)
-
-
-
     }
 }
 

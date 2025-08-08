@@ -19,3 +19,4 @@ pub mod cpu;
 pub mod setup;
 pub mod irq;
 pub mod vmrynux;
+pub mod valayout;

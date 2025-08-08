@@ -25,6 +25,7 @@
 //!
 
 use crate::{
+    arch::valayout::ArchVaLayout,
     size::*,
     cfg_if,
     mm::page::{PageConfig, Page},
@@ -32,9 +33,17 @@ use crate::{
 };
 
 /// Virtual Address Layout
-pub struct VaLayout();
+pub struct Arm64VaLayout();
 
-impl VaLayout {
+impl ArchVaLayout for Arm64VaLayout {
+    #[inline(always)]
+    /// The virtual address of the start of the linear map
+    fn kernel_va_start() -> usize {
+        Arm64VaLayout::KERNNEL_VA_START
+    }
+}
+
+impl Arm64VaLayout {
     cfg_if! {
         if #[cfg(CONFIG_ARM64_VA_BITS_36)] {
             #[allow(missing_docs)]
@@ -121,4 +130,4 @@ impl VaLayout {
 
 /// KIMAGE_VADDR - the virtual address of the start of the kernel image.
 #[need_export]
-pub static EXPORT_KIMAGE_VADDR: usize = VaLayout::KIMAGE_VADDR;
+pub static EXPORT_KIMAGE_VADDR: usize = Arm64VaLayout::KIMAGE_VADDR;

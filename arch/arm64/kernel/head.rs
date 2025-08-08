@@ -20,7 +20,7 @@ use kernel::{
         asm::barrier::isb,
         sysregs::*,
         pgtable::idmap::InitIdmap,
-        VaLayout,
+        va_layout::Arm64VaLayout,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
     },
     schedule::task::Task,
@@ -234,7 +234,7 @@ unsafe extern "C" fn __cpu_setup() {
      */
     let mair = MairEl1::MAIR_EL1_SET;
     let mut tcr = Tcr::from_bits_truncate(Tcr::t0sz(InitIdmap::VA_BITS as u64) |
-        Tcr::t1sz(VaLayout::VA_BITS as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
+        Tcr::t1sz(Arm64VaLayout::VA_BITS as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
         Tcr::TG_FLAGS | Tcr::AS.bits() | Tcr::TBI0.bits() |
         Tcr::A1.bits());
     tcr.clear_errata_bits();
