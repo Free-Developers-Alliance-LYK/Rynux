@@ -5,7 +5,7 @@
 //
 
 mod allocator;
-mod memblock_allocator;
+//mod memblock_allocator;
 
 pub use allocator::{AllocFlags, AllocError, Allocator, dangling_from_layout};
-pub use memblock_allocator::MemblockAllocator;
+//pub use memblock_allocator::MemblockAllocator;

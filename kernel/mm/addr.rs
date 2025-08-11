@@ -5,6 +5,25 @@ use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::arch::valayout::{ArchVaLayout, VaLayout};
 
+/// Align address upwards.
+///
+/// Returns the smallest `x` with alignment `align` so that `x >= addr`.                
+/// The alignment must be a power of two.
+#[inline]                                                                  
+const fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1)
+}
+
+/// Align address downwards.
+///
+/// Returns the greatest `x` with alignment `align` so that `x <= addr`.
+///
+/// The alignment must be a power of two.
+#[inline]
+const fn align_down(addr: usize, align: usize) -> usize {
+    addr & !(align - 1)
+}
+
 /// A physical memory address.
 ///
 /// It's a wrapper type around an `usize`.
@@ -25,12 +44,39 @@ impl PhysAddr {
         self.0                                                             
     }
 
+    /// Aligns the address upwards to the given alignment.
+    ///
+    /// See the [`align_up`] function for more information.
+    #[inline]
+    pub fn align_up<U>(self, align: U) -> Self
+    where U: Into<usize>,
+    {
+        Self(align_up(self.0, align.into()))
+    }
+
+    /// Aligns the address downwards to the given alignment.
+    /// 
+    /// See the [`align_down`] function for more information.
+    #[inline]
+    pub fn align_down<U>(self, align: U) -> Self
+    where U: Into<usize>,
+    {
+        Self(align_down(self.0, align.into()))
+    }
+
     /// To virtual address.
     /// TODO: implement start addr offset
     #[inline]
     pub fn to_virt(self) -> VirtAddr {
         VirtAddr::from(self.0 | VaLayout::kernel_va_start())
     }
+
+    /// checked sub
+    #[inline]
+    pub fn checked_sub(self, rhs: PhysAddr) -> Option<PhysAddr> {
+        self.0.checked_sub(rhs.0).map(PhysAddr)
+    }
+
 }
 
 impl From<usize> for PhysAddr {
@@ -113,6 +159,12 @@ impl VirtAddr {
       #[inline]
       pub const unsafe fn as_mut_ptr(self) -> *mut u8 {
           self.0 as *mut u8
+      }
+
+      /// Convert to a physical address.
+      #[inline]
+      pub fn to_phys(self) -> PhysAddr {
+          PhysAddr::from(self.0 - VaLayout::kernel_va_start())
       }
 }
 

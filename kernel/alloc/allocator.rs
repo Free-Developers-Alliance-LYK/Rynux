@@ -20,6 +20,7 @@ bitflags! {
 }
 
 /// Error type for memory allocation failures.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AllocError {
     /// No enough memory available for allocation.
     NoMemory,
