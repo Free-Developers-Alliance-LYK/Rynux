@@ -202,11 +202,17 @@ impl<'a> Fdt<'a> {
             return Err(FdtError::BadPtr);
         }
 
-        let tmp_header = core::slice::from_raw_parts(ptr, core::mem::size_of::<FdtHeader>());
+        // SAFETY: we assume that the pointer is valid and points to a valid FDT
+        let tmp_header = unsafe {
+                core::slice::from_raw_parts(ptr, core::mem::size_of::<FdtHeader>())
+        };
+
         let real_size =
             FdtHeader::from_bytes(&mut FdtData::new(tmp_header)).unwrap().totalsize.get() as usize;
 
-        Self::new(core::slice::from_raw_parts(ptr, real_size))
+        unsafe {
+            Self::new(core::slice::from_raw_parts(ptr, real_size))
+        }
     }
 
     /// Return the `/aliases` node, if one exists

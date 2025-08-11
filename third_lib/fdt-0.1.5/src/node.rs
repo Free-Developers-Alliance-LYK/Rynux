@@ -1,6 +1,6 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License,
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can
-// obtain one at https://mozilla.org/MPL/2.0/.
+//! This Source Code Form is subject to the terms of the Mozilla Public License,
+//! v. 2.0. If a copy of the MPL was not distributed with this file, You can
+//! obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::{
     parsing::{BigEndianU32, BigEndianU64, CStr, FdtData},
@@ -32,7 +32,8 @@ impl FdtProperty {
 
 /// A devicetree node
 #[derive(Debug, Clone, Copy)]
-pub struct FdtNode<'b, 'a: 'b> {
+pub struct FdtNode<'b, 'a> {
+    /// Node name
     pub name: &'a str,
     pub(crate) header: &'b Fdt<'a>,
     props: &'a [u8],

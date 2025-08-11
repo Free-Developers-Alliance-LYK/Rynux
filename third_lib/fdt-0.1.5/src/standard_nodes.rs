@@ -1,6 +1,4 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License,
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can
-// obtain one at https://mozilla.org/MPL/2.0/.
+//! Standard nodes in the FDT, such as `/chosen`, `/aliases`, `/cpus/cpu*`, and `/memory`
 
 use crate::{
     node::{CellSizes, FdtNode, NodeProperty},
@@ -10,7 +8,7 @@ use crate::{
 
 /// Represents the `/chosen` node with specific helper methods
 #[derive(Debug, Clone, Copy)]
-pub struct Chosen<'b, 'a: 'b> {
+pub struct Chosen<'b, 'a> {
     pub(crate) node: FdtNode<'b, 'a>,
 }
 
@@ -49,11 +47,11 @@ impl<'b, 'a: 'b> Chosen<'b, 'a> {
 
 /// Represents the root (`/`) node with specific helper methods
 #[derive(Debug, Clone, Copy)]
-pub struct Root<'b, 'a: 'b> {
+pub struct Root<'b, 'a> {
     pub(crate) node: FdtNode<'b, 'a>,
 }
 
-impl<'b, 'a: 'b> Root<'b, 'a> {
+impl<'b, 'a> Root<'b, 'a> {
     /// Root node cell sizes
     pub fn cell_sizes(self) -> CellSizes {
         self.node.cell_sizes()
@@ -86,12 +84,12 @@ impl<'b, 'a: 'b> Root<'b, 'a> {
 
 /// Represents the `/aliases` node with specific helper methods
 #[derive(Debug, Clone, Copy)]
-pub struct Aliases<'b, 'a: 'b> {
+pub struct Aliases<'b, 'a> {
     pub(crate) header: &'b Fdt<'a>,
     pub(crate) node: FdtNode<'b, 'a>,
 }
 
-impl<'b, 'a: 'b> Aliases<'b, 'a> {
+impl<'b, 'a> Aliases<'b, 'a> {
     /// Attempt to resolve an alias to a node name
     pub fn resolve(self, alias: &str) -> Option<&'a str> {
         self.node
@@ -115,12 +113,12 @@ impl<'b, 'a: 'b> Aliases<'b, 'a> {
 
 /// Represents a `/cpus/cpu*` node with specific helper methods
 #[derive(Debug, Clone, Copy)]
-pub struct Cpu<'b, 'a: 'b> {
+pub struct Cpu<'b, 'a> {
     pub(crate) parent: FdtNode<'b, 'a>,
     pub(crate) node: FdtNode<'b, 'a>,
 }
 
-impl<'b, 'a: 'b> Cpu<'b, 'a> {
+impl<'b, 'a> Cpu<'b, 'a> {
     /// Return the IDs for the given CPU
     pub fn ids(self) -> CpuIds<'a> {
         let address_cells = self.node.parent_cell_sizes().address_cells;
@@ -246,7 +244,7 @@ impl<'a> Compatible<'a> {
 
 /// Represents the `/memory` node with specific helper methods
 #[derive(Debug, Clone, Copy)]
-pub struct Memory<'b, 'a: 'b> {
+pub struct Memory<'b, 'a> {
     pub(crate) node: FdtNode<'b, 'a>,
 }
 

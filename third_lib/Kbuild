@@ -87,13 +87,17 @@ rusttestlib-tock_registers: private rustc_target_flags = $(tock_target_flags)
 rusttestlib-tock_registers: $(src)/tock-registers-0.10.0/src/lib.rs  FORCE
 	+$(call if_changed,rustc_test_library)
 
-#PHONY += rusttestlib-const_format 
+
+# ------------------------------- fdt ---------------------
+$(obj)/fdt.o: private skip_flags = -Wunreachable_pub
+$(obj)/fdt.o: $(src)/fdt-0.1.5/src/lib.rs $(base_libs) FORCE
+	+$(call if_changed_rule,rustc_library)
+
+# -------------------------------- rusttest libraries ---------------------
 
 rusttest: rusttestlib-const_format rusttestlib-static_assertions \
 	rusttestlib-bitflags rusttestlib-tock_registers
 
-#rusttestlib-static_assertions \
-#	rusttestlib-bitflags rusttestlib-tock_registers
 
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
@@ -103,3 +107,4 @@ obj-y 			+= const_format.o
 obj-y 			+= static_assertions.o
 obj-y 			+= bitflags.o
 obj-y 			+= tock_registers.o
+obj-y 			+= fdt.o
