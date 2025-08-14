@@ -322,7 +322,7 @@ impl Tcr {
     fn set_ips(&mut self, ips: IPS) {
         // clear
         self.remove(Self::IPS);
-        *self = Self::from_bits_truncate(self.bits() & ips.to_tcr())  
+        *self = Self::from_bits_truncate(self.bits() | ips.to_tcr())  
     }
 
     /// Compute the maximum physical address size supported by the system

@@ -232,6 +232,14 @@ pub fn section_spinlock_text(_attr: TokenStream, item: TokenStream) -> TokenStre
     )
 }
 
+#[proc_macro_attribute]
+pub fn section_bss_page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    link::section_impl(
+        quote!(section = ".bss..page_aligned").into(),
+        item,
+    )
+}
+
 use syn::parse_macro_input;
 use syn::Item;
 

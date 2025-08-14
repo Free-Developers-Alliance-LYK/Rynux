@@ -55,6 +55,7 @@ extern "C" {
 
     /// end of kernel
     pub fn _end();
+
 }
 
 // Extern c function define in pi
@@ -64,3 +65,4 @@ extern "C" {
     /// early map kernel
     pub fn __pi_early_map_kernel();
 }
+

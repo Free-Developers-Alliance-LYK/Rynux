@@ -38,24 +38,9 @@ bitflags! {
         const PTE_PXN        = 1 << 53;
         /// User execute never
         const PTE_UXN        = 1 << 54;
-
-        //PMD descriptor
-        /// PMD table pxn
-        const PMD_TABLE_PXN  = 1 << 59;
-        /// PMD table uxn
-        const PMD_TABLE_UXN  = 1 << 60;
     }
 }
 
-/// PMD Alias name
-impl PtePgProt {
-    /// Type mask
-    pub const PMD_TYPE_MASK: u64  = 3 << 0;
-    /// Type table for pmd
-    pub const PMD_TYPE_TABLE: Self = Self::from_bits_truncate(Self::PTE_VALID.bits() | Self::PTE_NON_BLOCK.bits());
-    /// Section type
-    pub const PMD_TYPE_SECT: Self = Self::PTE_VALID;
-}
 
 impl PtePgProt {
     /// Alias same as DBM

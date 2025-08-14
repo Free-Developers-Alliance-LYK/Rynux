@@ -29,7 +29,8 @@ PROVIDE(__pi___initdata_end       	= __initdata_end);
 PROVIDE(__pi__data                	= _data);
 PROVIDE(__pi___bss_start		= __bss_start);
 PROVIDE(__pi__end			= _end);
-PROVIDE(__pi_uart_put_u64_hex			= uart_put_u64_hex);
+PROVIDE(__pi_early_uart_put_u64_hex			= early_uart_put_u64_hex);
+PROVIDE(__pi_early_uart_putchar			= early_uart_putchar);
 PROVIDE(__pi_memset			= memset);
 PROVIDE(__pi_memcpy			= memcpy);
 

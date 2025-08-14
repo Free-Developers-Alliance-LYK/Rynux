@@ -23,6 +23,7 @@ pub use static_assertions;
 pub use const_format;
 pub use bitflags;
 pub use tock_registers;
+pub use fdt;
 
 pub mod arch;
 
@@ -37,6 +38,7 @@ cfg_if! {
 }
 
 pub mod klib;
+pub mod cpu;
 pub mod alloc;
 pub mod sync;
 pub mod size;

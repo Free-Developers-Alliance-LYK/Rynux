@@ -5,7 +5,7 @@ use crate::{
     mm::page::PageConfig,
     arch::arm64::{
         kernel::image::MIN_KIMG_ALIGN,
-        pgtable::pmd::Pmd,
+        pgtable::pmd::PmdTable,
     },
     klib::math::div_round_up,
 };
@@ -13,33 +13,42 @@ use crate::{
 /// Arm64 Pgtable Config
 pub struct Arm64PgtableConfig();
 
+#[allow(dead_code)]
 impl Arm64PgtableConfig {
     cfg_if! {
         if #[cfg(all(CONFIG_ARM64_16K_PAGES, CONFIG_ARM64_VA_BITS_36)) ] {
-            /// Number of page-table levels
             pub(crate) const HAS_PMD: bool = false;
+            pub(crate) const HAS_PUD: bool = false;
+            /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 2;
+            compile_error!("Current Not support PGTABLE_LEVELS 2");
         } else if #[cfg(all(CONFIG_ARM64_64K_PAGES, CONFIG_ARM64_VA_BITS_42))] {
-            /// Number of page-table levels
             pub(crate) const HAS_PMD: bool = false;
+            pub(crate) const HAS_PUD: bool = false;
+            /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 2;
+            compile_error!("Current Not support PGTABLE_LEVELS 2");
         } else if #[cfg(all(CONFIG_ARM64_4K_PAGES, CONFIG_ARM64_VA_BITS_39))] {
             /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 3;
             #[allow(dead_code)]
             pub(crate) const HAS_PMD: bool = true;
+            pub(crate) const HAS_PUD: bool = false;
         } else if #[cfg(all(CONFIG_ARM64_16K_PAGES, CONFIG_ARM64_VA_BITS_47))] {
             /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 3;
             pub(crate) const HAS_PMD: bool = true;
+            pub(crate) const HAS_PUD: bool = false;
         } else if #[cfg(all(CONFIG_ARM64_64K_PAGES,CONFIG_ARM64_VA_BITS_48))] {
             /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 3;
             pub(crate) const HAS_PMD: bool = true;
+            pub(crate) const HAS_PUD: bool = false;
         } else if #[cfg(all(not(CONFIG_ARM64_64K_PAGES),CONFIG_ARM64_VA_BITS_48))] {
             /// Number of page-table levels
             pub const PGTABLE_LEVELS: usize = 4;
             pub(crate) const HAS_PMD: bool = true;
+            pub(crate) const HAS_PUD: bool = true;
         } else {
             compile_error!("Unknown page-table levels");
         }
@@ -82,8 +91,8 @@ impl Arm64PgtableConfig {
     // size = 32M) or 64K (section size = 512M).
     const fn swapper_skip_level_shift() -> (usize, usize) {
         if Arm64PgtableConfig::HAS_PMD {
-            if Pmd::SIZE <= MIN_KIMG_ALIGN {
-                (1, Pmd::SHIFT)
+            if PmdTable::ENTRY_SIZE <= MIN_KIMG_ALIGN {
+                (1, PmdTable::SHIFT)
             } else {
                 (0, 0)
             }
@@ -96,4 +105,9 @@ impl Arm64PgtableConfig {
     pub(crate) const SWAPPER_BLOCK_SHIFT: usize = Self::swapper_skip_level_shift().1;
     pub(crate) const SWAPPER_BLOCK_SIZE: usize = 1 << Self::SWAPPER_BLOCK_SHIFT;
     pub(crate) const SWAPPER_PGTABLE_LEVELS: usize = Self::PGTABLE_LEVELS - Self::SWAPPER_SKIP_LEVEL;
+
+    /// Calculate the number of entries in a span of virtual addresses
+    pub const fn spann_nr_entries(vstart: usize, vend: usize, shift: usize) -> usize {
+        ((vend - 1) >> shift) - (vstart >> shift) + 1
+    }
 }

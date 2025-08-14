@@ -5,3 +5,4 @@ pub mod thread;
 pub mod ptrace;
 pub mod irq;
 pub mod mm;
+pub mod cpu;

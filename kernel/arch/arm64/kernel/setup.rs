@@ -4,8 +4,8 @@ use crate::{
     macros::{section_cache_aligned, section_init_data, cache_aligned, section_init_text},
     mm::PhysAddr,
     types::OnceCell,
-    arch::setup::ArchProcessorInit,
-    arch::arm64::sysregs::MpidrEl1,
+    arch::setup::ArchBootSetupTrait,
+    arch::arm64::pgtable::pgprot::PtePgProt,
 };
 
 /// Have to define this struct with repr align
@@ -40,7 +40,6 @@ pub const BOOT_CPU_MODE_EL1: usize = 0xe11;
 /// BOOT CPU MODE from EL2
 pub const BOOT_CPU_MODE_EL2: usize = 0xe12;
 
-
 /// FDT phys addr
 #[section_init_data]
 static FDT_POINTER : OnceCell<PhysAddr> = OnceCell::new();
@@ -50,15 +49,15 @@ pub fn set_fdt_pointer(pa: PhysAddr) {
     FDT_POINTER.set(pa);
 }
 
-/// Arm64 processor init
-pub struct Arm64ProcessorInit;
 
-impl ArchProcessorInit for Arm64ProcessorInit {
+/// Archip-specific boot setup trait.
+pub struct Arm64BootSetup;
+
+impl ArchBootSetupTrait for Arm64BootSetup {
     #[section_init_text]
-    fn smp_setup_processor_id() {
-        use crate::arch::arm64::kernel::smp;
-        let aff = MpidrEl1::read().affinity();
-        smp::set_main_cpu_hwid(aff);
+    fn setup_arch() {
+        use crate::arch::arm64::mm::fixmap::FixMap;
+        FixMap::early_fixmap_init();
+        FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL);
     }
 }
-

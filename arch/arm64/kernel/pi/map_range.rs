@@ -20,15 +20,18 @@ use kernel::{
         pgtable::{
             Arm64PgtableConfig,
             PtePgProt,
-            Pte,
-            Pgdir,
+            PteEntry,
+            PteTable,
+            PgdirEntry,
+            PmdEntry,
             idmap::InitIdmap,
+            PgTableEntry,
         },
         kernel::image::symbols::*,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
         asm::{
             barrier::{isb, dsb, ISHST},
-            tlb::local_flush_tlb_all,
+            tlb::TlbFlushOps,
         },
         sysregs::Ttbr1El1,
         va_layout::Arm64VaLayout,
@@ -63,14 +66,14 @@ pub unsafe extern "C" fn map_range(
     pa: usize,
     prot: PtePgProt,
     level: usize,
-    tbl: *mut Pte,
+    tbl: *mut PteEntry,
     may_use_cont: bool,
     va_offset: usize,
 ) {
     // continue map mask
     let mut cmask = usize::MAX;
     if level == 3 {
-        cmask = Pte::CONT_SIZE - 1;
+        cmask = PteTable::CONT_ENTRY_SIZE - 1;
     }
 
     // remove type
@@ -83,12 +86,12 @@ pub unsafe extern "C" fn map_range(
     let mut pa = pa &PageConfig::PAGE_MASK;
 
     // Advance tbl to the entry that covers start
-    let mut tbl: *mut Pte = unsafe {tbl.add((start >> (lshift + PageConfig::PAGE_SHIFT)) % Pte::PTRS)};
+    let mut tbl: *mut PteEntry = unsafe {tbl.add((start >> (lshift + PageConfig::PAGE_SHIFT)) % PteTable::PTRS)};
 
     // Set the right block/page bits for this level unless we are clearing the mapping
     if !protval.is_empty() {
         if level == 2 {
-            protval |= PtePgProt::PMD_TYPE_SECT;
+            protval |= PtePgProt::from_bits_truncate(PmdEntry::PMD_TYPE_SECT);
         } else {
             protval |= PtePgProt::PTE_TYPE_PAGE;
         }
@@ -102,14 +105,14 @@ pub unsafe extern "C" fn map_range(
             unsafe {
                 if (*tbl).is_none() {
                     // set tbl entry
-                    let tbl_entry = Pte::new(
-                        Pte::from_phys(*pte).bits()
-                        | PtePgProt::PMD_TYPE_TABLE.bits()
-                        | PtePgProt::PMD_TABLE_UXN.bits()
+                    let tbl_entry = PteEntry::new(
+                        PteEntry::from_phys((*pte).into()).value()
+                        | PmdEntry::PMD_TYPE_TABLE
+                        | PmdEntry::PMD_TABLE_UXN
                     );
                     *tbl = tbl_entry;
                     // move pte to next page
-                    *pte = ((*pte) as *mut Pte).add(Pte::PTRS) as usize;
+                    *pte = ((*pte) as *mut PteEntry).add(PteTable::PTRS) as usize;
                 }
                 // map next level
                 map_range(
@@ -119,7 +122,7 @@ pub unsafe extern "C" fn map_range(
                     pa,
                     prot,
                     level + 1,
-                    ((*tbl).to_phys() + va_offset) as *mut Pte,
+                    ((*tbl).to_phys().as_usize() + va_offset) as *mut PteEntry,
                     may_use_cont,
                     va_offset,
                 );
@@ -136,8 +139,8 @@ pub unsafe extern "C" fn map_range(
             }
 
             // Put down a block or page mapping
-            let tbl_content: Pte = Pte::new(
-                Pte::from_phys(pa).bits()
+            let tbl_content: PteEntry = PteEntry::new(
+                PteEntry::from_phys(pa.into()).value()
                 | protval.bits()
             );
 
@@ -166,7 +169,7 @@ static mut DEVICE_PTES: DevicePtes = DevicePtes([0; 8 * PageConfig::PAGE_SIZE]);
 /// Create initial ID map
 #[no_mangle]
 #[section_init_text]
-pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> usize {
+pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut PgdirEntry, clrmask: u64) -> usize {
     let mut pte = (pg_dir as usize) + PageConfig::PAGE_SIZE;
 
     let mut text_prot = PtePgProt::PAGE_KERNEL_ROX;
@@ -183,7 +186,7 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
             _stext as usize,
             text_prot,
             InitIdmap::ROOT_LEVEL,
-            pg_dir as *mut Pte,
+            pg_dir as *mut PteEntry,
             false,
             0,
         );
@@ -194,7 +197,7 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
             __initdata_begin as usize,
             data_prot,
             InitIdmap::ROOT_LEVEL,
-            pg_dir as *mut Pte,
+            pg_dir as *mut PteEntry,
             false,
             0,
         );
@@ -209,7 +212,7 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
             uart_device - 0x1000,
             device_prot,
             InitIdmap::ROOT_LEVEL,
-            pg_dir as *mut Pte,
+            pg_dir as *mut PteEntry,
             false,
             0,
         );
@@ -218,10 +221,10 @@ pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut Pgdir, clrmask: u64) -> 
 }
 
 #[page_aligned]
-struct FdtPtes([u8; InitIdmap::FDT_SIZE]);
+struct FdtPtes([u8; InitIdmap::EARLY_FDT_PAGE_SIZE]);
 
 #[section_init_data]
-static mut FDT_PTES: FdtPtes = FdtPtes([0; InitIdmap::FDT_SIZE]);
+static mut FDT_PTES: FdtPtes = FdtPtes([0; InitIdmap::EARLY_FDT_PAGE_SIZE]);
 
 // Create fdt map
 #[section_init_text]
@@ -236,7 +239,7 @@ fn map_fdt(fdt: usize) {
             fdt,
             PtePgProt::PAGE_KERNEL,
             InitIdmap::ROOT_LEVEL,
-            init_idmap_pg_dir as *mut Pte,
+            init_idmap_pg_dir as *mut PteEntry,
             false,
             0,
         );
@@ -247,7 +250,7 @@ fn map_fdt(fdt: usize) {
 // Create kernel map
 #[section_init_text]
 fn map_segment(
-    pg_dir: *mut Pgdir,
+    pg_dir: *mut PgdirEntry,
     pte: &mut usize,
     va_offset: usize,
     start: usize,
@@ -264,7 +267,7 @@ fn map_segment(
             start,
             prot,
             root_level,
-            pg_dir as *mut Pte,
+            pg_dir as *mut PteEntry,
             may_use_cont,
             0,
         );
@@ -279,10 +282,9 @@ fn map_kernel(va_offset: usize) {
     let mut pte = (init_pg_dir as usize) + PageConfig::PAGE_SIZE;
     let text_prot = PtePgProt::PAGE_KERNEL_ROX;
     let data_prot = PtePgProt::PAGE_KERNEL;
-
     // text segment
     map_segment(
-        init_pg_dir as *mut Pgdir,
+        init_pg_dir as *mut PgdirEntry,
         &mut pte,
         va_offset,
         _stext as usize,
@@ -294,7 +296,7 @@ fn map_kernel(va_offset: usize) {
 
     // rodata segment: include swapper_pg_dir reserved_pg_dir
     map_segment(
-        init_pg_dir as *mut Pgdir,
+        init_pg_dir as *mut PgdirEntry,
         &mut pte,
         va_offset,
         __start_rodata as usize,
@@ -306,7 +308,7 @@ fn map_kernel(va_offset: usize) {
 
     // init text segment
     map_segment(
-        init_pg_dir as *mut Pgdir,
+        init_pg_dir as *mut PgdirEntry,
         &mut pte,
         va_offset,
         __inittext_begin as usize,
@@ -318,7 +320,7 @@ fn map_kernel(va_offset: usize) {
 
     // init data segment
     map_segment(
-        init_pg_dir as *mut Pgdir,
+        init_pg_dir as *mut PgdirEntry,
         &mut pte,
         va_offset,
         __initdata_begin as usize,
@@ -330,7 +332,7 @@ fn map_kernel(va_offset: usize) {
 
     // data segment
     map_segment(
-        init_pg_dir as *mut Pgdir,
+        init_pg_dir as *mut PgdirEntry,
         &mut pte,
         va_offset,
         _data as usize,
@@ -352,7 +354,7 @@ fn map_kernel(va_offset: usize) {
             uart_device - 0x1000,
             device_prot,
             rootlevel,
-            init_pg_dir as *mut Pte,
+            init_pg_dir as *mut PteEntry,
             false,
             0,
         );
@@ -385,7 +387,7 @@ pub unsafe extern "C" fn early_map_kernel(_boot_status: usize, fdt: usize) {
 fn __idmap_cpu_set_reserved_ttbr1() {
     Ttbr1El1::write_pg_dir(reserved_pg_dir as u64);
     isb();
-    local_flush_tlb_all();
+    TlbFlushOps::local_flush_tlb_all();
 }
 
 // Should not be called by anything else. It can only be executed from a TTBR0 mapping.

@@ -3,6 +3,7 @@
 use core::fmt;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
+use crate::mm::page::PageConfig;
 use crate::arch::valayout::{ArchVaLayout, VaLayout};
 
 /// Align address upwards.
@@ -22,6 +23,20 @@ const fn align_up(addr: usize, align: usize) -> usize {
 #[inline]
 const fn align_down(addr: usize, align: usize) -> usize {
     addr & !(align - 1)
+}
+
+/// Align address offset
+/// 
+#[inline]
+const fn align_offset(addr: usize, align: usize) -> usize {
+    addr & (align - 1)
+}
+
+
+/// Is Aligned
+#[inline]
+const fn is_aligned(addr: usize, align: usize) -> bool {
+    addr & (align - 1) == 0
 }
 
 /// A physical memory address.
@@ -64,6 +79,26 @@ impl PhysAddr {
         Self(align_down(self.0, align.into()))
     }
 
+    /// is Aligned 
+    #[inline]
+    pub fn is_aligned<U>(self, align: U) -> bool
+    where U: Into<usize>,
+    {
+        is_aligned(self.0, align.into())
+    }
+
+    /// align down to Page 
+    #[inline]
+    pub fn align_down_page(self) -> Self {
+        Self(align_down(self.0, PageConfig::PAGE_SIZE))
+    }
+
+    /// Align offset page
+    #[inline]
+    pub fn align_offset_page(self) -> usize {
+        align_offset(self.0, PageConfig::PAGE_SIZE)
+    }
+
     /// To virtual address.
     /// TODO: implement start addr offset
     #[inline]
@@ -75,6 +110,12 @@ impl PhysAddr {
     #[inline]
     pub fn checked_sub(self, rhs: PhysAddr) -> Option<PhysAddr> {
         self.0.checked_sub(rhs.0).map(PhysAddr)
+    }
+
+    /// PFN
+    #[inline]
+    pub fn pfn(self) -> usize {
+        self.0 >> PageConfig::PAGE_SHIFT
     }
 
 }
@@ -142,7 +183,7 @@ impl Sub<PhysAddr> for PhysAddr {
 pub struct VirtAddr(usize);
 
 impl VirtAddr {
-      /// Converts an `usize` to a virtual address.                            
+      /// Converts an `usize` to a virtual address.
       #[inline]                                                              
       pub const fn from(addr: usize) -> Self {
           Self(addr)
@@ -161,11 +202,54 @@ impl VirtAddr {
           self.0 as *mut u8
       }
 
+      /// A kernel symbol to phys
+      #[inline]
+      fn symbol_to_phys(self) -> PhysAddr {
+          PhysAddr::from(self.0 - VaLayout::kimg_va_offset())
+      }
+      #[inline]
+      fn is_lm_address(self) -> bool {
+          (VaLayout::kernel_va_start()..VaLayout::linear_map_end()).contains(&self.0)
+      }
+
       /// Convert to a physical address.
       #[inline]
       pub fn to_phys(self) -> PhysAddr {
-          PhysAddr::from(self.0 - VaLayout::kernel_va_start())
+         if self.is_lm_address() {
+             PhysAddr::from(self.0 - VaLayout::kernel_va_start())
+         } else {
+             self.symbol_to_phys()
+         }
       }
+
+
+      /// Is Aligend 
+      #[inline]
+      pub fn is_aligned<U>(self, align: U) -> bool
+      where U: Into<usize>,
+      {
+          is_aligned(self.0, align.into())
+      }
+
+      /// Align down to page
+      #[inline]
+      pub fn align_down_page(self) -> Self {
+          Self(align_down(self.0, PageConfig::PAGE_SIZE))
+      }
+
+      /// Align up to page
+      #[inline]
+      pub fn align_up_page(self) -> Self {
+          Self(align_up(self.0, PageConfig::PAGE_SIZE))
+      }
+
+      #[inline]
+      /// Align offset page
+      pub fn align_offset_page(self) -> usize {
+          align_offset(self.0, PageConfig::PAGE_SIZE)
+      }
+
+
 }
 
 impl Add<usize> for VirtAddr {
@@ -185,6 +269,15 @@ impl Sub<usize> for VirtAddr {
         Self(self.0 - rhs)
     }
 }
+
+impl Sub<VirtAddr> for VirtAddr {
+    type Output = usize;
+    #[inline]
+    fn sub(self, rhs: VirtAddr) -> Self::Output {
+        self.0.checked_sub(rhs.0).expect("address underflow")
+    }
+}
+
 
 impl AddAssign<usize> for VirtAddr {
     #[inline]

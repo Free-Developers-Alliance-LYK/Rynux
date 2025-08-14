@@ -93,10 +93,14 @@ $(obj)/fdt.o: private skip_flags = -Wunreachable_pub
 $(obj)/fdt.o: $(src)/fdt-0.1.5/src/lib.rs $(base_libs) FORCE
 	+$(call if_changed_rule,rustc_library)
 
+rusttestlib-fdt: private skip_flags = -Wunreachable_pub
+rusttestlib-fdt: $(src)/fdt-0.1.5/src/lib.rs FORCE
+	+$(call if_changed,rustc_test_library)
+
 # -------------------------------- rusttest libraries ---------------------
 
 rusttest: rusttestlib-const_format rusttestlib-static_assertions \
-	rusttestlib-bitflags rusttestlib-tock_registers
+	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdt
 
 
 # Ordinary directory descending

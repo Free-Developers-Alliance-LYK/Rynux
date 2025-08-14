@@ -1,19 +1,140 @@
 //! Arm64 Page table PTE
 
+use core::{marker::PhantomData, ptr::NonNull, ops::{Deref, DerefMut, Index, IndexMut}};
 use crate::{
     mm::page::PageConfig,
     arch::arm64::pgtable::config::Arm64PgtableConfig,
     cfg_if,
 };
 
+use crate::mm::{PhysAddr, VirtAddr};
+use super::{PgTableEntry, PtePgProt};
 
 /// Pte
 #[derive(Copy, Clone)]
 #[repr(transparent)]
-pub struct Pte(u64);
+pub struct PteEntry(u64);
 
 #[allow(dead_code)]
-impl Pte {
+impl PteEntry {
+    // Address mask
+    const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - PteTable::SHIFT)) - 1) << PteTable::SHIFT;
+
+    cfg_if! {
+        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
+            if #[cfg(CONFIG_ARM64_64K_PAGES)] {
+                use klib::bits::genmask_ull;
+                const PTE_ADDR_HIGH_MASK: u64 = 0xf << 12;
+                const PTE_ADDR_HIGH_SHIFT: u64 = 36;
+                const PHYS_TO_PTE_ADDR_MASK: u64 = Self::PTE_ADDR_LOW_MASK | Self::PTE_ADDR_HIGH_MASK;
+            } else {
+                /*
+                 * PA is 52bit, lower 12 bit is not used(Page Aligned),
+                 * still need to store 40bit(12-52)
+                 * PTE only (12-50 bit) can store PA, still need to store 51-52bit
+                 * in PTE(9,10)
+                 */
+                const PTE_ADDR_HIGH_MASK: u64 = 0x3 << 8;
+                const PTE_ADDR_HIGH_SHIFT: u64 = 42;
+                const PHYS_TO_PTE_ADDR_MASK: u64 = genmask_ull(49, 8);
+            }
+        }
+    }
+
+    /// Create a new Pte
+    #[inline(always)]
+    pub const fn new(val: u64) -> Self {
+        Self(val)
+    }
+
+    /// Pte is valid
+    #[inline(always)]
+    pub fn is_valid(&self) -> bool {
+        (self.0 & PtePgProt::PTE_VALID.bits()) != 0
+    }
+
+    /// Get phys pfn
+    #[inline(always)]
+    pub fn pfn(&self) -> usize {
+        self.to_phys().as_usize() >> PageConfig::PAGE_SHIFT
+    }
+
+    /// Pte is contiguous
+    #[inline(always)]
+    pub fn is_contiguous(&self) -> bool {
+        (self.0 & PtePgProt::PTE_CONT.bits()) != 0
+    }
+}
+
+impl PgTableEntry for PteEntry {
+    /// Value 
+    #[inline(always)]
+    fn value(&self) -> u64 {
+        self.0
+    }
+
+    /// Check if the pte is none
+    #[inline(always)]
+    fn is_none(&self) -> bool {
+        self.0 == 0
+    }
+    /// Get the value of the Pte
+    #[inline(always)]
+    fn read(&self) -> u64 {
+        unsafe { core::ptr::read_volatile(&self.0) }
+    }
+
+    #[inline(always)]
+    /// write the pte
+    fn write(&mut self, val: u64) {
+        unsafe { core::ptr::write_volatile(&mut self.0, val) }
+    }
+
+    cfg_if! {
+        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
+            /// Consume the pte and convert it to a physical address
+            #[inline(always)]
+            fn to_phys(&self) -> u64 {
+                // remove the maybe shared bit
+                let val = self.0 & !PgProt::pte_maybe_shared().bits();
+                let low_addr = val & Self::PTE_ADDR_LOW_MASK;
+                let high_addr = (val & Self::PTE_ADDR_HIGH_MASK) << Self::PTE_ADDR_HIGH_SHIFT;
+                low_addr | high_addr
+            }
+
+            /// Convert a physical address to a pte
+            #[inline(always)]
+            fn from_phys(pa: usize) -> Self {
+                let pa = pa as u64;
+                Self((pa | (pa >> Self::PTE_ADDR_HIGH_SHIFT)) & Self::PHYS_TO_PTE_ADDR_MASK)
+            }
+
+        } else {
+            /// Consume the pte and convert it to a physical address
+            #[inline(always)]
+            fn to_phys(&self) -> PhysAddr {
+                PhysAddr::from((self.value() & Self::PTE_ADDR_LOW_MASK) as usize)
+            }
+
+            /// Convert a physical address to a pte
+            #[inline(always)]
+            fn from_phys(pa: PhysAddr) -> Self {
+                let pa = pa.as_usize() as u64;
+                Self(pa)
+            }
+        }
+    }
+}
+
+/// PteTable
+pub struct PteTable {
+    base: NonNull<PteEntry>,
+    _marker: PhantomData<PteEntry>,
+    len: usize,
+}
+
+#[allow(dead_code)]
+impl PteTable {
     // Returns the ARM64 CONT_PTE_SHIFT for a given page shift (log2 of page size).
     //
     // # Arguments
@@ -39,92 +160,101 @@ impl Pte {
     // determines the size a pte page table entry can map
     const SHIFT: usize = PageConfig::PAGE_SHIFT;
     // Size of a PTE entry in bytes.
-    const SIZE: usize = 1 << Self::SHIFT;
+    const ENTRY_SIZE: usize = 1 << Self::SHIFT;
     // Mask for aligning to a PTE entry
-    const MASK: usize = !(Self::SIZE - 1);
+    const MASK: usize = !(Self::ENTRY_SIZE - 1);
     /// Number of entries per PTE
     pub const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     // determines the continue PTE size map
     const CONT_SHIFT: usize =  Self::pte_cont_shift(PageConfig::PAGE_SHIFT) + PageConfig::PAGE_SHIFT;
     /// Size of a contiguous PTE entry in bytes.
-    pub const CONT_SIZE: usize = 1 << Self::CONT_SHIFT;
+    pub const CONT_ENTRY_SIZE: usize = 1 << Self::CONT_SHIFT;
     // Number of entries per contiguous PTE
     const CONT_PTRS: usize = 1 << Self::CONT_SHIFT - PageConfig::PAGE_SHIFT;
     // Mask for aligning to a contiguous PTE entry
-    const CONT_MASK: usize = !(Self::CONT_SIZE - 1);
+    const CONT_MASK: usize = !(Self::CONT_ENTRY_SIZE - 1);
 
-    // Address mask
-    const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - Self::SHIFT)) - 1) << Self::SHIFT;
-
-    cfg_if! {
-        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
-            if #[cfg(CONFIG_ARM64_64K_PAGES)] {
-                use klib::bits::genmask_ull;
-                const PTE_ADDR_HIGH_MASK: u64 = 0xf << 12;
-                const PTE_ADDR_HIGH_SHIFT: u64 = 36;
-                const PHYS_TO_PTE_ADDR_MASK: u64 = Self::PTE_ADDR_LOW_MASK | Self::PTE_ADDR_HIGH_MASK;
-            } else {
-                /*
-                 * PA is 52bit, lower 12 bit is not used(Page Aligned),
-                 * still need to store 40bit(12-52)
-                 * PTE only (12-50 bit) can store PA, still need to store 51-52bit
-                 * in PTE(9,10)
-                 */
-                const PTE_ADDR_HIGH_MASK: u64 = 0x3 << 8;
-                const PTE_ADDR_HIGH_SHIFT: u64 = 42;
-                const PHYS_TO_PTE_ADDR_MASK: u64 = genmask_ull(49, 8);
-            }
+    /// Create a new PteTable
+    pub const fn from_raw(base: *mut PteEntry) -> Self {
+        Self {
+            base: unsafe { NonNull::new_unchecked(base)},
+            _marker: PhantomData,
+            len: Self::PTRS,
         }
     }
 
-    /// Check if the pte is none
-    pub fn is_none(&self) -> bool {
-        self.0 == 0
+    /// Get the index of a PteTable
+    pub const fn addr_index(addr: VirtAddr) -> usize {
+        (addr.as_usize()>> Self::SHIFT) & (Self::PTRS - 1)
     }
 
-    /// Create a new Pte
-    pub fn new(val: u64) -> Self {
-        Self(val)
+
+    /// len of the table
+    pub const fn len(&self) -> usize {
+        self.len
     }
 
-    /// Get the value of the Pte
-    pub fn bits(&self) -> u64 {
-        self.0
+    /// to phys
+    pub fn to_phys(&self) -> PhysAddr {
+        VirtAddr::from(self.base.as_ptr() as usize).to_phys()
     }
 
-    cfg_if! {
-        if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
-            /// Consume the pte and convert it to a physical address
-            #[inline(always)]
-            pub fn to_phys(self) -> u64 {
-                // remove the maybe shared bit
-                let val = self.0 & !PgProt::pte_maybe_shared().bits();
-                let low_addr = val & Self::PTE_ADDR_LOW_MASK;
-                let high_addr = (val & Self::PTE_ADDR_HIGH_MASK) << Self::PTE_ADDR_HIGH_SHIFT;
-                low_addr | high_addr
-            }
-
-            /// Convert a physical address to a pte
-            #[inline(always)]
-            pub fn from_phys(pa: usize) -> Self {
-                let pa = pa as u64;
-                Self((pa | (pa >> Self::PTE_ADDR_HIGH_SHIFT)) & Self::PHYS_TO_PTE_ADDR_MASK)
-            }
-
+    /// addr end next
+    #[inline(always)]
+    pub fn addr_end_next(addr: VirtAddr, end: VirtAddr) -> VirtAddr {
+        let boundary = (addr.as_usize().wrapping_add(Self::ENTRY_SIZE)) & Self::MASK;
+        if boundary.wrapping_sub(1) < end.as_usize().wrapping_sub(1) {
+            VirtAddr::from(boundary)
         } else {
-            /// Consume the pte and convert it to a physical address
-            #[inline(always)]
-            pub fn to_phys(self) -> usize {
-                (self.0 & Self::PTE_ADDR_LOW_MASK) as usize
-            }
+            end
+        }
+    }
 
-            /// Convert a physical address to a pte
-            #[inline(always)]
-            pub fn from_phys(pa: usize) -> Self {
-                let pa = pa as u64;
-                Self(pa)
-            }
+    /// cont addr end next
+    #[inline(always)]
+    pub fn cont_addr_end_next(addr: VirtAddr, end: VirtAddr) -> VirtAddr {
+        let boundary = (addr.as_usize().wrapping_add(Self::CONT_ENTRY_SIZE)) & Self::CONT_MASK;
+        if boundary.wrapping_sub(1) < end.as_usize().wrapping_sub(1) {
+            VirtAddr::from(boundary)
+        } else {
+            end
         }
     }
 }
+
+impl Deref for PteTable {
+    type Target = [PteEntry];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            core::slice::from_raw_parts(self.base.as_ptr(), self.len)
+        }
+    }
+}
+
+impl DerefMut for PteTable {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe {
+            core::slice::from_raw_parts_mut(self.base.as_ptr(), self.len)
+        }
+    }
+}
+
+impl Index<usize> for PteTable {
+    type Output = PteEntry;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(index < self.len, "index out of bounds");
+        &self.deref()[index]
+    }
+}
+
+impl IndexMut<usize> for PteTable {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        assert!(index < self.len, "index out of bounds");
+        &mut self.deref_mut()[index]
+    }
+}
+
+
 

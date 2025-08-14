@@ -24,12 +24,16 @@
 //! |---------------|
 //!
 
+use crate::types::OnceCell;
+use crate::macros::section_rodata_after_init;
+
 use crate::{
     arch::valayout::ArchVaLayout,
     size::*,
     cfg_if,
     mm::page::{PageConfig, Page},
     macros::need_export,
+    arch::arm64::mm::fixmap::FixMap,
 };
 
 /// Virtual Address Layout
@@ -37,9 +41,17 @@ pub struct Arm64VaLayout();
 
 impl ArchVaLayout for Arm64VaLayout {
     #[inline(always)]
-    /// The virtual address of the start of the linear map
     fn kernel_va_start() -> usize {
         Arm64VaLayout::KERNNEL_VA_START
+    }
+
+    fn linear_map_end() -> usize { 
+        Arm64VaLayout::KERNEL_VA_LINE_END
+    }
+
+    #[inline(always)]
+    fn kimg_va_offset() -> usize {
+        *KIMAGE_VOFFSET.get().unwrap()
     }
 }
 
@@ -124,10 +136,36 @@ impl Arm64VaLayout {
     /// PCI I/O End
     pub const PCI_IO_END: usize = Self::PCI_IO_START + Self::PCI_IO_SIZE;
 
-    /// Fixmap Top
+
+    /// FIXMAP VA LAYOUT 
+    /// 
+    /// -------  FIX START
+    ///
+    /// Temp Fixmap
+    ///
+    /// ------- FIX permanent start
+    /// 
+    /// Permanent Fixmap
+    ///
+    /// -------  FIX_TOP
+    ///   8MB
+    /// --------
+
+    /// Fixmap TOP 
     pub const FIXMAP_TOP: usize = -(SZ_8M as isize) as usize;
+    /// FIXMAP START
+    pub const FIXMAP_START: usize = Self::FIXMAP_TOP - FixMap::FIXMAP_SIZE;
 }
 
 /// KIMAGE_VADDR - the virtual address of the start of the kernel image.
 #[need_export]
 pub static EXPORT_KIMAGE_VADDR: usize = Arm64VaLayout::KIMAGE_VADDR;
+
+#[section_rodata_after_init]
+static KIMAGE_VOFFSET : OnceCell<usize> = OnceCell::new();
+
+/// Set kimage voffset
+#[inline(always)]
+pub fn set_kimage_va_offset(voffset: usize) {
+    KIMAGE_VOFFSET.set(voffset);
+}

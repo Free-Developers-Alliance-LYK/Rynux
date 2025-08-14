@@ -78,10 +78,11 @@ impl InitIdmap {
 
     /// The maximum size of the FDT.
     pub const MAX_FDT_SIZE: usize = SZ_2M;
-    // No need pgdir again
-    const FDT_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, 0, Self::MAX_FDT_SIZE, 1) - 1;
-    /// The size of the initial FDT mapping.
-    pub const FDT_SIZE: usize = (Self::FDT_PAGES + Self::early_idmap_extra_fdt_pages()) * PageConfig::PAGE_SIZE;
+
+    // The number of page tables needed for the initial FDT mapping.
+    const EARLY_FDT_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, 0, Self::MAX_FDT_SIZE, 1) - 1;
+    /// Page table memory size required for early FDT mapping
+    pub const EARLY_FDT_PAGE_SIZE: usize = (Self::EARLY_FDT_PAGES + Self::early_idmap_extra_fdt_pages()) * PageConfig::PAGE_SIZE;
 }
 
 /// The size of the initial identity mapping.

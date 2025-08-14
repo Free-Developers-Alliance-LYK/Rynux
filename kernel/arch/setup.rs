@@ -3,15 +3,15 @@
 use crate::cfg_if;
 
 /// Arch processor init
-pub trait ArchProcessorInit {
-    /// Setup processor id
-    fn smp_setup_processor_id();
+pub trait ArchBootSetupTrait {
+    /// Setup the architecture-specific boot processor.
+    fn setup_arch();
 }
 
 cfg_if! {
     if #[cfg(test)] {
-        // do nothing
-    }else if #[cfg(CONFIG_ARM64)] {
-        pub use super::arm64::kernel::setup::Arm64ProcessorInit as ProcessorInit;
+        // Dummy boot setup for testing
+    } else if #[cfg(CONFIG_ARM64)] {
+        pub use super::arm64::kernel::setup::Arm64BootSetup as ArchBootSetup;
     }
 }

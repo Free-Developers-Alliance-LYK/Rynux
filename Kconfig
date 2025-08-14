@@ -8,7 +8,7 @@ source "scripts/Kconfig.include"
 
 choice
     prompt "Rust Build Mode"
-    default RUST_RELEASE
+    default RUST_DEBUG
 
 config RUST_RELEASE
     bool "Release"

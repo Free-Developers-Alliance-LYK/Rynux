@@ -8,27 +8,24 @@
 //!
 
 use kernel::init::init_task::INIT_TASK;
-
 use kernel::arch::arm64::early_debug::early_uart_put_u64_hex;
-
-use kernel::arch::setup::{ArchProcessorInit, ProcessorInit};
 use kernel::arch::irq::{ArchIrq, IRQ};
-//use kernel::schedule::task::CurrentTask;
+use kernel::cpu::processor::processor_boot_init;
+use kernel::arch::setup::{ArchBootSetupTrait, ArchBootSetup};
 
 /// Start kernel
 #[no_mangle] 
 extern "C" fn start_kernel() -> ! {
     INIT_TASK.set_stack_end_magic();
-    ProcessorInit::smp_setup_processor_id();
+
     // early boot irq disable
     IRQ::local_disable();
+    processor_boot_init();
 
     //early_uart_putchar('O' as u8);
     early_uart_put_u64_hex(0x1234);
-    /*
-    let current = CurrentTask::get();
-    early_uart_put_u64_hex(current.magic);
-    */
+    ArchBootSetup::setup_arch();
+    early_uart_put_u64_hex(0x1234);
     loop {}
 }
 

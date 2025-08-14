@@ -7,4 +7,5 @@ pub use crate::arch::symbols::*;
 extern "C" {
     /// define in init kernel
     pub fn start_kernel();
+
 }

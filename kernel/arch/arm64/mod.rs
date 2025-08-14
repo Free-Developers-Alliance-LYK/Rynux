@@ -10,3 +10,4 @@ pub mod ptrace;
 pub mod symbols;
 pub mod thread;
 pub mod irq;
+pub mod cpu;

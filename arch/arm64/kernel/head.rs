@@ -218,8 +218,8 @@ unsafe extern "C" fn init_kernel_el(mmu_state: usize) {
  */
 #[section_idmap_text]
 unsafe extern "C" fn __cpu_setup() {
-    use kernel::arch::arm64::asm::tlb::local_flush_tlb_all;
-    local_flush_tlb_all();
+    use kernel::arch::arm64::asm::tlb::TlbFlushOps;
+    TlbFlushOps::local_flush_tlb_all();
     // Reset cpacr_el1
     CpacrEl1::write_raw(0);
     // Reset mdscr_el1 and disable access to the DCC from EL0
@@ -330,7 +330,7 @@ extern "C" fn __primary_switched(kernel_start_pa: usize, fdt_pa: usize, _cpu_boo
     use kernel::mm::PhysAddr;
     // set kimage_va_offset
     let kimage_va_offset = _text as usize - kernel_start_pa;
-    kernel::arch::arm64::mm::mmu::set_kimage_va_offset(kimage_va_offset);
+    kernel::arch::arm64::va_layout::set_kimage_va_offset(kimage_va_offset);
     // save fdt
     kernel::arch::arm64::kernel::setup::set_fdt_pointer(PhysAddr::from(fdt_pa));
     // init vbar
