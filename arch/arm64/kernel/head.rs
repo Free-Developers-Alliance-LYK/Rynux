@@ -1,5 +1,5 @@
 //! Rynux arm64 boot head
-//! TODO: 
+//! TODO:
 //!  - head:  efi support
 //!  - record_mmu_state: big endian support
 //!  - init_kernel_el: boot from el2
@@ -10,7 +10,6 @@
 //!     - S1PIE not support
 //!  - __primary_switched:
 //!    - not support vhe
-
 
 use kernel::{
     global_sym::*,
@@ -23,14 +22,13 @@ use kernel::{
         va_layout::Arm64VaLayout,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
     },
-    schedule::task::Task,
+    schedule::task::TaskRef,
 
     macros::{
         section_idmap_text,
         section_init_text
     },
 };
-
 
 core::arch::global_asm!(r#"
     .section .head.text, "ax"
@@ -301,9 +299,9 @@ extern "C" {
 }
 
 #[inline(always)]
-fn __init_cpu_task(task: &Task) {
+fn __init_cpu_task(task: &TaskRef) {
     // write task raw ptr to sp_el0
-    SpEl0::write_raw(task as *const _ as u64);
+    kernel::schedule::task::CurrentTask::set_current(task.clone());
     // prepare stack
     task.zero_stack();
     let mut sp = task.top_of_stack().as_ptr() as u64;
@@ -333,12 +331,12 @@ extern "C" fn __primary_switched(kernel_start_pa: usize, fdt_pa: usize, _cpu_boo
     kernel::arch::arm64::va_layout::set_kimage_va_offset(kimage_va_offset);
     // save fdt
     kernel::arch::arm64::kernel::setup::set_fdt_pointer(PhysAddr::from(fdt_pa));
-    // init vbar
+    // TODO: init vbar
     //VbarEl1::write_raw();
     isb();
 
     // init cpu task, reset sp equal task sp
-    __init_cpu_task(&kernel::init::init_task::INIT_TASK);
+    __init_cpu_task(&kernel::init::init_task::INIT_TASK_REF);
 
     // Actively simulate functions pushing into the stack and save the stack
     // frame operation

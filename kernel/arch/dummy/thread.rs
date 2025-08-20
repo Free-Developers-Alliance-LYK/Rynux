@@ -16,3 +16,20 @@ impl DummyThreadInfo {
         }
     }
 }
+
+
+use crate::arch::thread::ArchCurrentTrait;
+use crate::schedule::task::Task;
+
+/// Dummy Current
+pub struct DummyCurrent;
+impl ArchCurrentTrait for DummyCurrent {
+    #[inline(always)]
+    fn read() -> *const Task {
+        0 as *const Task
+    }
+
+    #[inline(always)]
+    fn write(_task: *const Task) {
+    }
+}

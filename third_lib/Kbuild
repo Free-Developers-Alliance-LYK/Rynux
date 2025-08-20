@@ -89,18 +89,20 @@ rusttestlib-tock_registers: $(src)/tock-registers-0.10.0/src/lib.rs  FORCE
 
 
 # ------------------------------- fdt ---------------------
-$(obj)/fdt.o: private skip_flags = -Wunreachable_pub
-$(obj)/fdt.o: $(src)/fdt-0.1.5/src/lib.rs $(base_libs) FORCE
-	+$(call if_changed_rule,rustc_library)
+fdt_skip_flags = -Wunreachable_pub -Wmissing_docs  -Dwarnings
 
-rusttestlib-fdt: private skip_flags = -Wunreachable_pub
-rusttestlib-fdt: $(src)/fdt-0.1.5/src/lib.rs FORCE
+$(obj)/fdtree_rs.o: $(obj)/fdtree-rs/src/lib.rs $(base_libs) FORCE
+	+$(call if_changed_rule,rustc_library)
+$(obj)/fdtree_rs.o: private skip_flags = $(fdt_skip_flags)
+
+rusttestlib-fdtree_rs: private skip_flags = $(fdt_skip_flags)
+rusttestlib-fdtree_rs: $(src)/fdtree-rs/src/lib.rs  FORCE
 	+$(call if_changed,rustc_test_library)
 
 # -------------------------------- rusttest libraries ---------------------
 
 rusttest: rusttestlib-const_format rusttestlib-static_assertions \
-	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdt
+	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdtree_rs
 
 
 # Ordinary directory descending
@@ -111,4 +113,4 @@ obj-y 			+= const_format.o
 obj-y 			+= static_assertions.o
 obj-y 			+= bitflags.o
 obj-y 			+= tock_registers.o
-obj-y 			+= fdt.o
+obj-y 			+= fdtree_rs.o

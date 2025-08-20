@@ -55,7 +55,6 @@ bitflags! {
 pub struct Mmu;
 
 impl Mmu {
-    
     fn pgattr_change_is_safe(old: u64, new: u64) -> bool {
         let old = PteEntry::new(old);
         let new = PteEntry::new(new);
@@ -232,7 +231,6 @@ impl Mmu {
             }
         }
     }
-
 
     fn create_pgd_mapping(pgd_tbl: &mut PgdirTable, 
         phys: PhysAddr, virt: VirtAddr, size: usize, prot: PtePgProt, no_alloc: bool, flags: MmuMapFlags)

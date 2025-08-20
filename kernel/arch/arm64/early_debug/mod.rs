@@ -71,3 +71,11 @@ pub fn early_uart_put_u64_hex(val: u64) {
         uart_put_hex(byte);
     }
 }
+
+#[no_mangle]
+/// Print string
+pub fn early_uart_put_str(s: &str) {
+    for c in s.as_bytes() {
+        early_uart_putchar(*c);
+    }
+}

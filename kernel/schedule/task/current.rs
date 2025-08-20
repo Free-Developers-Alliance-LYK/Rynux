@@ -1,75 +1,61 @@
 //! Rynux task current
 
-use alloc::sync::Arc;
 use core::mem::ManuallyDrop;
+use core::ops::Deref;
 
-use crate::arch::thread::{ArchCurrent, Current};
-use crate::schedule::task::TaskRef;
-
-static _NO_BOOT_STATIC_TASK: OnceCell<bool> = OnceCell::new();
-/// Once boot is finished, should update boot static init task to Arc
-pub fn no_boot_static_task() {
-    _NO_BOOT_STATIC_TASK.set(true);
-}
-
-enum CurrentTaskInner {
-    Boot(&'static Task),
-    Normal(TaskRef),
-}
+use crate::sync::arc::Arc;
+use crate::arch::thread::{ArchCurrentTrait, ArchCurrent};
+use crate::schedule::task::{Task, TaskRef};
 
 /// Current task Wrapper
-pub struct CurrentTask(CurrentTaskInner);
+pub struct CurrentTask(ManuallyDrop<TaskRef>);
 
 impl CurrentTask {
-    pub(crate) fn try_get() -> Option<Self> {
-        let ptr: *const super::Task = Current::read();
+    fn try_get() -> Option<Self> {
+        let ptr: *const Task = ArchCurrent::read();
         if !ptr.is_null() {
-            if ptr == &INIT_TASK && _NO_BOOT_STATIC_TASK.get().is_none() {
-                return Some(Self(CurrentTaskInner::Boot(&INIT_TASK)));
-            }
-
-            Some(Self(unsafe { ManuallyDrop::new(TaskRef::from_raw(ptr)) }))
+            Some(Self(ManuallyDrop::new(unsafe { Arc::from_raw(ptr) })))
         } else {
             None
         }
     }
 
-    pub(crate) fn get() -> Self {
+    /// Get current task.
+    #[inline(always)]
+    pub fn get() -> Self {
         Self::try_get().expect("current task is uninitialized")
     }
 
     /// Converts [`CurrentTask`] to [`TaskRef`].
     pub fn as_task_ref(&self) -> &TaskRef {
-        // Boot not support
-        match &self.0 {
-            CurrentTaskInner::Boot(_) => panic!("boot task not support"),
-            CurrentTaskInner::Normal(task) => task,
-        }
+        &self.0
     }
 
-    pub(crate) fn clone(&self) -> TaskRef {
-        // Boot static task not support clone
-        match &self.0 {
-            CurrentTaskInner::Boot(_) => panic!("boot task not support"),
-            CurrentTaskInner::Normal(task) => task.clone(),
-        }
+    /// Clone current task ref.
+    #[inline(always)]
+    pub fn clone(&self) -> TaskRef {
+        self.0.deref().clone()
     }
 
-    pub(crate) fn ptr_eq(&self, other: &TaskRef) -> bool {
-        match &self.0 {
-            CurrentTaskInner::Boot(_) => panic!("boot task not support"),
-            CurrentTaskInner::Normal(task) => Arc::ptr_eq(task, other),
-        }
+    /// Compare whether two [`CurrentTask`] pointers reference the same underlying object.
+    #[inline(always)]
+    pub fn ptr_eq(&self, other: &TaskRef) -> bool {
+        Arc::ptr_eq(&self.0, other)
     }
 
-    pub(crate) unsafe fn set_current(init_task: TaskRef) {
-        let ptr = Arc::into_raw(init_task);
-        axhal::cpu::set_current_task_ptr(ptr);
+    /// Set current task.
+    #[inline(always)]
+    pub fn set_current(task: TaskRef) {
+        let ptr = Arc::into_raw(task);
+        ArchCurrent::write(ptr);
     }
 
-    pub(crate) unsafe fn switch_current(prev: Self, next: TaskRef) {
+    /// Switch current task.
+    #[inline(always)]
+    pub fn switch_current(prev: Self, next: TaskRef) {
         let Self(arc) = prev;
         ManuallyDrop::into_inner(arc); // `call Arc::drop()` to decrease prev task reference count.
+        //SAFETY: next is a valid task ref.
         Self::set_current(next);
     }
 }
@@ -78,10 +64,6 @@ impl Deref for CurrentTask {
     type Target = Task;
 
     fn deref(&self) -> &Self::Target {
-        match &self.0 {
-            CurrentTaskInner::Boot(task) => task,
-            CurrentTaskInner::Normal(task) => &task,
-        }
+        self.0.deref()
     }
-
 }

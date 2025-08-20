@@ -9,7 +9,7 @@ use core::{
 };
 
 use super::{AllocError, Allocator, AllocFlags};
-use crate::mm::memblock::MemBlock;
+use crate::mm::memblock::GLOBAL_MEMBLOCK;
 
 /// Early kernel memory allocator
 pub struct MemblockAllocator;
@@ -26,7 +26,7 @@ fn aligned_size(new_layout: Layout) -> usize {
 // It is safe to use this function as long as the caller ensures that the size and alignment
 unsafe impl Allocator for MemblockAllocator {
     #[inline]
-    unsafe fn alloc(
+    fn alloc(
         new_layout: Layout,
         flags: AllocFlags,
     ) -> Result<NonNull<[u8]>, AllocError> {
@@ -37,7 +37,7 @@ unsafe impl Allocator for MemblockAllocator {
             super::dangling_from_layout(new_layout)
         } else {
             // try to allocate memory from the kernel's memblock allocator
-            MemBlock::alloc(size, new_layout.align(), flags)?
+            GLOBAL_MEMBLOCK.lock().alloc(size, new_layout.align(), flags)?
         };
 
         Ok(NonNull::slice_from_raw_parts(ptr, size))
@@ -56,9 +56,7 @@ unsafe impl Allocator for MemblockAllocator {
         // if alloc fails, not free old memory block
         //
         // SAFETY: new_layout is a valid layout for allocation.
-        let new_ptr = unsafe {
-            Self::alloc(new_layout, flags)?
-        };
+        let new_ptr = Self::alloc(new_layout, flags)?;
         // then copy the old memory block to the new memory block
         if old_size > 0 {
             // SAFETY: `ptr` is a valid pointer to an allocation of size `old_size`
@@ -82,7 +80,7 @@ unsafe impl Allocator for MemblockAllocator {
             // Zero-sized allocations are always valid, no need to free
             return;
         }
-        MemBlock::free(ptr, size);
+        GLOBAL_MEMBLOCK.lock().free(ptr, size);
     }
 }
 

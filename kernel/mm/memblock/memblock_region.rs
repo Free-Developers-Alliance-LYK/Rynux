@@ -473,6 +473,28 @@ impl MemBlockRegionArray {
             self.remove_region(i);
         }
     }
+
+    /// Cap a range of memory regions
+    #[section_init_text]
+    pub fn cap_range(&mut self, base: PhysAddr, size: usize) {
+        if self.total_size == 0 {
+            return;
+        }
+
+        let (start_rgn, end_rgn) = self.isolate_range(base, size);
+        // remove all the MAP regions
+        for i in (end_rgn..self.len()).rev() {
+            if !self[i].flags.contains(MemBlockTypeFlags::NOMAP) {
+                self.remove_region(i);
+            }
+        }
+
+        for i in (0..start_rgn).rev() {
+            if !self[i].flags.contains(MemBlockTypeFlags::NOMAP) {
+                self.remove_region(i);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -647,6 +669,35 @@ mod tests {
         assert_eq!(memblock.total_size, 0x1000);
         // now region is [0x2000, 0x3000)
     }
+
+    #[test]
+    fn test_cap_range() {
+        let mut memblock = MemBlockRegionArray::new_static("test");
+        memblock.add_range(PhysAddr::from(0x1000), 0x3000, MemBlockTypeFlags::NORMAL);
+        memblock.add_range(PhysAddr::from(0x5000), 0x3000, MemBlockTypeFlags::NORMAL);
+        assert_eq!(memblock.len(), 2);
+        assert_eq!(memblock.total_size, 0x6000);
+    
+        // now region is [0x1000, 0x4000) [0x5000, 0x8000)
+        memblock.cap_range(PhysAddr::from(0x2000), 0x3000);
+        // now region is [0x2000, 0x4000)
+        assert_eq!(memblock.len(), 1);
+        assert_eq!(memblock[0].base, PhysAddr::from(0x2000));
+        assert_eq!(memblock[0].size, 0x2000);
+        assert_eq!(memblock.total_size, 0x2000);
+
+        memblock.add_range(PhysAddr::from(0x5000), 0x3000, MemBlockTypeFlags::NORMAL);
+        // now region is [0x2000, 0x4000) [0x5000, 0x8000)
+        memblock.cap_range(PhysAddr::from(0x3000), 0x3000);
+        // now region is [0x3000, 0x4000) [0x5000, 0x6000)
+        assert_eq!(memblock.len(), 2);
+        assert_eq!(memblock[0].base, PhysAddr::from(0x3000));
+        assert_eq!(memblock[0].size, 0x1000);
+        assert_eq!(memblock[1].base, PhysAddr::from(0x5000));
+        assert_eq!(memblock[1].size, 0x1000);
+        assert_eq!(memblock.total_size, 0x2000);
+    }
+
 }
 
 

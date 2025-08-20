@@ -311,8 +311,24 @@ impl FixMap {
 
         // Map the first page, so we can read the size from the header
         Mmu::create_map_noalloc(dt_phys_base, dt_virt_base, PageConfig::PAGE_SIZE, prot);
+        let fdt = unsafe { 
+            fdtree_rs::LinuxFdt::from_ptr(dt_virt.as_usize() as *const u8)
+        };
 
-        (dt_virt, 0)
-        
+        match fdt {
+            Ok(fdt) => {
+                let size = fdt.total_size();
+                if size > InitIdmap::MAX_FDT_SIZE {
+                    panic!("Fdt size too large: {}", size);
+                }
+                if offset + size > PageConfig::PAGE_SIZE {
+                    Mmu::create_map_noalloc(dt_phys_base, dt_virt_base, offset + size, prot);
+                }
+                (dt_virt, size)
+            }
+            Err(e) => {
+                panic!("Invalid fdt: {}", e);
+            }
+        }
     }
 }

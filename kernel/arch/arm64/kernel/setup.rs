@@ -5,7 +5,11 @@ use crate::{
     mm::PhysAddr,
     types::OnceCell,
     arch::setup::ArchBootSetupTrait,
-    arch::arm64::pgtable::pgprot::PtePgProt,
+    arch::arm64::{
+        pgtable::pgprot::PtePgProt,
+        mm::fixmap::FixMap,
+    },
+    mm::memblock::GLOBAL_MEMBLOCK,
 };
 
 /// Have to define this struct with repr align
@@ -49,15 +53,31 @@ pub fn set_fdt_pointer(pa: PhysAddr) {
     FDT_POINTER.set(pa);
 }
 
-
 /// Archip-specific boot setup trait.
 pub struct Arm64BootSetup;
+
+impl Arm64BootSetup {
+    /// early scan fdt
+    #[section_init_text]
+    fn setup_machine_fdt() {
+        let (dt_virt, size) = FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL_RO);
+        crate::drivers::fdt::setup_fdt(dt_virt);
+        // init bootcoomand line from fdt bootargs
+        crate::init::command_line::setup_from_fdt();
+        // now scan mem from fdt
+        crate::mm::memblock::setup_from_fdt();
+        // reserve fdt mem
+        GLOBAL_MEMBLOCK.lock().add_reserved(*FDT_POINTER.get().unwrap(), size);
+    }
+}
 
 impl ArchBootSetupTrait for Arm64BootSetup {
     #[section_init_text]
     fn setup_arch() {
-        use crate::arch::arm64::mm::fixmap::FixMap;
         FixMap::early_fixmap_init();
-        FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL);
+        Self::setup_machine_fdt();
+        // init arm64 memblock
+        //crate::arch::arm64::mm::init::memblock_init();
+        //crate::arch::arm64::mm::init::paging_init();
     }
 }

@@ -22,12 +22,13 @@ pub struct Task {
     stack: TaskStack,
     // boot task?
     is_boot_task: bool,
-    // magic number
-    pub(crate) magic: u64,
+    /// magic number
+    pub magic: u64,
 }
 
 impl Task {
-    const BOOT_TASK_MAGIC: u64 = 0x12345678;
+    /// Boot task magic
+    pub const BOOT_TASK_MAGIC: u64 = 0x12345678;
     /// Create a new task
     pub fn new(state: TaskState, stack: TaskStack) -> Self {
         Self {

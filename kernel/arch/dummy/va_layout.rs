@@ -11,4 +11,16 @@ impl ArchVaLayout for DummyVaLayout {
     fn kernel_va_start() -> usize {
         0
     }
+
+    #[inline(always)]
+    /// The end of the linear map, where all other kernel mappings begin.
+    fn linear_map_end() -> usize {
+        0
+    }
+
+    #[inline(always)]
+    /// Kernel image virtual memory and physical memory offset 
+    fn kimg_va_offset() -> usize {
+        0
+    }
 }

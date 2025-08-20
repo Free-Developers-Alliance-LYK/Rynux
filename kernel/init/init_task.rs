@@ -7,8 +7,10 @@ use crate::{
     schedule::task::{
         Task,
         TaskStack,
+        TaskRef,
     },
     arch::mm::ArchThreadMemLayout,
+    sync::arc::{Arc,ArcInner},
 };
 
 static INIT_TASK_STACK: TaskStack = TaskStack::new(
@@ -23,8 +25,13 @@ static INIT_TASK_STACK: TaskStack = TaskStack::new(
     true
 );
 
-/// Init First task
-pub static INIT_TASK: Task = Task::new_boot(INIT_TASK_STACK);
+/// SAFETY: we know what we are doing here. 
+/// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
+static INIT_TASK_ARC: ArcInner<Task> = ArcInner::new(Task::new_boot(INIT_TASK_STACK));
+
+/// SAFETY: we know what we are doing here. 
+/// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
+pub static INIT_TASK_REF: TaskRef = unsafe {Arc::from_inner(NonNull::new_unchecked(&INIT_TASK_ARC as *const ArcInner<Task> as *mut ArcInner<Task>))}; 
 
 extern "C" {
     /// init_stack define in vmrynux.rs

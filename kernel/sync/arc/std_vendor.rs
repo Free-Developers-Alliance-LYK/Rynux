@@ -7,7 +7,7 @@
 //! "Apache-2.0 OR MIT" and adapted for kernel use. For copyright details,
 //! see <https://github.com/rust-lang/rust/blob/master/COPYRIGHT>.
 
-use crate::sync::{arc::ArcInner, Arc};
+use crate::sync::arc::{ArcInner, Arc};
 use core::any::Any;
 
 impl Arc<dyn Any + Send + Sync> {

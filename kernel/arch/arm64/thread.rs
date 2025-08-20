@@ -7,6 +7,8 @@
 
 use crate::schedule::preempt::INIT_TASK_PREEMPT_COUNT;
 use crate::bitflags::bitflags;
+use crate::schedule::task::Task;
+use crate::arch::arm64::sysregs::sp_el0::SpEl0;
 
 bitflags! {
     /// Flags
@@ -63,12 +65,11 @@ impl Arm64ThreadInfo {
     }
 }
 
-/*
 /// Arm64 Current
 pub struct Arm64Current;
 
-use crate::arch::thread::ArchCurrent;
-impl ArchCurrent for Arm64Current {
+use crate::arch::thread::ArchCurrentTrait;
+impl ArchCurrentTrait for Arm64Current {
     #[inline(always)]
     fn read() -> *const Task {
         SpEl0::read_raw() as *const Task
@@ -79,4 +80,3 @@ impl ArchCurrent for Arm64Current {
         SpEl0::write_raw(task as u64);
     }
 }
-*/

@@ -200,8 +200,6 @@ impl DoubleEndedIterator for FreeMemIter<'_> {
     }
 }
 
-
-
 impl MemBlock {
     // When set MEMBLOCK_ALLOC_ACCESSIBLE, it will limit with memblock 
     // current limit
@@ -242,6 +240,23 @@ impl MemBlock {
     #[inline(always)]
     pub fn remove_memory(&mut self, base: PhysAddr, size: usize) {
         self.memory.remove_range(base, size);
+    }
+
+    /// Cap mem from current memory region
+    /// 
+    /// # Arguments
+    /// 
+    /// * `base` - Base address of the new region
+    /// * `size` - Size of the new region
+    ///
+    #[inline(always)]
+    pub fn cap_memory(&mut self, base: PhysAddr, size: usize) {
+        // first cap memory region
+        self.memory.cap_range(base, size);
+
+        // then truncated reserved region
+        self.reserved.remove_range(PhysAddr::from(0), base.as_usize());
+        self.reserved.remove_range(base + size, usize::MAX);
     }
 
     /// Add new reserved region
@@ -458,12 +473,35 @@ impl MemBlock {
 /// to ensure that the allocator will only be used in: 
 ///  - the initialization phase before scheduling is enabled
 ///  - avoid use unsafe to access it, because it is only used in the initialization phase
-static MEMBLOCK: RawSpinNoPreemptLockIrq<MemBlock> = RawSpinNoPreemptLockIrq::new(MemBlock {
+pub static GLOBAL_MEMBLOCK: RawSpinNoPreemptLockIrq<MemBlock> = RawSpinNoPreemptLockIrq::new(MemBlock {
     bottom_up: false,
     current_limit: PhysAddr::from(MemBlock::MEMBLOCK_ALLOC_ANYWHERE),
     memory: MemBlockRegionArray::new_static("memory"),
     reserved: MemBlockRegionArray::new_static("reserved"),
 }, Some("MEMBLOCK"));
+
+#[cfg(not(test))]
+#[inline]
+/// Setup memblock from fdt
+pub fn setup_from_fdt() {
+    use crate::drivers::fdt::GLOBAL_FDT;
+
+    // scan memory nodes
+    for m_node in GLOBAL_FDT.mem_nodes() {
+        for r in m_node.regions().unwrap() {
+            let start = PhysAddr::from(r.starting_address as usize);
+            GLOBAL_MEMBLOCK.lock().add_memory(start, r.size.unwrap());
+        }
+    }
+    // Handle linux,usable-memory-range property
+    let chosen_node = GLOBAL_FDT.chosen();
+    if let Some(regions) =  chosen_node.usable_mem_region() {
+       for r in regions {
+           let start = PhysAddr::from(r.starting_address as usize);
+           GLOBAL_MEMBLOCK.lock().cap_memory(start, r.size.unwrap());
+       }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -675,6 +713,23 @@ mod tests {
         assert!(phys.is_err(), "Allocation with invalid alignment should fail");
         let err = phys.unwrap_err();
         assert_eq!(err, AllocError::InvalidAlign, "Expected InvalidAlign error for allocation with invalid alignment");
+    }
+
+    #[test]
+    fn test_cap_memory_range() {
+        let mut memblock = new_memblock();
+        // Add some memory regions
+        memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
+        memblock.add_memory(PhysAddr::from(0x3000), 0x1000);
+        memblock.add_memory(PhysAddr::from(0x5000), 0x1000);
+    
+        // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
+        // Cap the memory range to [0x2000, 0x4000)
+        memblock.cap_memory(PhysAddr::from(0x2000), 0x2000);
+        // now region is [0x3000, 0x4000)
+        assert_eq!(memblock.memory.len(), 1);
+        assert_eq!(memblock.memory[0].base, PhysAddr::from(0x3000));
+        assert_eq!(memblock.memory[0].size, 0x1000);
     }
 }
 

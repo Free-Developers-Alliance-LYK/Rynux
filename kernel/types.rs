@@ -3,36 +3,47 @@
 use core::cell::UnsafeCell;
 use core::mem::MaybeUninit;
 use core::marker::PhantomData;
+use core::sync::atomic::{AtomicU8, Ordering};
+use core::ops::Deref;
+
+const UNINIT: u8 = 0;
+const WRITING: u8 = 1;
+const INIT:   u8 = 2;
 
 /// A cell which can be written to only once.
 pub struct OnceCell<T> {
     value: UnsafeCell<MaybeUninit<T>>,
-    is_set: UnsafeCell<bool>,
+    state: AtomicU8,
 }
+
+unsafe impl<T: Sync> Sync for OnceCell<T> {}
+unsafe impl<T: Send> Send for OnceCell<T> {}
 
 impl<T> OnceCell<T> {
     /// Create a new OnceCell.
     pub const fn new() -> Self {
         Self {
             value: UnsafeCell::new(MaybeUninit::uninit()),
-            is_set: UnsafeCell::new(false),
+            state: AtomicU8::new(UNINIT),
         }
     }
 
     /// Set the value of the cell.
     pub fn set(&self, value: T) {
-        if unsafe { *self.is_set.get() } {
-            panic!("Already set");
-        }
-        unsafe {
-            (*self.value.get()).write(value);
-            *self.is_set.get() = true;
+        match self.state.compare_exchange(UNINIT, WRITING, Ordering::Acquire, Ordering::Acquire) {
+            Ok(_) => {
+                unsafe { (*self.value.get()).write(value); }
+                self.state.store(INIT, Ordering::Release);
+            }
+            Err(INIT) => panic!("Already set"),
+            Err(WRITING) => panic!("Concurrent set"),
+            _ => unreachable!(),
         }
     }
 
     /// Get the value of the cell.
     pub fn get(&self) -> Option<&T> {
-        if unsafe { *self.is_set.get() } {
+        if self.state.load(Ordering::Acquire) == INIT {
             Some(unsafe { (*self.value.get()).assume_init_ref() })
         } else {
             None
@@ -40,9 +51,13 @@ impl<T> OnceCell<T> {
     }
 }
 
-unsafe impl<T> Sync for OnceCell<T> {}
+impl<T> Deref for OnceCell<T> {
+    type Target = T;
 
-
+    fn deref(&self) -> &Self::Target {
+        self.get().expect("OnceCell is not initialized")
+    }
+}
 
 /// Zero-sized type to mark types not [`Send`].
 ///

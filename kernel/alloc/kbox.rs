@@ -2,11 +2,10 @@
 
 //! Implementation of [`Box`].
 
-#[allow(unused_imports)] // Used in doc comments.
-use super::allocator::{KVmalloc, Kmalloc, Vmalloc};
-use super::{AllocError, Allocator, Flags};
+use super::{AllocError, Allocator, AllocFlags};
 use core::alloc::Layout;
 use core::fmt;
+use core::ptr::NonNull;
 use core::marker::PhantomData;
 use core::mem::ManuallyDrop;
 use core::mem::MaybeUninit;
@@ -53,11 +52,12 @@ use core::result::Result;
 /// zero-sized types, is a dangling, well aligned pointer.
 #[repr(transparent)]
 #[derive(core::marker::CoercePointee)]
-pub struct Box<T: ?Sized, A: Allocator>(
+pub struct Box<#[pointee] T: ?Sized, A: Allocator>(
     NonNull<T>,
     PhantomData<A>,
 );
 
+/*
 /// Type alias for [`Box`] with a [`Kmalloc`] allocator.
 ///
 /// # Examples
@@ -93,10 +93,10 @@ pub type VBox<T> = Box<T, super::allocator::Vmalloc>;
 /// # Ok::<(), Error>(())
 /// ```
 pub type KVBox<T> = Box<T, super::allocator::KVmalloc>;
+*/
 
-// SAFETY: All zeros is equivalent to `None` (option layout optimization guarantee:
-// <https://doc.rust-lang.org/stable/std/option/index.html#representation>).
-unsafe impl<T, A: Allocator> ZeroableOption for Box<T, A> {}
+/// Type alias for [`Box`] with a [`memblock_allocator::MemblockAllocator`] allocator.
+pub type MBox<T> = Box<T, super::MemblockAllocator>;
 
 // SAFETY: `Box` is `Send` if `T` is `Send` because the `Box` owns a `T`.
 unsafe impl<T, A> Send for Box<T, A>
@@ -206,7 +206,7 @@ where
     ///
     /// New memory is allocated with `A`. The allocation may fail, in which case an error is
     /// returned. For ZSTs no memory is allocated.
-    pub fn new(x: T, flags: Flags) -> Result<Self, AllocError> {
+    pub fn new(x: T, flags: AllocFlags) -> Result<Self, AllocError> {
         let b = Self::new_uninit(flags)?;
         Ok(Box::write(b, x))
     }
@@ -225,29 +225,13 @@ where
     /// assert_eq!(*b, 24_u64);
     /// # Ok::<(), Error>(())
     /// ```
-    pub fn new_uninit(flags: Flags) -> Result<Box<MaybeUninit<T>, A>, AllocError> {
+    pub fn new_uninit(flags: AllocFlags) -> Result<Box<MaybeUninit<T>, A>, AllocError> {
         let layout = Layout::new::<MaybeUninit<T>>();
         let ptr = A::alloc(layout, flags)?;
 
         // INVARIANT: `ptr` is either a dangling pointer or points to memory allocated with `A`,
         // which is sufficient in size and alignment for storing a `T`.
         Ok(Box(ptr.cast(), PhantomData))
-    }
-
-    /// Constructs a new `Pin<Box<T, A>>`. If `T` does not implement [`Unpin`], then `x` will be
-    /// pinned in memory and can't be moved.
-    #[inline]
-    pub fn pin(x: T, flags: Flags) -> Result<Pin<Box<T, A>>, AllocError>
-    where
-        A: 'static,
-    {
-        Ok(Self::new(x, flags)?.into())
-    }
-
-    /// Convert a [`Box<T,A>`] to a [`Pin<Box<T,A>>`]. If `T` does not implement
-    /// [`Unpin`], then `x` will be pinned in memory and can't be moved.
-    pub fn into_pin(this: Self) -> Pin<Self> {
-        this.into()
     }
 
     /// Forgets the contents (does not run the destructor), but keeps the allocation.
@@ -351,6 +335,51 @@ where
         // - `self.0` was previously allocated with `A`.
         // - `layout` is equal to the `Layout´ `self.0` was allocated with.
         unsafe { A::free(self.0.cast(), layout) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::alloc::AllocFlags;
+    use core::sync::atomic::{AtomicUsize, Ordering::*};
+
+    static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    #[derive(Debug)]
+    struct DropSpy(&'static AtomicUsize);
+
+    impl Drop for DropSpy {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, SeqCst);
+        }
+    }
+
+    #[test]
+    fn drops_happened() {
+        let b = MBox::new(24, AllocFlags::GFP_KERNEL).unwrap();
+        assert_eq!(*b, 24);
+        {
+            let b: MBox<DropSpy> = MBox::new(DropSpy(&DROPS), AllocFlags::GFP_KERNEL).unwrap();
+            drop(b);
+        }
+        assert_eq!(DROPS.load(SeqCst), 1);
+    }
+
+    #[test]
+    fn test_new_uninit() {
+        let b = MBox::new_uninit(AllocFlags::GFP_KERNEL).unwrap();
+        let b = b.write(24);
+        assert_eq!(*b, 24);
+    }
+
+    #[test]
+    fn test_drop_contents() {
+        let b = MBox::new(24, AllocFlags::GFP_KERNEL).unwrap();
+        assert_eq!(*b, 24);
+        let b = MBox::drop_contents(b);
+        let b = b.write(42);
+        assert_eq!(*b, 42);
     }
 }
 

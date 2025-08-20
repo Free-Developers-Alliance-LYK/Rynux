@@ -11,6 +11,12 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(naked_functions)]
 #![feature(derive_coerce_pointee)]
+#![feature(coerce_unsized)]
+#![feature(dispatch_from_dyn)]
+#![feature(layout_for_ptr)]
+#![feature(alloc_layout_extra)]
+#![feature(unsize)]
+
 
 #[cfg(target_endian = "big")]
 compile_error!("This crate only supports little endian platforms!");
@@ -23,7 +29,7 @@ pub use static_assertions;
 pub use const_format;
 pub use bitflags;
 pub use tock_registers;
-pub use fdt;
+pub use fdtree_rs;
 
 pub mod arch;
 
@@ -48,6 +54,7 @@ pub mod prelude;
 pub mod schedule;
 pub mod types;
 pub mod compiler;
+pub mod drivers;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

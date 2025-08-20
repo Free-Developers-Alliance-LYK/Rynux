@@ -17,13 +17,14 @@
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::alloc::{AllocError, Flags, KBox};
+//use crate::alloc::{AllocError, AllocFlags, KBox};
 use core::{
     alloc::Layout,
-    fmt,
     marker::PhantomData,
-    mem::{ManuallyDrop, MaybeUninit},
-    ops::{Deref, DerefMut},
+    mem::ManuallyDrop,
+    ops::Deref,
+    ptr::NonNull,
+    sync::atomic::{AtomicU32, Ordering},
 };
 
 
@@ -120,7 +121,7 @@ use core::{
 #[repr(transparent)]
 #[derive(core::marker::CoercePointee)]
 pub struct Arc<T: ?Sized> {
-    ptr: NonNull<ArcInner<T>>,
+    pub(crate) ptr: NonNull<ArcInner<T>>,
     // NB: this informs dropck that objects of type `ArcInner<T>` may be used in `<Arc<T> as
     // Drop>::drop`. Note that dropck already assumes that objects of type `T` may be used in
     // `<Arc<T> as Drop>::drop` and the distinction between `T` and `ArcInner<T>` is not presently
@@ -134,10 +135,21 @@ pub struct Arc<T: ?Sized> {
 
 #[doc(hidden)]
 #[repr(C)]
-pub struct ArcInner<T: ?Sized> {
-    refcont: Atomic<usize>,
+pub(crate) struct ArcInner<T: ?Sized> {
+    refcont: AtomicU32,
     data: T,
 }
+
+impl <T> ArcInner<T> {
+    /// Creates a new [`ArcInner<T>`].
+    pub(crate) const  fn new(data: T) -> Self {
+        Self {
+            refcont: AtomicU32::new(1),
+            data,
+        }
+    }
+}
+
 
 // SAFETY: It is safe to send `Arc<T>` to another thread when the underlying `T` is `Sync` because
 // it effectively means sharing `&T` (which is safe because `T` is `Sync`); additionally, it needs
@@ -152,6 +164,7 @@ unsafe impl<T: ?Sized + Sync + Send> Send for Arc<T> {}
 // the reference count reaches zero and `T` is dropped.
 unsafe impl<T: ?Sized + Sync + Send> Sync for Arc<T> {}
 
+/*
 impl<T> Arc<T> {
     /// Constructs a new reference counted instance of `T`.
     pub fn new(contents: T, flags: Flags) -> Result<Self, AllocError> {
@@ -169,7 +182,7 @@ impl<T> Arc<T> {
         Ok(unsafe { Self::from_inner(inner) })
     }
 }
-
+*/
 
 #[inline]
 fn data_offset_align(align: usize) -> usize {
@@ -186,11 +199,12 @@ fn data_offset_align(align: usize) -> usize {
 unsafe fn data_offset<T: ?Sized>(ptr: *const T) -> usize {
     // Align the unsized value to the end of the ArcInner.
     // Because RcInner is repr(C), it will always be the last field in memory.
+
     // SAFETY: since the only unsized types possible are slices, trait objects,
     // and extern types, the input safety requirement is currently enough to
     // satisfy the requirements of align_of_val_raw; this is an implementation
     // detail of the language that must not be relied upon outside of std.
-    unsafe { data_offset_align(align_of_val_raw(ptr)) }
+    unsafe { data_offset_align(core::mem::align_of_val_raw(ptr)) }
 }
 
 impl<T: ?Sized> Arc<T> {
@@ -200,14 +214,13 @@ impl<T: ?Sized> Arc<T> {
     ///
     /// The caller must ensure that `inner` points to a valid location and has a non-zero reference
     /// count, one of which will be owned by the new [`Arc`] instance.
-    unsafe fn from_inner(inner: NonNull<ArcInner<T>>) -> Self {
+    pub(crate) const unsafe fn from_inner(inner: NonNull<ArcInner<T>>) -> Self {
         // INVARIANT: By the safety requirements, the invariants hold.
         Arc {
             ptr: inner,
             _p: PhantomData,
         }
     }
-
 
     #[inline]
     fn inner(&self) -> &ArcInner<T> {
@@ -271,7 +284,7 @@ impl<T: ?Sized> Deref for Arc<T> {
     fn deref(&self) -> &Self::Target {
         // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
         // safe to dereference it.
-        unsafe { &self.inner().data }
+        &self.inner().data
     }
 }
 
@@ -294,10 +307,10 @@ impl<T: ?Sized> Clone for Arc<T> {
         // another must already provide any required synchronization.
         //
         // [1]: (www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html)
-        let old_size = self.inner().strong.fetch_add(1, Relaxed);
+        let old_size = self.inner().refcont.fetch_add(1, Ordering::Relaxed);
 
-        if old_size > MAX_REFCOUNT {
-            abort();
+        if old_size > u32::MAX {
+            panic!("Arc overflow");
         }
 
         // SAFETY: We just incremented the refcount. This increment is now owned by the new `Arc`.
@@ -305,12 +318,7 @@ impl<T: ?Sized> Clone for Arc<T> {
     }
 }
 
-macro_rules! acquire {
-    ($x:expr) => {
-        atomic::fence(Acquire)
-    };
-}
-
+/*
 impl<T: ?Sized> Drop for Arc<T> {
     fn drop(&mut self) {
         if self.inner().refcount.fetch_sub(1, Release) != 1 {
@@ -353,5 +361,25 @@ impl<T: ?Sized> Drop for Arc<T> {
         unsafe { drop(KBox::from_raw(self.ptr.as_ptr())) };
     }
 }
+*/
 
+#[cfg(test)]
 
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_arc_from_inner() {
+        let innter = ArcInner {
+            refcont: AtomicU32::new(1),
+            data: 42,
+        };
+        let arc = unsafe { Arc::from_inner(NonNull::from(&innter)) };
+        assert_eq!(*arc, 42);
+
+        // test from raw
+        let raw = Arc::into_raw(arc);
+        let arc = unsafe { Arc::from_raw(raw) };
+        assert_eq!(*arc, 42);
+    }
+}

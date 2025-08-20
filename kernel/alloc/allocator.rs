@@ -16,7 +16,15 @@ bitflags! {
         const MOVABLE = 0b1 << 0;
         /// Reclaimable BIT: indicates that the page can be reclaimed
         const RECLAIMABLE = 0b1 << 1;
+        /// Alloc Zero
+        const ZERO = 0b1 << 2;
     }
+}
+
+#[allow(dead_code)]
+impl AllocFlags {
+    /// TODO:
+    pub const GFP_KERNEL: Self = Self::empty();
 }
 
 /// Error type for memory allocation failures.
@@ -78,7 +86,7 @@ pub unsafe trait Allocator {
     ///   [`Allocator::free`] or [`Allocator::realloc`],
     /// - aligned to `layout.align()`,
     ///
-    unsafe fn alloc(new_layout: Layout, flags: AllocFlags) -> Result<NonNull<[u8]>, AllocError>; 
+    fn alloc(new_layout: Layout, flags: AllocFlags) -> Result<NonNull<[u8]>, AllocError>; 
 
     /// For kernel allocations that should not stall for direct reclaim, start physical IO or
     /// use any filesystem callback.  It is very likely to fail to allocate memory, even for very
