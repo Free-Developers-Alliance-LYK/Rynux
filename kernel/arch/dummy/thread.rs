@@ -1,5 +1,8 @@
 //! dummy thread info
 
+
+use crate::arch::thread::ArchThreadInfoTrait;
+
 /// Thread info
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -14,6 +17,18 @@ impl DummyThreadInfo {
         Self {
             cpu: 0,
         }
+    }
+}
+
+impl ArchThreadInfoTrait for DummyThreadInfo {
+    fn preempt_count(&self) -> u32 {
+        0
+    }
+
+    fn preempt_count_add(&self, _val: u32) {
+    }
+
+    fn preempt_count_sub(&self, _val: u32) {
     }
 }
 

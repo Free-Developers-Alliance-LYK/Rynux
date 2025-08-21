@@ -23,7 +23,7 @@ use crate::{
 /// The following example shows how to use interior mutability to modify the contents of a struct
 /// protected by a spinlock despite only having a shared reference:
 /// ```
-/// use kernel::sync::RawSpinLockIrq;
+/// use kernel::sync::RawSpinLockNoIrq;
 ///
 /// struct Example {
 ///     a: u32,
@@ -37,18 +37,18 @@ use crate::{
 /// }
 /// ```
 ///
-pub type RawSpinLockIrq<T> = super::Lock<T, RawSpinLockIrqBackend>;
+pub type RawSpinLockNoIrq<T> = super::Lock<T, RawSpinLockNoIrqBackend>;
 
 /// Raw spinlock backend.
-pub struct RawSpinLockIrqBackend;
+pub struct RawSpinLockNoIrqBackend;
 
-/// A [`Guard`] acquired from locking a [`RawSpinLockIrq`].
+/// A [`Guard`] acquired from locking a [`RawSpinLockNoIrq`].
 ///
-/// This is simply a type alias for a [`Guard`] returned from locking a [`RawSpinLockIrq`].
-/// It will unlock the [`RawSpinLockIrq`] upon being dropped.
+/// This is simply a type alias for a [`Guard`] returned from locking a [`RawSpinLockNoIrq`].
+/// It will unlock the [`RawSpinLockNoIrq`] upon being dropped.
 ///
 /// [`Guard`]: super::Guard
-pub type RawSpinLockIrqGuard<'a, T> = super::BaseLockGuard<'a, T, RawSpinLockIrqBackend>;
+pub type RawSpinLockNoIrqGuard<'a, T> = super::BaseLockGuard<'a, T, RawSpinLockNoIrqBackend>;
 
 /// Raw spinlock inner.
 pub struct SpinLockInner {
@@ -56,7 +56,7 @@ pub struct SpinLockInner {
     pub lock: AtomicBool,
 }
 
-impl<T> RawSpinLockIrq<T> {
+impl<T> RawSpinLockNoIrq<T> {
     /// Constructs a new raw spinlock.
     pub const fn new(t: T, name: Option<&'static str>) -> Self {
         Self {
@@ -67,7 +67,7 @@ impl<T> RawSpinLockIrq<T> {
     }
 }
 
-impl super::Backend for RawSpinLockIrqBackend {
+impl super::Backend for RawSpinLockNoIrqBackend {
     type Inner = SpinLockInner;
     type GuardState = <IRQ as ArchIrq>::IrqState;
 
@@ -101,92 +101,6 @@ impl super::Backend for RawSpinLockIrqBackend {
         } else {
             IRQ::local_restore(irq);
             preempt_enable();
-            None
-        }
-
-    }
-
-    fn assert_is_held(inner: &Self::Inner) {
-        assert!(inner.lock.load(Ordering::Relaxed));
-    }
-}
-
-/// A IRQ-Safe but not disable preempt spinlock.
-///
-/// In most cases we will not use this lock. There is only one case where
-/// the code belongs to the initialization code and can only be used 
-/// during the system boot initialization phase before scheduling is enabled.
-/// ```
-/// use kernel::sync::RawSpinNoPreemptLockIrq;
-///
-/// struct Example {
-///     a: u32,
-///     b: u32,
-/// }
-///
-/// fn example(m: &RawSpinNoPreemptLockIrq<Example>) {
-///     let mut guard = m.lock();
-///     guard.a += 10;
-///     guard.b += 20;
-/// }
-/// ```
-///
-pub type RawSpinNoPreemptLockIrq<T> = super::Lock<T, RawSpinNoPreemptLockIrqBackend>;
-
-/// Raw spinlock backend.
-pub struct RawSpinNoPreemptLockIrqBackend;
-
-/// A [`Guard`] acquired from locking a [`RawSpinNoPreemptLockIrq`].
-///
-/// [`Guard`]: super::Guard
-pub type RawSpinNoPreemptLockIrqGuard<'a, T> = super::BaseLockGuard<'a, T, RawSpinNoPreemptLockIrqBackend>;
-
-
-impl<T> RawSpinNoPreemptLockIrq<T> {
-    /// Constructs a new raw spinlock.
-    pub const fn new(t: T, name: Option<&'static str>) -> Self {
-        Self {
-            inner: UnsafeCell::new(SpinLockInner{lock: AtomicBool::new(false)}),
-            data: UnsafeCell::new(t),
-            _name: name,
-        }
-    }
-}
-
-impl super::Backend for RawSpinNoPreemptLockIrqBackend {
-    type Inner = SpinLockInner;
-    type GuardState = <IRQ as ArchIrq>::IrqState;
-
-    #[section_spinlock_text]
-    fn lock(inner: &mut Self::Inner) -> Self::GuardState {
-        // TODO: assert schedule is not enabled
-        let irq = IRQ::local_save_and_disable();
-        // can fail to lock even if the spinlock is not locked. May be more efficient than `try_lock`
-        //  when called in a loop.
-        while inner.lock.compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
-            // Wait until the lock looks unlocked before retrying
-            core::hint::spin_loop();
-        }
-        irq
-    }
-
-    #[section_spinlock_text]
-    fn unlock(inner: &mut Self::Inner, guard_state: &Self::GuardState) {
-        // TODO: assert schedule is not enabled
-        inner.lock.store(false, Ordering::Release);
-        IRQ::local_restore(*guard_state);
-        preempt_enable();
-    }
-
-    #[section_spinlock_text]
-    fn try_lock(inner: &mut Self::Inner) -> Option<Self::GuardState> {
-        // TODO: assert schedule is not enabled
-        let irq = IRQ::local_save_and_disable();
-        let locked = inner.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok();
-        if locked {
-            Some(irq)
-        } else {
-            IRQ::local_restore(irq);
             None
         }
 

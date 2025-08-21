@@ -4,6 +4,16 @@ use crate::cfg_if;
 
 use crate::schedule::task::Task;
 
+/// Arch thread info
+pub trait ArchThreadInfoTrait {
+    /// Preempt count
+    fn preempt_count(&self) -> u32;
+    /// Add preempt count
+    fn preempt_count_add(&self, val: u32);
+    /// Sub preempt count
+    fn preempt_count_sub(&self, val: u32);
+}
+
 /// Arch current task
 pub trait ArchCurrentTrait {
     /// Read current task

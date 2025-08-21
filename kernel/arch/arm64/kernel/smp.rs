@@ -2,7 +2,7 @@
 
 use crate::arch::arm64::sysregs::MpidrEl1;
 use crate::arch::cpu::MAX_CPUS;
-use crate::sync::lock::RawSpinLockIrq;
+use crate::sync::lock::RawSpinLockNoIrq;
 
 /// Cpu logical map
 pub struct CpuLogicalMap {
@@ -57,7 +57,7 @@ impl CpuLogicalMap {
 
 /// This variable does not actually have concurrency and is only processed once
 /// in the boot process, but using RawSpinLockIrq ensures that it can be compiled.
-pub static __CPU_LOGICAL_MAP: RawSpinLockIrq<CpuLogicalMap> = RawSpinLockIrq::new(CpuLogicalMap::new(), None);
+pub static __CPU_LOGICAL_MAP: RawSpinLockNoIrq<CpuLogicalMap> = RawSpinLockNoIrq::new(CpuLogicalMap::new(), None);
 
 #[allow(dead_code)]
 /// write CPU map

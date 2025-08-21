@@ -9,7 +9,7 @@ use crate::mm::{
 };
 
 use crate::macros::{section_init_data, section_init_text};
-use crate::sync::lock::RawSpinNoPreemptLockIrq;
+use crate::sync::lock::RawSpinLockNoIrq;
 use crate::alloc::{AllocError, AllocFlags};
 
 /// Memblock
@@ -473,7 +473,7 @@ impl MemBlock {
 /// to ensure that the allocator will only be used in: 
 ///  - the initialization phase before scheduling is enabled
 ///  - avoid use unsafe to access it, because it is only used in the initialization phase
-pub static GLOBAL_MEMBLOCK: RawSpinNoPreemptLockIrq<MemBlock> = RawSpinNoPreemptLockIrq::new(MemBlock {
+pub static GLOBAL_MEMBLOCK: RawSpinLockNoIrq<MemBlock> = RawSpinLockNoIrq::new(MemBlock {
     bottom_up: false,
     current_limit: PhysAddr::from(MemBlock::MEMBLOCK_ALLOC_ANYWHERE),
     memory: MemBlockRegionArray::new_static("memory"),
@@ -506,7 +506,6 @@ pub fn setup_from_fdt() {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     fn new_memblock() -> MemBlock {
         MemBlock {
             bottom_up: true,

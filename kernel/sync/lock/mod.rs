@@ -5,4 +5,4 @@ pub mod spinlock;
 pub mod qspinlock;
 
 pub use base::{Backend, Lock, BaseLockGuard};
-pub use spinlock::{RawSpinLockIrq, RawSpinLockIrqGuard, RawSpinNoPreemptLockIrq, RawSpinNoPreemptLockIrqGuard};
+pub use spinlock::{RawSpinLockNoIrq, RawSpinLockNoIrqGuard};

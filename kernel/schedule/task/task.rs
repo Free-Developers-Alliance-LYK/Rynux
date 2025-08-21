@@ -8,8 +8,7 @@ use super::{
 };
 
 use crate::macros::cache_aligned;
-//use crate::arch::thread::{ArchThreadInfo, ArchCurrent, Current};
-use crate::arch::thread::ArchThreadInfo;
+use crate::arch::thread::{ArchThreadInfo, ArchThreadInfoTrait};
 
 /// Task struct
 #[allow(dead_code)]
@@ -79,6 +78,24 @@ impl Task {
     #[inline(always)]
     pub fn thread_info(&self) -> &ArchThreadInfo {
         &self.thread_info
+    }
+
+    /// add preempt count
+    #[inline(always)]
+    pub fn preempt_count_add(&self, count: u32) {
+        self.thread_info.preempt_count_add(count);
+    }
+
+    /// add preempt count
+    #[inline(always)]
+    pub fn preempt_count_sub(&self, count: u32) {
+        self.thread_info.preempt_count_sub(count);
+    }
+
+    #[inline(always)]
+    /// preempt count
+    pub fn preempt_count(&self) -> u32 {
+        self.thread_info.preempt_count()
     }
 }
 

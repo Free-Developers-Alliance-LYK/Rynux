@@ -21,10 +21,14 @@ extern "C" fn start_kernel() -> ! {
     INIT_TASK_REF.set_stack_end_magic();
     // Test current is set OK ?
     let current = kernel::schedule::task::CurrentTask::get();
-    early_uart_put_u64_hex(current.magic);
     if current.magic != kernel::schedule::task::Task::BOOT_TASK_MAGIC {
         early_uart_put_u64_hex(0x11111);
     }
+    // test preempt is ok
+    kernel::schedule::preempt::preempt_disable();
+    let preempt_count = current.preempt_count();
+    early_uart_put_u64_hex(preempt_count as u64);
+
     // early boot irq disable
     IRQ::local_disable();
     processor_boot_init();
