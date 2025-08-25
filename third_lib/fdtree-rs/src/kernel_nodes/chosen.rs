@@ -5,6 +5,15 @@ use crate::standard_nodes::RegIter;
 
 /// Represents the `/chosen` node with specific helper methods
 #[derive(Debug, Clone, Copy)]
+pub struct Stdout<'b, 'a> {
+    /// stdout node
+    pub node: FdtNode<'b, 'a>,
+    /// options
+    pub options: Option<&'a str>,
+}
+
+/// Represents the `/chosen` node with specific helper methods
+#[derive(Debug, Clone, Copy)]
 pub struct Chosen<'b, 'a> {
     pub(crate) node: FdtNode<'b, 'a>,
 }
@@ -20,25 +29,31 @@ impl<'b, 'a: 'b> Chosen<'b, 'a> {
 
     /// Searches for the node representing `stdout`, if the property exists,
     /// attempting to resolve aliases if the node name doesn't exist as-is
-    pub fn stdout(self) -> Option<FdtNode<'b, 'a>> {
-        self.node
+    pub fn stdout(self) -> Option<Stdout<'b, 'a>> {
+        let mut stdout_path = self.node
             .properties()
-            .find(|n| n.name == "stdout-path")
-            .and_then(|n| core::str::from_utf8(&n.value[..n.value.len() - 1]).ok())
-            .and_then(|name| self.node.header.find_node(name))
-    }
+            .find(|n| n.name == "stdout-path");
 
-    /// Searches for the node representing `stdout`, if the property exists,
-    /// attempting to resolve aliases if the node name doesn't exist as-is. If
-    /// no `stdin` property exists, but `stdout` is present, it will return the
-    /// node specified by the `stdout` property.
-    pub fn stdin(self) -> Option<FdtNode<'b, 'a>> {
-        self.node
-            .properties()
-            .find(|n| n.name == "stdin-path")
-            .and_then(|n| core::str::from_utf8(&n.value[..n.value.len() - 1]).ok())
-            .and_then(|name| self.node.header.find_node(name))
-            .or_else(|| self.stdout())
+        if stdout_path.is_none() {
+            // try linux,stdout-path
+            stdout_path = self.node
+                .properties()
+                .find(|n| n.name == "linux,stdout-path");
+            if stdout_path.is_none() {
+                return None;
+            }
+        }
+
+        let stdout_path = stdout_path.unwrap();
+        let stdout_path = core::str::from_utf8(&stdout_path.value[..stdout_path.value.len() - 1]).ok()?;
+        let (node_name, options) = stdout_path.split_once(':').unwrap_or((stdout_path, ""));
+        let node = self.node.header.find_node(node_name)?;
+
+        if options.is_empty() {
+            return Some(Stdout { node, options: None });
+        } else {
+            return Some(Stdout { node, options: Some(options) });
+        }
     }
 
     /// `linux,usable-memory-range` property

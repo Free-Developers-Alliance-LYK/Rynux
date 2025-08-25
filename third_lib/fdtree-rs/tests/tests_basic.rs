@@ -18,7 +18,8 @@ fn chosen_node() {
     let fdt = setup();
     let chosen = fdt.chosen();
     assert_eq!(chosen.bootargs().unwrap(), "console=ttyS0");
-    assert_eq!(chosen.stdout().unwrap().name, "uart@10000000");
+    assert_eq!(chosen.stdout().unwrap().node.name, "uart@10000000");
+    assert_eq!(chosen.stdout().unwrap().options.unwrap(), "115200n8");
 
     let usable_memory_range = chosen.usable_mem_region().unwrap();
 

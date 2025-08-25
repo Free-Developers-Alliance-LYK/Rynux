@@ -8,7 +8,7 @@
 
 	chosen {
 		bootargs = "console=ttyS0";
-		stdout-path = "/soc/uart@10000000";
+		stdout-path = "/soc/uart@10000000:115200n8";
 		linux,usable-memory-range = <0x9 0xf0000000 0x0 0x10000000 
 		              0x0000000a 0x00000000  0x00000000 0x20000000>;
 
