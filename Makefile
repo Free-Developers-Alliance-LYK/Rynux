@@ -618,16 +618,10 @@ endif # may-sync-config
 endif # need-config
 
 
-ifdef CONFIG_RUST_DEBUG
-KBUILD_RUSTFLAGS += -g -Cdebuginfo=2 -Copt-level=0
-endif 
-
-ifdef CONFIG_RUST_RELEASE
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_RUSTFLAGS += -Copt-level=2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_RUSTFLAGS += -Copt-level=s
-endif
 endif
 
 ifdef building_out_of_srctree

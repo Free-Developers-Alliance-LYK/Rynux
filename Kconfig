@@ -6,22 +6,6 @@ mainmenu "Rynux/$(ARCH) Kernel Configuration"
 
 source "scripts/Kconfig.include"
 
-choice
-    prompt "Rust Build Mode"
-    default RUST_DEBUG
-
-config RUST_RELEASE
-    bool "Release"
-    help
-      Build Rust code with optimizations (release mode).
-
-config RUST_DEBUG
-    bool "Debug"
-    help
-      Build Rust code with debug info (debug mode).
-
-endchoice
-
 source "arch/Kconfig"
 
 source "init/Kconfig"
