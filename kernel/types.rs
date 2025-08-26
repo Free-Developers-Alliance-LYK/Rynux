@@ -74,8 +74,6 @@ impl<T> DerefMut for OnceCell<T> {
     }
 }
 
-
-
 /// Zero-sized type to mark types not [`Send`].
 ///
 /// Refer to linux: ruser/kernel/types.rs

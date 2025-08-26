@@ -1,7 +1,14 @@
 //! A reference-counted pointer.
 
-mod std_vendor;
-mod arc;
+use crate::cfg_if;
 
-pub use arc::Arc;
-pub(crate) use arc::ArcInner;
+cfg_if! {
+    if #[cfg(not(test))] {
+        mod std_vendor;
+        mod arc;
+        pub use arc::Arc;
+        pub(crate) use arc::ArcInner;
+    } else {
+        pub use std::sync::Arc;
+    }
+}

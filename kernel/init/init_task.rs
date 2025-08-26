@@ -27,11 +27,10 @@ static INIT_TASK_STACK: TaskStack = TaskStack::new(
 
 /// SAFETY: we know what we are doing here. 
 /// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
-static INIT_TASK_ARC: ArcInner<Task> = ArcInner::new(Task::new_boot(INIT_TASK_STACK));
-
+static INIT_TASK_ARC: ArcInner<Task> = ArcInner::new_static(Task::new_boot(INIT_TASK_STACK));
 /// SAFETY: we know what we are doing here. 
 /// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
-pub static INIT_TASK_REF: TaskRef = unsafe {Arc::from_inner(NonNull::new_unchecked(&INIT_TASK_ARC as *const ArcInner<Task> as *mut ArcInner<Task>))}; 
+pub static INIT_TASK_REF: TaskRef = unsafe {Arc::from_static(&INIT_TASK_ARC)}; 
 
 extern "C" {
     /// init_stack define in vmrynux.rs

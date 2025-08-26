@@ -27,7 +27,6 @@ use core::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
-
 /// A reference-counted pointer to an instance of `T`.
 ///
 /// The reference count is incremented when new instances of [`Arc`] are created, and decremented
@@ -135,16 +134,28 @@ pub struct Arc<T: ?Sized> {
 
 #[doc(hidden)]
 #[repr(C)]
-pub(crate) struct ArcInner<T: ?Sized> {
+pub struct ArcInner<T: ?Sized> {
     refcont: AtomicU32,
+    is_static: bool,
     data: T,
 }
 
+#[allow(dead_code)]
 impl <T> ArcInner<T> {
     /// Creates a new [`ArcInner<T>`].
-    pub(crate) const  fn new(data: T) -> Self {
+    const fn new(data: T) -> Self {
         Self {
             refcont: AtomicU32::new(1),
+            is_static: false,
+            data,
+        }
+    }
+
+    /// Creates a new [`ArcInner<T>`] with a static reference count.
+    pub(crate) const fn new_static(data: T) -> Self {
+        Self {
+            refcont: AtomicU32::new(1),
+            is_static: true,
             data,
         }
     }
@@ -220,6 +231,17 @@ impl<T: ?Sized> Arc<T> {
             ptr: inner,
             _p: PhantomData,
         }
+    }
+
+    /// Construct a new [`Arc`] from a static reference.
+    ///
+    /// # Safety
+    /// 
+    /// The lifetime of the object must be `'static`.
+    pub const unsafe fn from_static(inner: &'static ArcInner<T>) -> Self {
+        // INVARIANT: We know that the inner pointer is valid and that the reference count will never
+        // reach zero, so the invariants hold.
+        unsafe { Self::from_inner(NonNull::new_unchecked(inner as *const ArcInner<T> as *mut ArcInner<T>))} 
     }
 
     #[inline]
@@ -318,13 +340,17 @@ impl<T: ?Sized> Clone for Arc<T> {
     }
 }
 
-/*
 impl<T: ?Sized> Drop for Arc<T> {
     fn drop(&mut self) {
-        if self.inner().refcount.fetch_sub(1, Release) != 1 {
+        if self.inner().refcont.fetch_sub(1, Ordering::Release) != 1 {
             return;
+        } else {
+            if self.inner().is_static {
+                panic!("drop static Arc");
+            }
         }
 
+        /*
         // This fence is needed to prevent reordering of use of the data and
         // deletion of the data. Because it is marked `Release`, the decreasing
         // of the reference count synchronizes with this `Acquire` fence. This
@@ -359,12 +385,11 @@ impl<T: ?Sized> Drop for Arc<T> {
         //
         // SAFETY: The pointer was initialised from the result of `KBox::leak`.
         unsafe { drop(KBox::from_raw(self.ptr.as_ptr())) };
+        */
     }
 }
-*/
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
 

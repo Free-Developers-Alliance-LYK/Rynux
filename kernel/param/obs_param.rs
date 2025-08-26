@@ -2,7 +2,6 @@
 //!
 //! struct obs_kernel_param  would be static linked in .init.setup
 
-use crate::global_sym::*;
 use super::ParamHandleErr;
 
 /// Rynux early param
@@ -39,7 +38,9 @@ macro_rules! early_setup_param {
 pub use early_setup_param;
 
 /// for each setup param
+#[cfg(not(test))]
 pub fn for_each_setup_param(mut f: impl FnMut(&ObsKernelParam)) {
+    use crate::global_sym::{__setup_start, __setup_end};
     // SAFETY: __setup_start and __setup_end are defined in link files
     unsafe {
         let start = __setup_start as *const ObsKernelParam;

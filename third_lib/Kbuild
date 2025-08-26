@@ -102,7 +102,8 @@ rusttestlib-fdtree_rs: $(src)/fdtree-rs/src/lib.rs  FORCE
 # -------------------------------- rusttest libraries ---------------------
 
 rusttest: rusttestlib-const_format rusttestlib-static_assertions \
-	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdtree_rs
+	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdtree_rs 
+
 
 
 # Ordinary directory descending

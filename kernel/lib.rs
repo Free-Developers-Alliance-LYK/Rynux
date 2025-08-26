@@ -37,9 +37,9 @@ cfg_if! {
     if #[cfg(not(test))] {
         // vmrynux and global_sym only used in real image
         pub mod vmrynux;
-        pub mod global_sym;
         // init only avaliable in real image
         pub mod init;
+        pub mod global_sym;
     }
 }
 
@@ -57,6 +57,8 @@ pub mod compiler;
 pub mod drivers;
 pub mod param;
 pub mod printk;
+pub mod error;
+pub mod list;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

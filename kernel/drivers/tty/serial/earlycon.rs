@@ -5,9 +5,9 @@
 use crate::sync::lock::RawSpinLockNoIrq;
 use crate::macros::section_init_text;
 use crate::param::ParamHandleErr;
-use crate::global_sym::*;
 use crate::printk::console::{Console, ConsoleFlags};
 use crate::param::obs_param::early_setup_param;
+
 
 /// Earlycon device
 #[allow(dead_code)]
@@ -45,7 +45,9 @@ impl EarlyConId {
             setup,
         }
     }
+
     fn find(compatible: &str) -> Option<&'static EarlyConId> {
+        use crate::global_sym::{__earlycon_table, __earlycon_table_end};
         // SAFETY: __earlycon_table and __earlycon_table_end are defined in link script
         unsafe {
             let start = __earlycon_table as *const EarlyConId;
@@ -62,7 +64,7 @@ impl EarlyConId {
     }
 }
 
-use crate::arch::arm64::early_debug::early_uart_put_str;
+//use crate::arch::arm64::early_debug::early_uart_put_str;
 
 /// earlycon_declare!
 ///
@@ -88,19 +90,6 @@ fn init_earlycon_from_fdt() -> Result<(), ParamHandleErr> {
         Some(stdout) => {
             let compatible = stdout.node.compatible().unwrap().first();
             let options = stdout.options;
-            early_uart_put_str("compatible is: ");
-            early_uart_put_str(compatible);
-            early_uart_put_str("\n");
-
-            match options {
-                Some(options) => {
-                    early_uart_put_str("options is: ");
-                    early_uart_put_str(options);
-                    early_uart_put_str("\n");
-                }
-                None => {}
-            }
-
             let earlycon_id = EarlyConId::find(compatible);
             match earlycon_id {
                 Some(earlycon_id) => {
@@ -126,7 +115,6 @@ fn setup_earlycon_param(val: Option<&str>) -> Result<(), ParamHandleErr> {
         None =>  return init_earlycon_from_fdt(),
     }
 }
-
 
 // register earlycon param setup func
 early_setup_param!(EARLYCON_PARAM, "earlycon", setup_earlycon_param);
