@@ -308,10 +308,18 @@ const INIT_TEXT_SECTION: &str = concatcp!{
 #[allow(missing_docs)]
 pub static EXPORT_INIT_TEXT_SECTION: [u8; INIT_TEXT_SECTION.len()+1] = const_str_to_u8_array_with_null!(INIT_TEXT_SECTION);
 
+const EARLYCON_TABLE: &str = concatcp!{
+    ". = ALIGN(8); \n",
+    "__earlycon_table = .; \n",
+    "KEEP(*(__earlycon_table)) \n",
+    "__earlycon_table_end = .; \n",
+};
+
 const INIT_DATA: &str = concatcp!{
     "KEEP(*(SORT(___kentry+*))) \n",
     "*(.init.data .init.data.*) \n",
     "*(.init.rodata .init.rodata.*) \n",
+    EARLYCON_TABLE,
 };
 
 #[need_export]

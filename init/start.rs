@@ -12,22 +12,16 @@ use kernel::arch::arm64::early_debug::early_uart_put_u64_hex;
 use kernel::arch::irq::{ArchIrq, IRQ};
 use kernel::cpu::processor::processor_boot_init;
 use kernel::arch::setup::{ArchBootSetupTrait, ArchBootSetup};
-use kernel::init::init_task::INIT_TASK_REF;
 
 /// Start kernel
 #[no_mangle] 
 extern "C" fn start_kernel() -> ! {
-
-    INIT_TASK_REF.set_stack_end_magic();
     // Test current is set OK ?
     let current = kernel::schedule::task::CurrentTask::get();
     if current.magic != kernel::schedule::task::Task::BOOT_TASK_MAGIC {
-        early_uart_put_u64_hex(0x11111);
+        panic!("current task magic is not correct");
     }
-    // test preempt is ok
-    kernel::schedule::preempt::preempt_disable();
-    let preempt_count = current.preempt_count();
-    early_uart_put_u64_hex(preempt_count as u64);
+    current.set_stack_end_magic();
 
     // early boot irq disable
     IRQ::local_disable();

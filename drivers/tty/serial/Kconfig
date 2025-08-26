@@ -1,0 +1,16 @@
+
+
+
+menu "Serial drivers"
+
+config SERIAL_AMBA_PL011
+	bool "ARM AMBA PL011 serial port support"
+	depends on ARM_AMBA
+	help
+	 This selects the ARM(R) AMBA(R) PrimeCell PL010 UART.  If you have
+	 an Integrator/AP or Integrator/PP2 platform, or if you have a 
+	 Cirrus Logic EP93xx CPU, say Y here.
+
+	 If unsure, say N.
+
+endmenu

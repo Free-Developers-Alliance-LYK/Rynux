@@ -39,4 +39,5 @@ rusttest-third_lib:
 obj-y			+= third_lib/
 obj-y 			+= kernel.o
 obj-y			+= init/
+obj-y			+= drivers/
 obj-y			+= arch/$(SRCARCH)/

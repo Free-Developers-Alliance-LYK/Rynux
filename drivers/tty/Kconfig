@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0
+
+config TTY
+	bool "Enable TTY " if EXPERT
+	default y
+	help
+	  Allows you to remove TTY support which can save space, and 
+          blocks features that require TTY from inclusion in the kernel. 
+	  TTY is required for any text terminals or serial port 
+	  communication. Most users should leave this enabled.
+ 
+
+if TTY
+
+source "drivers/tty/serial/Kconfig"
+
+endif # TTY

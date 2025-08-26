@@ -4,7 +4,7 @@ use core::cell::UnsafeCell;
 use core::mem::MaybeUninit;
 use core::marker::PhantomData;
 use core::sync::atomic::{AtomicU8, Ordering};
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 const UNINIT: u8 = 0;
 const WRITING: u8 = 1;
@@ -49,6 +49,15 @@ impl<T> OnceCell<T> {
             None
         }
     }
+
+    /// Get the mutable reference of the cell.
+    pub fn get_mut(&mut self) -> Option<&mut T> {
+        if self.state.load(Ordering::Acquire) == INIT {
+            Some(unsafe { (*self.value.get()).assume_init_mut() })
+        } else {
+            None
+        }
+    }
 }
 
 impl<T> Deref for OnceCell<T> {
@@ -58,6 +67,14 @@ impl<T> Deref for OnceCell<T> {
         self.get().expect("OnceCell is not initialized")
     }
 }
+
+impl<T> DerefMut for OnceCell<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.get_mut().expect("OnceCell is not initialized")
+    }
+}
+
+
 
 /// Zero-sized type to mark types not [`Send`].
 ///

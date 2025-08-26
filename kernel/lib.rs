@@ -55,6 +55,8 @@ pub mod schedule;
 pub mod types;
 pub mod compiler;
 pub mod drivers;
+pub mod param;
+pub mod printk;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]

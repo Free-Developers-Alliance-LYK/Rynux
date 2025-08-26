@@ -76,6 +76,7 @@ impl ArchBootSetupTrait for Arm64BootSetup {
     fn setup_arch() {
         FixMap::early_fixmap_init();
         Self::setup_machine_fdt();
+        crate::init::GLOBAL_COMMAND_LINE.lock().parse_early_options();
         // init arm64 memblock
         //crate::arch::arm64::mm::init::memblock_init();
         //crate::arch::arm64::mm::init::paging_init();

@@ -8,4 +8,14 @@ extern "C" {
     /// define in init kernel
     pub fn start_kernel();
 
+    /// obs_kernel_param start address
+    pub fn __setup_start();
+    /// obs_kernel_param end address
+    pub fn __setup_end();
+
+    /// early con table
+    pub fn __earlycon_table();
+    /// early con table end
+    pub fn __earlycon_table_end();
+
 }

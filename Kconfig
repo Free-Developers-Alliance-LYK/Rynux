@@ -12,3 +12,5 @@ source "init/Kconfig"
 
 source "klib/Kconfig.debug"
 
+source "drivers/Kconfig"
+

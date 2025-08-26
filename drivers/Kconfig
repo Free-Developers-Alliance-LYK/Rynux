@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+
+menu "Device Drivers"
+
+source "drivers/amba/Kconfig"
+source "drivers/tty/Kconfig"
+
+endmenu
