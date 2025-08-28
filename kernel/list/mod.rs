@@ -15,7 +15,7 @@ macro_rules! __def_node_internal {
             links: $crate::list::Links<Self>,
         }
 
-        impl $crate::GetLinks for $name {
+        impl $crate::list::GetLinks for $name {
             type EntryType = Self;
 
             #[inline]
@@ -104,6 +104,8 @@ macro_rules! __def_node_internal {
         }
     };
 }
+
+pub(crate) use __def_node_internal;
 
 /// A macro for create a node type that can be used in List.
 ///

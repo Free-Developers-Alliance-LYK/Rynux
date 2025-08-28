@@ -257,7 +257,7 @@ impl<G: GetLinks> RawList<G> {
     }
 
     ///  Just Get and not remove the first element of the list.
-    pub(crate) fn front(&self) -> Option<NonNull<G::EntryType>> {
+    pub(crate) fn front(&self) ->  Option<NonNull<G::EntryType>> {
         self.head
     }
 
@@ -590,6 +590,13 @@ mod tests {
             // the list.
             unsafe { list.insert_after(&*v[i], &*extra) };
             v.insert(i + 1, extra);
+        });
+    }
+
+    #[test]
+    fn test_front() {
+        test_each_element(1, 10, |v, list, _, _| {
+            assert!(core::ptr::eq(list.front().unwrap().as_ptr(), &*v[0]));
         });
     }
 }

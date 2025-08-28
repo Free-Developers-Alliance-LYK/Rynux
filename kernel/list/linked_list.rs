@@ -204,6 +204,7 @@ impl<G: GetLinksWrapped> List<G> {
     pub unsafe fn remove(&mut self, data: &G::Wrapped) -> Option<G::Wrapped> {
         let entry_ref = Wrapper::as_ref(data);
         if unsafe { self.list.remove(entry_ref) } {
+            // SAFETY: The entry is not on the list, should drop it
             Some(unsafe { G::Wrapped::from_pointer(NonNull::from(entry_ref)) })
         } else {
             None
@@ -222,6 +223,11 @@ impl<G: GetLinksWrapped> List<G> {
     /// Returns a mutable cursor starting on the first (front) element of the list.
     pub fn cursor_front_mut(&mut self) -> CursorMut<'_, G> {
         CursorMut::new(self.list.cursor_front_mut())
+    }
+
+    /// Return first element of the list but it still in list
+    pub fn front(&self) -> Option<&G::EntryType> {
+        self.list.front().map(|ptr| unsafe { &*ptr.as_ptr() })
     }
 }
 
@@ -354,5 +360,33 @@ mod tests {
             }));
         }
         assert_list_contents(&list, MAX);
+    }
+
+    #[test]
+    fn test_push_front() {
+        const MAX: usize = 10;
+        let mut list = List::<Arc<Example>>::new();
+
+        for n in (1..=MAX).rev() {
+            list.push_front(Arc::new(Example {
+                inner: n,
+                links: Links::new(),
+            }));
+        }
+        assert_list_contents(&list, MAX);
+    }
+
+    #[test]
+    fn test_front() {
+        const MAX: usize = 10;
+        let mut list = List::<Arc<Example>>::new();
+
+        for n in 1..=MAX {
+            list.push_front(Arc::new(Example {
+                inner: n,
+                links: Links::new(),
+            }));
+        }
+        assert_eq!(list.front().unwrap().inner, MAX);
     }
 }

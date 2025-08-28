@@ -17,7 +17,7 @@ use kernel::arch::setup::{ArchBootSetupTrait, ArchBootSetup};
 #[no_mangle] 
 extern "C" fn start_kernel() -> ! {
     // Test current is set OK ?
-    let current = kernel::schedule::task::CurrentTask::get();
+    let current = kernel::schedule::current();
     if current.magic != kernel::schedule::task::Task::BOOT_TASK_MAGIC {
         panic!("current task magic is not correct");
     }
