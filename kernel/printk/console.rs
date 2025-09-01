@@ -1,7 +1,8 @@
 //! console
 
 use crate::bitflags::bitflags;
-
+use crate::list::def_node;
+use crate::sync::arc::Arc;
 
 bitflags! {
     /// Console flags
@@ -70,6 +71,23 @@ impl Console {
         core::str::from_utf8(&self.name[..self.name_len]).unwrap()
     }
     
+}
+
+def_node! {
+    /// console
+    pub struct ConsoleNode(Console);
+}
+
+/// console list
+pub type ConsoleList = crate::list::List<Arc<ConsoleNode>>;
+
+//static GlobalConsoleList: ConsoleList = ConsoleList::new();
+
+impl ConsoleList {
+    /// register a console
+    pub fn register(&mut self, console: Arc<ConsoleNode>) {
+        self.push_back(console);
+    }
 }
 
 

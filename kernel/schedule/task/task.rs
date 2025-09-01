@@ -1,14 +1,15 @@
 //! Rynux task struct
 
 use core::ptr::NonNull;
+use core::mem::ManuallyDrop;
 
 use super::{
     TaskState,
     TaskStack,
 };
-
 use crate::macros::cache_aligned;
 use crate::arch::thread::{ArchThreadInfo, ArchThreadInfoTrait};
+use crate::sync::lock::spinlock::{RawSpinLockNoIrq, RawSpinLockNoIrqGuard};
 
 /// Task struct
 #[allow(dead_code)]
@@ -16,7 +17,7 @@ use crate::arch::thread::{ArchThreadInfo, ArchThreadInfoTrait};
 pub struct Task {
     thread_info: ArchThreadInfo,
     // state 
-    state: TaskState,
+    state: RawSpinLockNoIrq<TaskState>,
     // stack
     stack: TaskStack,
     // boot task?
@@ -32,7 +33,7 @@ impl Task {
     pub fn new(state: TaskState, stack: TaskStack) -> Self {
         Self {
             thread_info: ArchThreadInfo::default(),
-            state,
+            state: RawSpinLockNoIrq::new(state, None),
             stack,
             is_boot_task: false,
             magic: 0,
@@ -43,7 +44,7 @@ impl Task {
     pub(crate) const fn new_boot(stack: TaskStack) -> Self {
         Self {
             thread_info: ArchThreadInfo::default(),
-            state: TaskState::RUNNING,
+            state: RawSpinLockNoIrq::new(TaskState::RUNNING, None),
             stack,
             is_boot_task: true,
             magic: Self::BOOT_TASK_MAGIC,
@@ -96,6 +97,19 @@ impl Task {
     /// preempt count
     pub fn preempt_count(&self) -> u32 {
         self.thread_info.preempt_count()
+    }
+
+
+    #[inline(always)]
+    /// lock state and return a manually drop guard
+    pub fn lock_state_manual(&self) -> ManuallyDrop<RawSpinLockNoIrqGuard<'_, TaskState>> {
+        ManuallyDrop::new(self.state.lock())
+    }
+
+    #[inline(always)]
+    /// set state 
+    pub fn set_state(&self, state: TaskState) {
+        *self.state.lock() = state
     }
 }
 

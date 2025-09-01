@@ -40,10 +40,3 @@ bitflags! {
         const NEW = 1 << 12;
     }
 }
-
-impl TaskState {
-    /// Task is exiting trace
-    pub fn is_exiting_trace(&self) -> bool {
-        self.contains(TaskState::EXITING_DEAD | TaskState::EXITING_ZOMBIE)
-    }
-}

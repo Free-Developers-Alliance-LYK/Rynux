@@ -31,6 +31,12 @@ impl CurrentTask {
         &self.0
     }
 
+    /// as ptr
+    #[inline(always)]
+    pub fn as_ptr(&self) -> *const Task {
+        Arc::<Task>::as_ptr(&self.0)
+    }
+
     /// Clone current task ref.
     #[inline(always)]
     pub fn clone(&self) -> TaskRef {
