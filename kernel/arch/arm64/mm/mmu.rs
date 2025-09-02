@@ -32,7 +32,7 @@ use crate::{
             PteTable,PteEntry,
             PgTableEntry,
         },
-        va_layout::Arm64VaLayout,
+        mm::Arm64VaLayout,
         mm::fixmap::FixMap,
     },
 };

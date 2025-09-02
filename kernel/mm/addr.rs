@@ -204,7 +204,7 @@ impl VirtAddr {
 
       /// A kernel symbol to phys
       #[inline]
-      fn symbol_to_phys(self) -> PhysAddr {
+      pub fn symbol_to_phys(self) -> PhysAddr {
           PhysAddr::from(self.0 - VaLayout::kimg_va_offset())
       }
       #[inline]

@@ -5,7 +5,7 @@ use core::{marker::PhantomData, ptr::NonNull};
 
 use super::{Arm64PgtableConfig, PteEntry};
 use crate::arch::arm64::{
-    va_layout::Arm64VaLayout,
+    mm::Arm64VaLayout,
 };
 use crate::mm::{PhysAddr, VirtAddr};
 use super::pud::{PudTable, PudEntry};

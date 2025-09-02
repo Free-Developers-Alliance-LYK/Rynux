@@ -20,7 +20,7 @@ use crate::{
             Arm64PgtableConfig,
             PgTableEntry,
         },
-        va_layout::Arm64VaLayout,
+        mm::Arm64VaLayout,
         asm::tlb::TlbFlushOps,
     },
 

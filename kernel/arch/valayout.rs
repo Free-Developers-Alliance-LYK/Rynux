@@ -15,6 +15,6 @@ cfg_if! {
     if #[cfg(test)] {
         pub use super::dummy::va_layout::DummyVaLayout as VaLayout;
     } else if #[cfg(CONFIG_ARM64)] {
-        pub use super::arm64::va_layout::Arm64VaLayout as VaLayout;
+        pub use super::arm64::mm::Arm64VaLayout as VaLayout;
     }
 }

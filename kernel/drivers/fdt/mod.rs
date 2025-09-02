@@ -4,6 +4,8 @@ use crate::types::OnceCell;
 use crate::mm::VirtAddr;
 use crate::fdtree_rs::LinuxFdt;
 
+pub use crate::fdtree_rs::FdtNode;
+
 //use crate::arch::arm64::early_debug::early_uart_put_u64_hex;
 
 /// A static instance of the FDT. only init once

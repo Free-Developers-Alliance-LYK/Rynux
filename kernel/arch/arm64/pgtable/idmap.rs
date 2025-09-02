@@ -2,10 +2,9 @@
 use crate::{
     cfg_if,
     arch::arm64::{
-        mm::SEGMENT_ALIGN,
+        mm::{SEGMENT_ALIGN,Arm64VaLayout},
         pgtable::Arm64PgtableConfig,
         kernel::image::KERNEL_IMAGE_SIZE,
-        va_layout::Arm64VaLayout,
     },
     mm::page::PageConfig,
     macros::need_export,

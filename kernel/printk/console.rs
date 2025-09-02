@@ -3,6 +3,7 @@
 use crate::bitflags::bitflags;
 use crate::list::def_node;
 use crate::sync::arc::Arc;
+use crate::sync::lock::Mutex;
 
 bitflags! {
     /// Console flags
@@ -79,19 +80,20 @@ def_node! {
 }
 
 /// console list
-pub type ConsoleList = crate::list::List<Arc<ConsoleNode>>;
+type ConsoleList = crate::list::List<Arc<ConsoleNode>>;
 
-//static GlobalConsoleList: ConsoleList = ConsoleList::new();
+/// A global console mange list
+pub static GLOBAL_CONSOLE: Mutex<ConsoleList> = Mutex::new(ConsoleList::new(),Some("GlobalConsoleList"));
 
 impl ConsoleList {
     /// register a console
     pub fn register(&mut self, console: Arc<ConsoleNode>) {
         self.push_back(console);
     }
+
+    /// is register
+    pub fn is_register(&self, console: &Arc<ConsoleNode>) -> bool {
+        self.iter().any(|c| core::ptr::eq(c, &**console))
+    }
+    
 }
-
-
-
-
-
-

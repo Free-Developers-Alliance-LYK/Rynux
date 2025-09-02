@@ -34,7 +34,7 @@ use kernel::{
             tlb::TlbFlushOps,
         },
         sysregs::Ttbr1El1,
-        va_layout::Arm64VaLayout,
+        mm::Arm64VaLayout,
     },
 
     mm::page::PageConfig,

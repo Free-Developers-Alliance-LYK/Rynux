@@ -81,7 +81,7 @@ pub struct PudTable {
 #[allow(dead_code)]
 impl PudTable {
     /// determines the size a pud page table entry can map
-    const SHIFT: usize = Arm64PgtableConfig::hw_pgtable_levels_shift(1);
+    pub const SHIFT: usize = Arm64PgtableConfig::hw_pgtable_levels_shift(1);
     /// Size of a PUD entry in bytes.
     pub const ENTRY_SIZE: usize = 1 << Self::SHIFT;
     /// Number of entries per PUD

@@ -463,6 +463,18 @@ impl MemBlock {
         let phys = virt_addr.to_phys();
         self.free_phys(phys, size);
     }
+
+    /// Return the start of dram
+    #[inline(always)]
+    pub fn start_of_dram(&self) -> PhysAddr {
+        self.memory[0].base
+    }
+
+    /// Return the end of dram
+    #[inline(always)]
+    pub fn end_of_dram(&self) -> PhysAddr {
+        self.memory.get(self.memory.len() - 1).unwrap().base + self.memory.get(self.memory.len() - 1).unwrap().size
+    }
 }
 
 #[cfg(not(test))]

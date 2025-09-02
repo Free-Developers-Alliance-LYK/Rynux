@@ -97,6 +97,9 @@ impl Arm64VaLayout {
     /// The end of the linear map, where all other kernel mappings begin.
     pub const KERNEL_VA_LINE_END: usize = Self::linear_map_end(Self::VA_BITS);
 
+    /// The size of the linear map
+    pub const KERNEL_VA_LINE_SIZE: usize = Self::KERNEL_VA_LINE_END - Self::KERNNEL_VA_START;
+
     /// MODULES_VADDR - the virtual address of the start of the module space.
     pub const MODULES_VADDR: usize = Self::KERNEL_VA_LINE_END;
 

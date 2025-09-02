@@ -19,7 +19,7 @@ use kernel::{
         asm::barrier::isb,
         sysregs::*,
         pgtable::idmap::InitIdmap,
-        va_layout::Arm64VaLayout,
+        mm::Arm64VaLayout,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
     },
     schedule::task::TaskRef,
@@ -328,7 +328,7 @@ extern "C" fn __primary_switched(kernel_start_pa: usize, fdt_pa: usize, _cpu_boo
     use kernel::mm::PhysAddr;
     // set kimage_va_offset
     let kimage_va_offset = _text as usize - kernel_start_pa;
-    kernel::arch::arm64::va_layout::set_kimage_va_offset(kimage_va_offset);
+    kernel::arch::arm64::mm::va_layout::set_kimage_va_offset(kimage_va_offset);
     // save fdt
     kernel::arch::arm64::kernel::setup::set_fdt_pointer(PhysAddr::from(fdt_pa));
     // TODO: init vbar

@@ -4,6 +4,15 @@ pub mod cache;
 pub mod thread_layout;
 pub mod mmu;
 pub mod fixmap;
+pub mod init;
+pub mod sparse_mem;
+
+pub mod va_layout;
+mod phys_config;
+
+
+pub use phys_config::Arm64PhysConfig;
+pub use va_layout::Arm64VaLayout;
 
 use crate::size::*;
 use crate::macros::need_export;

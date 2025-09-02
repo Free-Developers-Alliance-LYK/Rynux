@@ -7,4 +7,4 @@ pub mod qspinlock;
 
 pub use base::{Backend, Lock, BaseLockGuard};
 pub use spinlock::{RawSpinLockNoIrq, RawSpinLockNoIrqGuard};
-//pub use mutex::{Mutex, MutexGuard};
+pub use mutex::{Mutex, MutexGuard};

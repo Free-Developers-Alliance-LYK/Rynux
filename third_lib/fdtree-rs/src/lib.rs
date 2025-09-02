@@ -14,6 +14,7 @@ mod pretty_print;
 pub use kernel_nodes::*;
 pub use standard_nodes::*;
 pub use error::FdtError;
+pub use node::FdtNode;
 use parsing::{FdtData, BigEndianU32, CStr};
 use header::FdtHeader;
 

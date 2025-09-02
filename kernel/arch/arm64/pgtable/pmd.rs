@@ -111,8 +111,8 @@ impl PmdTable {
     //
     // # ARM64 logic:
     // - For 4KB pages (page_shift = 12):  CONT_PMD_SHIFT = 4  (16 pages, 16*2MB = 32MB block)
-    // - For 16KB pages (page_shift = 14): CONT_PTE_SHIFT = 5  (32 pages, 32*32MB = 1GB block)
-    // - For 64KB pages (page_shift = 16): CONT_PTE_SHIFT = 5  (32 pages, 32*512MB= 16GB block)
+    // - For 16KB pages (page_shift = 14): CONT_PMD_SHIFT = 5  (32 pages, 32*32MB = 1GB block)
+    // - For 64KB pages (page_shift = 16): CONT_PMD_SHIFT = 5  (32 pages, 32*512MB= 16GB block)
     // - Otherwise, defaults to 4 (for safety; can be adjusted for other configurations).
     const fn pmd_cont_shift(page_shift: usize) -> usize {
         match page_shift {
