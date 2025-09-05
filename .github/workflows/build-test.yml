@@ -82,13 +82,13 @@ jobs:
         python3 -c "import elftools; print('pyelftools: OK')"
         
     - name: Check Rust availability
-      run: make LLVM=17 O=build_dir rustavailable
+      run: make LLVM=-17 O=build_dir rustavailable
         
     - name: Generate default config
-      run: make LLVM=17 O=build_dir defconfig
+      run: make LLVM=-17 O=build_dir defconfig
         
     - name: Build kernel
-      run: make LLVM=17 O=build_dir -j$(nproc)
+      run: make LLVM=-17 O=build_dir -j$(nproc)
         
     - name: Verify build artifacts
       run: |
