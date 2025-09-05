@@ -58,9 +58,10 @@ _head:
  * x21        primary_entry() .. start_kernel()        FDT pointer passed at boot in x0
 */
 #[no_mangle]
-#[unsafe(naked)]
+#[naked]
 #[section_idmap_text]
 unsafe extern "C" fn primary_entry() -> ! {
+    unsafe {
         core::arch::naked_asm!(
             "bl record_mmu_state", // x19 save mmu state
             "bl preserve_boot_args", // x21 save fdt
@@ -122,13 +123,15 @@ unsafe extern "C" fn primary_entry() -> ! {
             __cpu_setup = sym __cpu_setup,
             __primary_switch = sym __primary_switch,
         );
+    }
 }
 
 #[no_mangle]
-#[unsafe(naked)]
+#[naked]
 #[section_init_text]
 unsafe extern "C" fn record_mmu_state() -> ! {
     // Record the mmu state in x19
+    unsafe {
         core::arch::naked_asm!(
             "mrs x19, CurrentEL",
             "cmp x19, {CurrentEL_EL2}",
@@ -147,14 +150,16 @@ unsafe extern "C" fn record_mmu_state() -> ! {
             sctlr_elx_c = const SctlrEl1::C.bits(),
             sctlr_elx_m = const SctlrEl1::M.bits(),
         );
+    }
 }
 
 #[no_mangle]
-#[unsafe(naked)]
+#[naked]
 #[section_init_text]
 unsafe extern "C" fn preserve_boot_args() -> ! {
-    core::arch::naked_asm!(
-        "mov x21, x0", // x21=FDT
+    unsafe {
+        core::arch::naked_asm!(
+            "mov x21, x0", // x21=FDT
         adr_l!("x0", "{boot_args}"),
         "stp x21, x1, [x0]", // x0 .. x3 at kernel entry
         "stp x2, x3, [x0, #16]",
@@ -168,7 +173,8 @@ unsafe extern "C" fn preserve_boot_args() -> ! {
         boot_args = sym kernel::arch::arm64::kernel::setup::BOOT_ARGS,
         mmu_enabled_at_boot = sym kernel::arch::arm64::kernel::setup::MMU_ENABLED_AT_BOOT,
         dcache_inval_poc = sym kernel::arch::arm64::mm::cache::dcache_inval_poc,
-    );
+        );
+    }
 }
 
 /*
@@ -253,15 +259,16 @@ unsafe extern "C" fn __cpu_setup() {
     isb();
 }
 
-#[unsafe(naked)]
+#[naked]
 #[section_idmap_text]
 unsafe extern "C" fn __primary_switch() {
-    core::arch::naked_asm!(
-        "adrp x0, {reserved_pg_dir}",
-        "adrp x1, {init_idmap_pg_dir}",
-        "bl {__enable_mmu}",
+    unsafe {
+        core::arch::naked_asm!(
+            "adrp x0, {reserved_pg_dir}",
+            "adrp x1, {init_idmap_pg_dir}",
+            "bl {__enable_mmu}",
 
-        "adrp x1, {early_init_stack}",
+            "adrp x1, {early_init_stack}",
         "mov sp, x1",
         "mov x29, xzr",
 
@@ -281,7 +288,8 @@ unsafe extern "C" fn __primary_switch() {
         __pi_early_map_kernel = sym __pi_early_map_kernel,
         __primary_switched = sym __primary_switched,
         KERNEL_START = sym _text,
-    );
+        );
+    }
 }
 
 #[section_idmap_text]

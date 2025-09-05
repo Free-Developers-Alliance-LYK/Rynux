@@ -101,10 +101,11 @@ macro_rules! dcache_by_line_op {
 /// - start   - start address of region
 /// - end     - end address of region
 ///
-#[unsafe(naked)]
+#[naked]
 #[no_mangle]
 #[link_section = ".text"]
 pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
+    unsafe {
         core::arch::naked_asm!(
             "bti c",
             // x0 = start, x1 = end
@@ -131,6 +132,7 @@ pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
             "dsb sy",
             "ret"
         );
+    }
 }
 
 /// Ensure that any D-cache lines for the interval [start, end)
@@ -139,14 +141,16 @@ pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
 /// - start   - start address of region
 /// - end     - end address of region
 ///
-#[unsafe(naked)]
+#[naked]
 #[no_mangle]
 #[link_section = ".text"]
 pub unsafe extern "C" fn dcache_clean_poc(start: usize, end: usize) {
-    core::arch::naked_asm!(
-        "bti c",
-        // x0 = start, x1 = end
-        // cache line size: x2  x3:tmp register
+    unsafe {
+        core::arch::naked_asm!(
+            "bti c",
+            // x0 = start, x1 = end
+            // cache line size: x2  x3:tmp register
         dcache_by_line_op!("cvac", "sy", "x0", "x1", "x2", "x3"),
-    )
+        )
+    }
 }

@@ -1,0 +1,64 @@
+name: Build Rynux Kernel
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            flex bison \
+            lld-18 llvm-18 clang-18 \
+            python3-pip \
+            qemu-system-arm
+          pip3 install pyelftools
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source ~/.cargo/env
+          rustup install nightly-2025-02-01
+          rustup default nightly-2025-02-01
+          rustup component add rust-src --toolchain nightly-2025-02-01
+          rustup target add aarch64-unknown-none --toolchain nightly-2025-02-01
+
+      - name: Verify toolchain
+        run: |
+          source ~/.cargo/env
+          rustc --version
+          clang-18 --version
+          which ld.lld-18
+
+      - name: Check Rust availability
+        run: |
+          source ~/.cargo/env
+          make LLVM=-18 O=build_dir rustavailable
+
+      - name: Generate default config
+        run: |
+          source ~/.cargo/env
+          make LLVM=-18 O=build_dir defconfig
+
+      - name: Build kernel
+        run: |
+          source ~/.cargo/env
+          make LLVM=-18 O=build_dir -j$(nproc)
+
+      - name: Verify build artifacts
+        run: |
+          ls -la build_dir/vmrynux
+          ls -la build_dir/System.map
+          ls -la build_dir/arch/arm64/boot/Image
+          ls -la build_dir/arch/arm64/boot/Image.gz
+          file build_dir/arch/arm64/boot/Image
