@@ -98,14 +98,3 @@ jobs:
         file build_dir/arch/arm64/boot/Image
         echo "Kernel size: $(du -h build_dir/arch/arm64/boot/Image | cut -f1)"
         
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: rynux-kernel-${{ github.run_number }}
-        path: |
-          build_dir/vmrynux
-          build_dir/System.map
-          build_dir/arch/arm64/boot/Image
-          build_dir/arch/arm64/boot/Image.gz
-        retention-days: 7
