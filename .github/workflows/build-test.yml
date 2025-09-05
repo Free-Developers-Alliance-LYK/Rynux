@@ -1,0 +1,100 @@
+name: Rynux Kernel CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust nightly
+        run: |
+          rustup install nightly-2025-02-01
+          rustup default nightly-2025-02-01
+          rustup component add rustfmt --toolchain nightly-2025-02-01
+
+      - name: Check rust version
+        run: rustc --version --verbose
+
+      - name: Check code format
+        run: |
+          # Find and format all .rs files in the kernel project
+          find . -name "*.rs" \
+            -not -path "./third_lib/*" \
+            -not -path "./proc_macros/*" \
+            -not -path "./build_dir/*" \
+            -not -path "./.git/*" \
+            | xargs rustfmt --check --edition 2021
+
+  build:
+    name: Build Kernel
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo
+          ~/.rustup
+        key: ${{ runner.os }}-rynux-${{ hashFiles('**/Makefile') }}
+        restore-keys: |
+          ${{ runner.os }}-rynux-
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          build-essential \
+          flex bison \
+          python3-pip
+        # Try to install LLVM 17 first, then fallback to other versions
+        sudo apt install -y lld-17 llvm-17 clang-17
+        pip3 install pyelftools
+        
+    - name: Detect LLVM version
+      id: llvm
+      run: |
+        echo "version=-17" >> $GITHUB_OUTPUT
+        echo "Using LLVM 17"
+        
+    - name: Setup Rust toolchain
+      run: |
+        rustup install nightly-2025-02-01
+        rustup default nightly-2025-02-01
+        rustup component add rust-src --toolchain nightly-2025-02-01
+        
+    - name: Verify environment
+      run: |
+        rustc --version
+        clang-17 --version
+        python3 -c "import elftools; print('pyelftools: OK')"
+        
+    - name: Check Rust availability
+      run: make LLVM=-17 O=build_dir rustavailable
+        
+    - name: Generate default config
+      run: make LLVM=-17 O=build_dir defconfig
+        
+    - name: Build kernel
+      run: make LLVM=-17 O=build_dir -j$(nproc)
+        
+    - name: Verify build artifacts
+      run: |
+        echo "=== Build completed successfully ==="
+        ls -la build_dir/vmrynux
+        ls -la build_dir/arch/arm64/boot/Image
+        file build_dir/arch/arm64/boot/Image
+        echo "Kernel size: $(du -h build_dir/arch/arm64/boot/Image | cut -f1)"
+        
