@@ -213,6 +213,8 @@ pub struct MemoryRegion {
 }
 
 
+/// An iterator over the `reg` property of a node
+#[derive(Debug, Clone)]
 pub struct RegIter<'a> {
     stream: FdtData<'a>,
     sizes: CellSizes,

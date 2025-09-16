@@ -17,6 +17,7 @@ pub use error::FdtError;
 pub use node::FdtNode;
 use parsing::{FdtData, BigEndianU32, CStr};
 use header::FdtHeader;
+use node::MemoryReservation;
 
 /// A flattened devicetree located somewhere in memory
 /// 
@@ -95,6 +96,36 @@ impl<'a> LinuxFdt<'a> {
         node::find_node(&mut FdtData::new(self.structs_block()), "/chosen", self, None)
             .map(|node| Chosen { node })
             .expect("/chosen is required")
+    }
+
+    /// Return the reserved memory nodes
+    pub fn linux_reserved_memory(&self) -> Option<ReservedMemory<'_, 'a>>  {
+        let rnode = node::find_node(&mut FdtData::new(self.structs_block()), "/reserved-memory", self, None)
+            .map(|node| ReservedMemory { node })?;
+        // check reserved-memory node is valid
+        rnode.check_root().ok()?;
+        Some(rnode)
+    }
+
+    /// System memory reservations
+    pub fn sys_memory_reservations(&self) -> impl Iterator<Item = MemoryReservation> + 'a {
+        let mut stream = FdtData::new(&self.data[self.header.off_mem_rsvmap.get() as usize..]);
+        let mut done = false;
+
+        core::iter::from_fn(move || {
+            if stream.is_empty() || done {
+                return None;
+            }
+
+            let res = MemoryReservation::from_bytes(&mut stream)?;
+
+            if res.address() as usize == 0 && res.size() == 0 {
+                done = true;
+                return None;
+            }
+
+            Some(res)
+        })
     }
 
     /// Returns the avaiable mem regions

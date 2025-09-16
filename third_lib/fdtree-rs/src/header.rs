@@ -15,7 +15,7 @@ pub(crate) struct FdtHeader {
     off_dt_strings: BigEndianU32,
     /// Offset in bytes from the start of the header to the memory reservation
     /// block
-    off_mem_rsvmap: BigEndianU32,
+    pub(crate) off_mem_rsvmap: BigEndianU32,
     /// FDT version
     version: BigEndianU32,
     /// Last compatible FDT version

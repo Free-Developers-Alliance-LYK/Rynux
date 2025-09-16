@@ -296,7 +296,7 @@ impl<'b, 'a: 'b> FdtNode<'b, 'a> {
 }
 
 /// The number of cells (big endian u32s) that addresses and sizes take
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CellSizes {
     /// Size of values representing an address
     pub address_cells: usize,
@@ -514,7 +514,18 @@ impl<'a> NodeProperty<'a> {
     }
 }
 
-/// A memory reservation
+/// Standard memory reservation
+///
+/// A 32-bit (big-endian) offset field in the FDT header,
+/// relative to the start address of the DTB.
+/// Points to an array of fdt_reserve_entry entries, each element of which is fixed:
+/// address: be64 (physical start address)
+/// size: be64 (length)
+/// Terminated by a pair of zeros: address == 0 && size == 0.
+/// Not dependent on #address-cells / #size-cells, always 64-bit big-endian encoding.
+/// Semantics: These ranges are reserved for firmware, secure world, device buffers,
+/// etc. The OS should remove them from available memory early during memory
+/// initialization (e.g., memblock_reserve in Linux).
 #[derive(Debug)]
 #[repr(C)]
 pub struct MemoryReservation {

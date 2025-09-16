@@ -1,5 +1,8 @@
 /dts-v1/;
 
+/memreserve/ 0x0000000080000000 0x0000000001000000;  // 16 MiB
+/memreserve/ 0x0000000090000000 0x0000000000100000;  // 1 MiB
+
 / {
 	#address-cells = <0x02>;
 	#size-cells = <0x02>;
@@ -11,7 +14,6 @@
 		stdout-path = "/soc/uart@10000000:115200n8";
 		linux,usable-memory-range = <0x9 0xf0000000 0x0 0x10000000 
 		              0x0000000a 0x00000000  0x00000000 0x20000000>;
-
 	};
 
 	memory@80000000 {
@@ -28,6 +30,55 @@
 		device_type = "memory";
 		reg = <0x00 0xa0000000 0x00 0x10000000>;
 		status = "disabled";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		// linux valid normal reserved mem region
+		static_buf@0000000080000000 {
+			reg = <0x00000000 0x80000000   0x0 0x02000000>; // base=0x8000_0000, size=32MiB
+		};
+
+		secure_carveout@0000000090000000 {
+			// two reg
+			reg = <0x00000000 0x90000000   0x0 0x01000000 
+			       0x00000000 0x91000000   0x0 0x01000000>;
+			no-map;
+		        status = "okay";
+		};
+		
+		unused_pool {
+		        size = <0x0 0x01000000>; // 16MiB
+		        status = "disabled";     // should skip
+		};
+
+		dyn_pool {
+		        // no reg
+			size = <0x0 0x04000000>;      // 64MiB
+			alignment = <0x0 0x00200000>; // 2MiB 对齐（可选）
+		        status = "okay";
+		};
+
+		unused_dma_pool {
+		        compatible = "shared-dma-pool";
+		        size = <0x0 0x04000000>;      // 64MiB
+		        alignment = <0x0 0x00200000>; // 2MiB 对齐（可选）
+		        status = "disabled";          // should skip
+		};
+
+		linux,cma {
+		        compatible = "shared-dma-pool";
+		        reusable;
+		        size = <0x0 0x10000000>;      // 256MiB
+		        alignment = <0x0 0x02000000>; // 32MiB（示例，对齐可按需求设大页/设备限制）
+		        linux,cma-default;            // 指定为默认 CMA
+		        status = "okay";
+		};
+
+
 	};
 
 	cpus {
