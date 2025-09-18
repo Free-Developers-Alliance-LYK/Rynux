@@ -88,7 +88,7 @@ impl PgdirTable {
 
     /// get kernel pgdir
     pub fn kernel_pgdir() -> PgdirTable {
-        use crate::arch::arm64::kernel::image::symbols::swapper_pg_dir;
+        use crate::arch::arm64::symbols::swapper_pg_dir;
         PgdirTable::from_raw(swapper_pg_dir as *mut PgdirEntry)
     }
 }

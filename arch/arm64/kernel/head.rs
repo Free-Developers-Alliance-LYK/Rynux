@@ -57,7 +57,7 @@ _head:
  * x20        primary_entry() .. __primary_switch()    CPU boot mode
  * x21        primary_entry() .. start_kernel()        FDT pointer passed at boot in x0
 */
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[unsafe(naked)]
 #[section_idmap_text]
 unsafe extern "C" fn primary_entry() -> ! {
@@ -124,7 +124,7 @@ unsafe extern "C" fn primary_entry() -> ! {
         );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[unsafe(naked)]
 #[section_init_text]
 unsafe extern "C" fn record_mmu_state() -> ! {
@@ -149,7 +149,7 @@ unsafe extern "C" fn record_mmu_state() -> ! {
         );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[unsafe(naked)]
 #[section_init_text]
 unsafe extern "C" fn preserve_boot_args() -> ! {
@@ -291,11 +291,6 @@ unsafe extern "C" fn __enable_mmu(_ttbr1: u64, ttbr0: u64) {
     Ttbr1El1::write_pg_dir(ttbr0);
     isb();
     SctlrEl1::INIT_SCTLR_EL1_MMU_ON.write();
-}
-
-extern "C" {
-    /// init stack
-    pub fn init_stack();
 }
 
 #[inline(always)]

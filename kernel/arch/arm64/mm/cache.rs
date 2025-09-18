@@ -102,8 +102,7 @@ macro_rules! dcache_by_line_op {
 /// - end     - end address of region
 ///
 #[unsafe(naked)]
-#[no_mangle]
-#[link_section = ".text"]
+#[unsafe(link_section = ".text")]
 pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
         core::arch::naked_asm!(
             "bti c",
@@ -140,8 +139,7 @@ pub unsafe extern "C" fn dcache_inval_poc(start: usize, end: usize) {
 /// - end     - end address of region
 ///
 #[unsafe(naked)]
-#[no_mangle]
-#[link_section = ".text"]
+#[unsafe(link_section = ".text")]
 pub unsafe extern "C" fn dcache_clean_poc(start: usize, end: usize) {
     core::arch::naked_asm!(
         "bti c",

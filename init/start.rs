@@ -14,7 +14,7 @@ use kernel::cpu::processor::processor_boot_init;
 use kernel::arch::setup::{ArchBootSetupTrait, ArchBootSetup};
 
 /// Start kernel
-#[no_mangle] 
+#[unsafe(no_mangle)] 
 extern "C" fn start_kernel() -> ! {
     // Test current is set OK ?
     let current = kernel::schedule::current();

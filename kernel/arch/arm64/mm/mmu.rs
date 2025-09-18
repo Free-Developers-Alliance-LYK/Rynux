@@ -1,8 +1,10 @@
 //! Arm64 mmu
 
+/*
 #[link_section = ".mmuoff.data.write"]
 /// Save Cpu boot status
 pub static EARLY_CPU_BOOT_STATUS: usize = 0;
+*/
 
 #[allow(dead_code)]
 /// Cpu boot status
@@ -277,9 +279,10 @@ impl Mmu {
         }
     }
 
-    /// Create a mapping without allocating new page table
-    /// caller must make sure the page table is already init
-    #[section_init_text]
+    /// Create a mapping without allocating new page table  caller must make
+    /// sure the page table is already init
+    ///
+    #[unsafe(section_init_text)]
     pub fn create_map_noalloc(phys: PhysAddr, virt: VirtAddr, size: usize, prot: PtePgProt) {
         // virt must be in kernel space
         if virt.as_usize() < Arm64VaLayout::KERNNEL_VA_START {

@@ -4,7 +4,7 @@ use crate::{
     mm::memblock::GLOBAL_MEMBLOCK,
     mm::{PhysAddr,VirtAddr},
     arch::arm64::mm::{Arm64PhysConfig, Arm64VaLayout},
-    global_sym::_end,
+    global_sym::{_end,_stext},
 };
 
 /// Arm64 memblock init
@@ -19,21 +19,26 @@ pub fn memblock_init() {
     // aling down to a supported address
     let mut memstart_addr = GLOBAL_MEMBLOCK.lock().start_of_dram().align_down(Arm64PhysConfig::memstart_align());
 
-    // Start cropping from high address memory first, need to preserve kernel
+    // The linear virtual address space cannot cover the physical memory.
+    // To trim the physical memory, trim it from the high address first,
+    // and be careful not to trim the kernel.
     let pa_end = VirtAddr::from(_end as usize).symbol_to_phys();
     let remove_start = pa_end.max(memstart_addr + linear_region_size);
     GLOBAL_MEMBLOCK.lock().remove_memory(remove_start, usize::MAX);
-        
-    // Liner mem still not cover all phy mem?
-    // we can only crop from low address memory
+     
+    // The linear virtual address space still cannot cover the physical
+    // memory, indicating that the kernel is outside the high address
+    // coverage range and is clipped from the low address
     if (GLOBAL_MEMBLOCK.lock().end_of_dram() - memstart_addr) > linear_region_size {
         memstart_addr = (GLOBAL_MEMBLOCK.lock().end_of_dram() - linear_region_size).align_up(Arm64PhysConfig::memstart_align());
         GLOBAL_MEMBLOCK.lock().remove_memory(PhysAddr::from(0), memstart_addr.as_usize());
     }
 
+    // memblock set kernel image as reserved
+    GLOBAL_MEMBLOCK.lock().add_reserved(VirtAddr::from(_stext as usize).symbol_to_phys(), 
+        _end as usize - _stext as usize);
 
-
-
+    GLOBAL_FDT::early_scan_reserved_mem();
 
 }
 

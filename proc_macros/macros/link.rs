@@ -36,15 +36,15 @@ pub(crate) fn section_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
 
     let output = match input {
         Item::Static(mut s) => {
-            s.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            s.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#s)
         }
         Item::Const(mut c) => {
-            c.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            c.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#c)
         }
         Item::Fn(mut f) => {
-            f.attrs.insert(0, syn::parse_quote!(#[link_section = #section]));
+            f.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#f)
         }
         other => {

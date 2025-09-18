@@ -11,6 +11,7 @@ use crate::{
     },
     arch::mm::ArchThreadMemLayout,
     sync::arc::{Arc,ArcInner},
+    global_sym::init_stack,
 };
 
 static INIT_TASK_STACK: TaskStack = TaskStack::new(
@@ -31,8 +32,3 @@ static INIT_TASK_ARC: ArcInner<Task> = ArcInner::new_static(Task::new_boot(INIT_
 /// SAFETY: we know what we are doing here. 
 /// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
 pub static INIT_TASK_REF: TaskRef = unsafe {Arc::from_static(&INIT_TASK_ARC)}; 
-
-extern "C" {
-    /// init_stack define in vmrynux.rs
-    pub fn init_stack();
-}

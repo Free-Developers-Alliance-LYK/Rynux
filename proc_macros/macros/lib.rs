@@ -249,7 +249,11 @@ pub fn need_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let output = match input {
         Item::Static(mut s) => {
-            s.attrs.insert(0, syn::parse_quote!(#[no_mangle]));
+            // SAFETY: We intentionally export this static symbol name;
+            // call sites use #[unsafe(need_export)] to explicitly enforce
+            // invariants such as "symbol name is globally unique and compatible
+            // with linkage policy.
+            s.attrs.insert(0, syn::parse_quote!(#[unsafe(no_mangle)]));
             quote!(#s)
         }
         other => {

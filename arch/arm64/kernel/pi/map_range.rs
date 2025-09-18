@@ -16,6 +16,7 @@ use core::{
 };
 
 use kernel::{
+    global_sym::*,
     arch::arm64::{
         pgtable::{
             Arm64PgtableConfig,
@@ -27,7 +28,6 @@ use kernel::{
             idmap::InitIdmap,
             PgTableEntry,
         },
-        kernel::image::symbols::*,
         early_debug::{early_uart_putchar, early_uart_put_u64_hex},
         asm::{
             barrier::{isb, dsb, ISHST},
@@ -57,7 +57,7 @@ use kernel::{
 /// * `tbl` - The level `level` page table to create the mappings in
 /// * `may_use_cont` - Whether the use of the contiguous attribute is allowed
 /// * `va_offset` - Offset between a physical page and its current mapping in the VA space
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[section_init_text]
 pub unsafe extern "C" fn map_range(
     pte: &mut usize,
@@ -167,7 +167,7 @@ struct DevicePtes([u8; 8 * PageConfig::PAGE_SIZE]);
 static mut DEVICE_PTES: DevicePtes = DevicePtes([0; 8 * PageConfig::PAGE_SIZE]);
 
 /// Create initial ID map
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[section_init_text]
 pub unsafe extern "C" fn create_init_idmap(pg_dir: *mut PgdirEntry, clrmask: u64) -> usize {
     let mut pte = (pg_dir as usize) + PageConfig::PAGE_SIZE;
@@ -372,7 +372,7 @@ fn map_kernel(va_offset: usize) {
 }
 
 /// Create initial ID map
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[section_init_text]
 pub unsafe extern "C" fn early_map_kernel(_boot_status: usize, fdt: usize) {
     map_fdt(fdt);

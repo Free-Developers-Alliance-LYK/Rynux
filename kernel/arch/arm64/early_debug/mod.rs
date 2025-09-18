@@ -52,7 +52,7 @@ fn uart_put_u64_hex_le(val: u64) {
 }
 
 /// Early uart put
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn early_uart_putchar(c: u8) {
       match c {
           b'\n' => {
@@ -63,7 +63,7 @@ pub fn early_uart_putchar(c: u8) {
       }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 /// Print u64 in hex
 pub fn early_uart_put_u64_hex(val: u64) {
     for i in (0..8).rev() {
@@ -72,7 +72,7 @@ pub fn early_uart_put_u64_hex(val: u64) {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 /// Print string
 pub fn early_uart_put_str(s: &str) {
     for c in s.as_bytes() {

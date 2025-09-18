@@ -12,7 +12,7 @@
 ///
 /// # Safety
 /// This function is unsafe if `s` is not a valid pointer for `n` bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn memchr(s: *const u8, c: i32, n: usize) -> *const u8 {
     // Convert search byte to u8
     let c = c as u8;
@@ -44,7 +44,7 @@ pub extern "C" fn memchr(s: *const u8, c: i32, n: usize) -> *const u8 {
 /// # Safety
 /// The caller must ensure that `dest` and `src` are valid for `count` bytes,
 /// and they must not overlap.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, count: usize) -> *mut u8 {
     let mut tmp = dest;
     let mut s = src;
@@ -74,7 +74,7 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, count: usize) -> *mut u8
 ///
 /// # Safety
 /// The caller must ensure `s` is valid for `count` bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn memset(s: *mut u8, c: i32, count: usize) -> *mut u8 {
     let mut xs = s;
     let c = c as u8;
@@ -102,7 +102,7 @@ pub extern "C" fn memset(s: *mut u8, c: i32, count: usize) -> *mut u8 {
 ///
 /// # Safety
 /// The caller must ensure `dest` and `src` are valid for `count` bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn memmove(dest: *mut u8, src: *const u8, count: usize) -> *mut u8 {
     if dest as usize <= src as usize || dest as usize >= (src as usize + count) {
         // No overlap or dest below src, can copy forwards
@@ -147,7 +147,7 @@ pub extern "C" fn memmove(dest: *mut u8, src: *const u8, count: usize) -> *mut u
 ///
 /// # Safety
 /// Pointers must be valid for `count` bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn memcmp(cs: *const u8, ct: *const u8, count: usize) -> i32 {
     #[cfg(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)]
     unsafe {

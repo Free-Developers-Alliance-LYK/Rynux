@@ -106,7 +106,7 @@ impl EarlyConId {
 #[macro_export]
 macro_rules! earlycon_declare {
     ($name:ident, $compatible:expr, $fn:ident) => {
-        #[link_section = "__earlycon_table"]
+        #[unsafe(link_section = "__earlycon_table")]
         #[used]
         static $name: $crate::drivers::tty::serial::earlycon::EarlyConId = $crate::drivers::tty::serial::earlycon::EarlyConId::new(stringify!($name), $compatible, $fn);
     };

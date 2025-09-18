@@ -337,7 +337,7 @@ KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 # These flags apply to all Rust code in the tree, including the kernel and
 # host programs.
 
-export rust_common_flags := --edition=2021 \
+export rust_common_flags := --edition=2024 \
                   -Zbinary_dep_depinfo=y \
                   -Astable_features \
                   -Dnon_ascii_idents \

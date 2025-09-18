@@ -61,7 +61,7 @@ impl Arm64BootSetup {
     #[section_init_text]
     fn setup_machine_fdt() {
         let (dt_virt, size) = FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL_RO);
-        crate::drivers::fdt::setup_fdt(dt_virt);
+        crate::drivers::fdt::LinuxFdtWrapper::setup(dt_virt);
         // init bootcoomand line from fdt bootargs
         crate::init::command_line::setup_from_fdt();
         // early scan mem from fdt

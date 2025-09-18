@@ -25,7 +25,7 @@ pub struct ObsKernelParam {
 #[macro_export]
 macro_rules! early_setup_param {
     ($id:ident, $name:expr, $func:ident) => {
-        #[link_section = ".init.setup"]
+        #[unsafe(link_section = ".init.setup")]
         #[used]
         static $id: $crate::param::obs_param::ObsKernelParam = $crate::param::obs_param::ObsKernelParam {
             name: $name,

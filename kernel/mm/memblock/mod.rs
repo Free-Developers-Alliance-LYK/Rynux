@@ -8,7 +8,7 @@ use crate::mm::{
     page::PageConfig,
 };
 
-use crate::macros::{section_init_data, section_init_text};
+use crate::macros::section_init_data;
 use crate::sync::lock::RawSpinLockNoIrq;
 use crate::alloc::{AllocError, AllocFlags};
 
@@ -293,7 +293,6 @@ impl MemBlock {
         )
     }
 
-    #[section_init_text]
     fn find_free_mem_range_bottom_up(
         &mut self,
         start: PhysAddr,
@@ -326,7 +325,6 @@ impl MemBlock {
         None
     }
 
-    #[section_init_text]
     fn find_free_mem_range_top_down(
         &mut self,
         start: PhysAddr,
@@ -359,7 +357,6 @@ impl MemBlock {
     }
 
     /// Find a range of memory that is available for allocation
-    #[section_init_text]
     fn find_free_mem_range(
         &mut self,
         start: PhysAddr,
@@ -375,7 +372,6 @@ impl MemBlock {
         }
     }
 
-    #[section_init_text]
     fn alloc_phys_with_limit(
         &mut self,
         size: usize,
@@ -478,7 +474,7 @@ impl MemBlock {
 }
 
 #[cfg(not(test))]
-#[section_init_data]
+#[unsafe(section_init_data)]
 #[allow(dead_code)] // TODO: Remove it after finishing
 /// Global static instance of the MemBlock allocator.
 /// Actually MEMBLOCK doesn't need to be protect, we use `RawSpinNoPreemptLockIrq`
@@ -505,6 +501,7 @@ pub fn setup_from_fdt() {
             GLOBAL_MEMBLOCK.lock().add_memory(start, r.size.unwrap());
         }
     }
+
     // Handle linux,usable-memory-range property
     let chosen_node = GLOBAL_FDT.chosen();
     if let Some(regions) =  chosen_node.usable_mem_region() {
