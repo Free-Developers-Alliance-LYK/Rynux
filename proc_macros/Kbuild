@@ -9,7 +9,7 @@ proc_macro2_cfg = \
 	--cfg wrap_proc_macro
 
 $(obj)/libproc_macro2.rlib: private rustc_target_flags = --extern unicode_ident \
-	$(proc_macro2_cfg)
+	-A mismatched_lifetime_syntaxes $(proc_macro2_cfg)
 $(obj)/libproc_macro2.rlib: $(src)/proc-macro2/src/lib.rs $(obj)/libunicode_ident.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
 
