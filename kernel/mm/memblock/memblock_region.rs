@@ -1,7 +1,6 @@
 //! Memblock region implement
 
 use core::ops::{Deref, DerefMut, Index, IndexMut};
-
 use crate::mm::PhysAddr;
 use crate::bitflags::bitflags;
 use crate::macros::section_init_text;
@@ -55,7 +54,7 @@ enum RegionStorage {
         regions: [MemBlockRegion; INIT_MEMBLOCK_MEMORY_REGIONS],
         count: usize,
     },
-    
+
     //* TODO: Support dynamic array
     //regions: Vec<MemBlockRegion>,
     Dynamic,
@@ -142,9 +141,9 @@ impl RegionStorage {
         while i < end_rgn {
             let (this, next) = self.split_mut_pair(i);
             let this_end = this.base + this.size;
-        
+
             let merge_able = this_end == next.base && this.flags == next.flags;
-        
+
             if !merge_able {
                 assert!(this_end <= next.base, "regions overlap or unordered");
                 i += 1;
@@ -423,7 +422,7 @@ impl MemBlockRegionArray {
             let r_base = this[id].base;
             let r_end =  this[id].base + this[id].size;
             let r_flags = this[id].flags;
-            
+
             // The interval is on the left do nothing
             if r_base >= end {
                 return ForStepResult::Break;
@@ -495,6 +494,41 @@ impl MemBlockRegionArray {
             }
         }
     }
+
+    fn addrs_overlap(base1: PhysAddr, size1: usize, base2: PhysAddr, size2: usize) -> bool {
+        return base1 < base2.saturating_add(size2) && base2 < base1.saturating_add(size1);
+    }
+
+    /// check if overlap
+    pub fn overlaps_region(&self, base: PhysAddr, size: usize) -> bool {
+        let end = base.saturating_add(size);
+        let size = end - base;
+
+        if size == 0 || self.total_size == 0 {
+            return false;
+        }
+
+        for i in 0..self.len() {
+            if Self::addrs_overlap(base, size, self[i].base, self[i].size) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// set flags for a range of memory regions
+    pub fn set_ctrl_flags(&mut self, base: PhysAddr, size: usize, set: bool, flags: MemBlockTypeFlags) {
+        let (start_rgn, end_rgn) = self.isolate_range(base, size);
+        for i in start_rgn..end_rgn {
+            if set {
+                self[i].flags |= flags;
+            } else {
+                self[i].flags &= !flags;
+            }
+        }
+        self.regions.merge_regions(start_rgn, end_rgn);
+    }
+
 }
 
 #[cfg(test)]
@@ -563,7 +597,7 @@ mod tests {
         assert_eq!(memblock[0].base, PhysAddr::from(0x0000));
         assert_eq!(memblock[0].size, 0x5000);
         assert_eq!(memblock.total_size, 0x5000);
-        
+
         memblock.add_range(PhysAddr::from(0x4000), 0x2000, MemBlockTypeFlags::NORMAL);
         assert_eq!(memblock.len(), 1);
         assert_eq!(memblock[0].base, PhysAddr::from(0x0000));
@@ -618,15 +652,15 @@ mod tests {
         assert_eq!(memblock[0].base, PhysAddr::from(0x2000));
         assert_eq!(memblock[0].size, 0x1000);
         assert_eq!(memblock.total_size, 0x1000);
+
         // now region is [0x2000, 0x3000)
-    
         // recover the region
         memblock.add_range(PhysAddr::from(0x1000), 0x3000, MemBlockTypeFlags::NORMAL);
         assert_eq!(memblock.len(), 1);
         assert_eq!(memblock[0].base, PhysAddr::from(0x1000));
         assert_eq!(memblock[0].size, 0x3000);
         assert_eq!(memblock.total_size, 0x3000);
-        
+
         // now region is [0x1000, 0x4000)
         // remove a middle range
         memblock.remove_range(PhysAddr::from(0x2000), 0x1000);
@@ -677,7 +711,7 @@ mod tests {
         memblock.add_range(PhysAddr::from(0x5000), 0x3000, MemBlockTypeFlags::NORMAL);
         assert_eq!(memblock.len(), 2);
         assert_eq!(memblock.total_size, 0x6000);
-    
+
         // now region is [0x1000, 0x4000) [0x5000, 0x8000)
         memblock.cap_range(PhysAddr::from(0x2000), 0x3000);
         // now region is [0x2000, 0x4000)
@@ -698,6 +732,90 @@ mod tests {
         assert_eq!(memblock.total_size, 0x2000);
     }
 
-}
+    #[test]
+    fn test_overlap_regions() {
+        let mut memblock = MemBlockRegionArray::new_static("test");
+        memblock.add_range(PhysAddr::from(0x1000), 0x3000, MemBlockTypeFlags::NORMAL);
+        memblock.add_range(PhysAddr::from(0x5000), 0x3000, MemBlockTypeFlags::NORMAL);
+        assert_eq!(memblock.len(), 2);
+        assert_eq!(memblock.total_size, 0x6000);
 
+        // now region is [0x1000, 0x4000) [0x5000, 0x8000)
+        assert!(memblock.overlaps_region(PhysAddr::from(0x2000), 0x1000));
+        assert!(memblock.overlaps_region(PhysAddr::from(0x3000), 0x2000));
+        assert!(memblock.overlaps_region(PhysAddr::from(0x4000),0x2000));
+        assert!(memblock.overlaps_region(PhysAddr::from(0x6000),0x1000));
+        assert!(!memblock.overlaps_region(PhysAddr::from(0xc0000), 0x1000));
+        assert!(!memblock.overlaps_region(PhysAddr::from(0xc0000), 0x0));
+    }
+
+    #[test]
+    fn test_set_ctrl_flags() {
+        let mut memblock = MemBlockRegionArray::new_static("test");
+        memblock.add_range(PhysAddr::from(0x1000), 0x1000, MemBlockTypeFlags::NORMAL);
+        memblock.add_range(PhysAddr::from(0x3000), 0x1000, MemBlockTypeFlags::NORMAL);
+        memblock.add_range(PhysAddr::from(0x5000), 0x1000, MemBlockTypeFlags::NORMAL);
+        assert_eq!(memblock.len(), 3);
+        assert_eq!(memblock.total_size, 0x3000);
+
+        // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
+        // set flags for middle regions
+        memblock.set_ctrl_flags(PhysAddr::from(0x2000), 0x2000, true, MemBlockTypeFlags::NOMAP);
+        assert_eq!(memblock.len(), 3);
+        assert!(memblock[0].flags == MemBlockTypeFlags::NORMAL);
+        assert!(memblock[1].flags == MemBlockTypeFlags::NORMAL | MemBlockTypeFlags::NOMAP);
+        assert!(memblock[2].flags == MemBlockTypeFlags::NORMAL);
+        assert_eq!(memblock.total_size, 0x3000);
+
+        assert_eq!(memblock[0].base, PhysAddr::from(0x1000));
+        assert_eq!(memblock[0].size, 0x1000);
+        assert_eq!(memblock[1].base, PhysAddr::from(0x3000));
+        assert_eq!(memblock[1].size, 0x1000);
+        assert_eq!(memblock[2].base, PhysAddr::from(0x5000));
+        assert_eq!(memblock[2].size, 0x1000);
+
+        // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
+        // clear flags for middle RegionStorage
+        memblock.set_ctrl_flags(PhysAddr::from(0x2000), 0x2000, false, MemBlockTypeFlags::NOMAP);
+        assert_eq!(memblock.len(), 3);
+        assert!(memblock[0].flags == MemBlockTypeFlags::NORMAL);
+        assert!(memblock[1].flags == MemBlockTypeFlags::NORMAL);
+        assert!(memblock[2].flags == MemBlockTypeFlags::NORMAL);
+        assert_eq!(memblock.total_size, 0x3000);
+
+        // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
+        // test it would isolate the regions first
+        memblock.set_ctrl_flags(PhysAddr::from(0x1800), 0x4000, true, MemBlockTypeFlags::NOMAP);
+
+        // now region is
+        // [0x1000, 0x1800) Normal
+        // [0x1800, 0x2000) Normal | NOMAP
+        // [0x3000, 0x4000) Normal | NOMAP
+        // [0x5000, 0x5800) Normal | NOMAP
+        // [0x5800, 0x6000) Normal
+        assert_eq!(memblock.len(), 5);
+
+        assert!(memblock[0].flags == MemBlockTypeFlags::NORMAL);
+        assert!(memblock[0].base == PhysAddr::from(0x1000));
+        assert!(memblock[0].size == 0x800);
+
+        assert!(memblock[1].flags == MemBlockTypeFlags::NORMAL | MemBlockTypeFlags::NOMAP);
+        assert!(memblock[1].base == PhysAddr::from(0x1800));
+        assert!(memblock[1].size == 0x800);
+
+        assert!(memblock[2].flags == MemBlockTypeFlags::NORMAL | MemBlockTypeFlags::NOMAP);
+        assert!(memblock[2].base == PhysAddr::from(0x3000));
+        assert!(memblock[2].size == 0x1000);
+
+        assert!(memblock[3].flags == MemBlockTypeFlags::NORMAL | MemBlockTypeFlags::NOMAP);
+        assert!(memblock[3].base == PhysAddr::from(0x5000));
+        assert!(memblock[3].size == 0x800);
+
+        assert!(memblock[4].flags == MemBlockTypeFlags::NORMAL);
+        assert!(memblock[4].base == PhysAddr::from(0x5800));
+        assert!(memblock[4].size == 0x800);
+        assert_eq!(memblock.total_size, 0x3000);
+    }
+
+}
 

@@ -209,7 +209,7 @@ pub struct MemoryRegion {
     /// Starting address represented as a pointer
     pub starting_address: *const u8,
     /// Size of the memory region
-    pub size: Option<usize>,
+    pub size: usize,
 }
 
 
@@ -243,7 +243,7 @@ impl<'a> Iterator for RegIter<'a> {
             _ => return None,
         };
 
-        Some(MemoryRegion { starting_address: base, size: Some(size) })
+        Some(MemoryRegion { starting_address: base, size: size })
     }
 }
 

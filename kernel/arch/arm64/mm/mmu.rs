@@ -281,7 +281,6 @@ impl Mmu {
 
     /// Create a mapping without allocating new page table  caller must make
     /// sure the page table is already init
-    ///
     #[unsafe(section_init_text)]
     pub fn create_map_noalloc(phys: PhysAddr, virt: VirtAddr, size: usize, prot: PtePgProt) {
         // virt must be in kernel space
@@ -291,4 +290,8 @@ impl Mmu {
         let mut k_pgdir_tbl = PgdirTable::kernel_pgdir();
         Self::create_pgd_mapping(&mut k_pgdir_tbl, phys, virt, size, prot, true, MmuMapFlags::NO_CONT);
     }
+}
+
+pub(crate) fn paging_init() {
+    // nothing to do now
 }

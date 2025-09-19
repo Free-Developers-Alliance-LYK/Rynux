@@ -11,6 +11,7 @@ use crate::mm::{
 use crate::macros::section_init_data;
 use crate::sync::lock::RawSpinLockNoIrq;
 use crate::alloc::{AllocError, AllocFlags};
+use crate::drivers::fdt::LinuxFdtWrapper;
 
 /// Memblock
 #[allow(dead_code)] // TODO: Remove it after finishing
@@ -33,7 +34,6 @@ pub struct FreeMemIter<'a> {
 
     idx_mem_back: usize, // initial is mem.len()
     idx_res_back: usize, // initial is reserved.len()
-                   
 }
 
 impl<'a> FreeMemIter<'a> {
@@ -110,7 +110,6 @@ impl<'a> Iterator for FreeMemIter<'a> {
                 } else {
                     PhysAddr::from(usize::MAX)
                 };
-                
                 // if idx_r advaced past idx_m,mem step continue
                 if res_start >= mem_end {
                     break;
@@ -152,15 +151,15 @@ impl DoubleEndedIterator for FreeMemIter<'_> {
 
 
             // we are looking for avaiable reserved reegion than include mem_region
-            // There are these cases: 
+            // There are these cases:
             //                       m_start                   m_end
             //          r_end
-            //                                        r_end    
-            //                                                                r_end 
+            //                                        r_end
+            //                                                                r_end
             // r_start                       rstart                   rstart
             //
             // only one case is ok,
-            //      m_start              m_end 
+            //      m_start              m_end
             //  r_start                     r_end
             //
             for idx_r in (0..=self.idx_res_back).rev() {
@@ -175,13 +174,13 @@ impl DoubleEndedIterator for FreeMemIter<'_> {
                 } else {
                     PhysAddr::from(usize::MAX)
                 };
-                
+
                 // if idx_r advaced past idx_m break
                 if res_end <= mem_start {
                     break;
                 }
 
-                // if the two regions intersect, done 
+                // if the two regions intersect, done
                 if mem_end > res_start {
                     let found_start = mem_start.max(res_start);
                     let found_end = mem_end.min(res_end);
@@ -219,9 +218,9 @@ impl MemBlock {
     }
 
     /// Add new memory region
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `base` - Base address of the new region
     /// * `size` - Size of the new region
     ///
@@ -231,7 +230,7 @@ impl MemBlock {
     }
 
     /// Remove a memory region
-    /// 
+    ///
     /// # Arguments
     /// 
     /// * `base` - Base address of the region
@@ -471,6 +470,86 @@ impl MemBlock {
     pub fn end_of_dram(&self) -> PhysAddr {
         self.memory.get(self.memory.len() - 1).unwrap().base + self.memory.get(self.memory.len() - 1).unwrap().size
     }
+
+    #[inline(always)]
+    fn range_in_ram(&self,start: PhysAddr, size: usize) -> bool {
+        self.memory.overlaps_region(start, size)
+    }
+
+    #[inline(always)]
+    fn range_in_reserved(&self,start: PhysAddr, size: usize) -> bool {
+        self.reserved.overlaps_region(start, size)
+    }
+
+    /// scan mem from fdt
+    pub fn scan_mem_from_fdt(&mut self, fdt: &LinuxFdtWrapper<'static>) {
+        // scan memory nodes
+        for m_node in fdt.mem_nodes() {
+            for r in m_node.regions().unwrap() {
+                let start = PhysAddr::from(r.starting_address as usize);
+                self.add_memory(start, r.size);
+            }
+        }
+
+        // Handle linux,usable-memory-range property
+        if let Some(regions) =  fdt.chosen().usable_mem_region() {
+            for r in regions {
+                let start = PhysAddr::from(r.starting_address as usize);
+                self.cap_memory(start, r.size);
+            }
+        }
+    }
+
+
+    #[inline(always)]
+    fn mark_memblock_nopmap(&mut self, start: PhysAddr, size: usize) {
+        self.memory.set_ctrl_flags(start, size, true,  MemBlockTypeFlags::NOMAP);
+    }
+
+
+    fn reserved_fdt_reg_mem(&mut self, start: PhysAddr, size: usize, nomap: bool) -> bool {
+        if nomap {
+            // If the memory is already reserved (by another region), we
+            // should now allow it to be marked nomap,but don't worry
+            // if the region isn't ram  memory as it won't be mapped.
+            if self.range_in_ram(start, size) &&
+                self.range_in_reserved(start, size) {
+                return false;
+            }
+            self.mark_memblock_nopmap(start, size);
+        } else {
+            self.add_reserved(start, size);
+        }
+        true
+    }
+
+    /// reserved memory from fdt
+    pub fn reserve_mem_from_fdt(&mut self, fdt: &LinuxFdtWrapper<'static>) {
+        if let Some(rmem) = fdt.linux_reserved_memory() {
+            // reserved reg memory
+            for r in rmem.valid_reserved_nodes() {
+                for mem_region in r.regions() {
+                    let start = PhysAddr::from(mem_region.starting_address as usize);
+                    self.reserved_fdt_reg_mem(start, mem_region.size, r.nomap());
+                }
+            }
+
+            // reserved dynamic reserved memory
+            for _r in rmem.dynamic_nodes() {
+                // TODO: Allocate memory for the dynamic reserved memory
+                todo!("Dynamic reserved memory is not supported yet");
+            }
+        }
+
+        // system memory reservation from fdt
+        for r in fdt.sys_memory_reservations() {
+            let start = PhysAddr::from(r.address() as usize);
+            self.add_reserved(start, r.size());
+        }
+
+        // TODO: reserved elfcorehdr
+    }
+
 }
 
 #[cfg(not(test))]
@@ -487,30 +566,6 @@ pub static GLOBAL_MEMBLOCK: RawSpinLockNoIrq<MemBlock> = RawSpinLockNoIrq::new(M
     memory: MemBlockRegionArray::new_static("memory"),
     reserved: MemBlockRegionArray::new_static("reserved"),
 }, Some("MEMBLOCK"));
-
-#[cfg(not(test))]
-#[inline]
-/// Setup memblock from fdt
-pub fn setup_from_fdt() {
-    use crate::drivers::fdt::GLOBAL_FDT;
-
-    // scan memory nodes
-    for m_node in GLOBAL_FDT.mem_nodes() {
-        for r in m_node.regions().unwrap() {
-            let start = PhysAddr::from(r.starting_address as usize);
-            GLOBAL_MEMBLOCK.lock().add_memory(start, r.size.unwrap());
-        }
-    }
-
-    // Handle linux,usable-memory-range property
-    let chosen_node = GLOBAL_FDT.chosen();
-    if let Some(regions) =  chosen_node.usable_mem_region() {
-       for r in regions {
-           let start = PhysAddr::from(r.starting_address as usize);
-           GLOBAL_MEMBLOCK.lock().cap_memory(start, r.size.unwrap());
-       }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -597,7 +652,6 @@ mod tests {
         let mut memblock = new_memblock();
         // Add some memory regions now we have 0x1000-0x3000
         memblock.add_memory(PhysAddr::from(0x1000), 0x2000);
-        
         // Try to allocate larger than available size
         let alloc_size = 0x3000; // Larger than the available memory
         let align = 0x1000;
@@ -641,7 +695,6 @@ mod tests {
         memblock.bottom_up = false; // Set to top-down allocation
         // Add some memory regions now we have 0x1000-0x3000
         memblock.add_memory(PhysAddr::from(0x1000), 0x2000);
-        
         // Try to allocate larger than available size
         let alloc_size = 0x3000; // Larger than the available memory
         let align = 0x1000;
@@ -679,7 +732,7 @@ mod tests {
         let mut memblock = new_memblock();
         // Add some memory regions
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
-        
+
         // Now we have three memory regions: [0x1000, 0x2000)
         // test alloc size: 2 4 6 8 10
         let alloc_sizes = [2, 4, 6, 8, 10];
@@ -696,9 +749,8 @@ mod tests {
     #[test]
     fn test_alloc_with_invalid_size() {
         let mut memblock = new_memblock();
-        // Add some memory regions 
+        // Add some memory regions
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
-        
         // Try to allocate with size 0
         let alloc_size = 0;
         let align = 0x1000;
@@ -713,7 +765,7 @@ mod tests {
         let mut memblock = new_memblock();
         // Add some memory regions 
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
-        
+
         // Try to allocate with invalid alignment
         let alloc_size = 0x1000;
         let align = 0; // Invalid alignment
@@ -730,7 +782,7 @@ mod tests {
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
         memblock.add_memory(PhysAddr::from(0x3000), 0x1000);
         memblock.add_memory(PhysAddr::from(0x5000), 0x1000);
-    
+
         // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
         // Cap the memory range to [0x2000, 0x4000)
         memblock.cap_memory(PhysAddr::from(0x2000), 0x2000);

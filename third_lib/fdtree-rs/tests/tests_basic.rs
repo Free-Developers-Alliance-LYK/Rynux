@@ -28,10 +28,10 @@ fn chosen_node() {
         cnt +=1 ;
         if cnt == 1 {
             assert_eq!(region.starting_address as usize, 0x9_f000_0000);
-            assert_eq!(region.size.unwrap(), 0x10000000);
+            assert_eq!(region.size, 0x10000000);
         } else {
             assert_eq!(region.starting_address as usize, 0xa_0000_0000);
-            assert_eq!(region.size.unwrap(), 0x20000000);
+            assert_eq!(region.size, 0x20000000);
         }
     };
 }
@@ -45,11 +45,11 @@ fn memory_node() {
         for (idx, region) in node.regions().unwrap().enumerate() {
             if idn == 0 && idx == 0 {
                 assert_eq!(region.starting_address as usize, 0x80000000);
-                assert_eq!(region.size.unwrap(), 0x10000000);
+                assert_eq!(region.size, 0x10000000);
             }
             if idn == 1 && idx == 0 {
                 assert_eq!(region.starting_address as usize, 0x90000000);
-                assert_eq!(region.size.unwrap(), 0x10000000);
+                assert_eq!(region.size, 0x10000000);
             }
         }
     }
@@ -66,24 +66,24 @@ fn linux_reserved_memory() {
     assert_eq!(vnode1.node.name, "static_buf@0000000080000000");
     assert_eq!(vnode1.nomap(), false);
 
-    let mut vreg1_iter = vnode1.regions().unwrap();
+    let mut vreg1_iter = vnode1.regions();
     assert_eq!(vreg1_iter.clone().count(), 1);
     let vreg1_0 = vreg1_iter.next().unwrap();
     assert_eq!(vreg1_0.starting_address as usize, 0x80000000);
-    assert_eq!(vreg1_0.size.unwrap(), 0x2000000);
+    assert_eq!(vreg1_0.size, 0x2000000);
 
     let vnode2 = valid_node_iter.next().unwrap();
     assert_eq!(vnode2.node.name, "secure_carveout@0000000090000000");
     assert_eq!(vnode2.nomap(), true);
 
-    let mut vreg2_iter = vnode2.regions().unwrap();
+    let mut vreg2_iter = vnode2.regions();
     assert_eq!(vreg2_iter.clone().count(), 2);
     let vreg2_0 = vreg2_iter.next().unwrap();
     assert_eq!(vreg2_0.starting_address as usize, 0x90000000);
-    assert_eq!(vreg2_0.size.unwrap(), 0x1000000);
+    assert_eq!(vreg2_0.size, 0x1000000);
     let vreg2_1 = vreg2_iter.next().unwrap();
     assert_eq!(vreg2_1.starting_address as usize, 0x91000000);
-    assert_eq!(vreg2_1.size.unwrap(), 0x1000000);
+    assert_eq!(vreg2_1.size, 0x1000000);
 
 }
 
@@ -92,7 +92,7 @@ fn linux_reserved_memory_dynamic() {
     let fdt = setup();
     let reserved = fdt.linux_reserved_memory().unwrap();
     assert_eq!(reserved.dynamic_nodes().count(), 2);
-    
+
     let mut dyn_node_iter = reserved.dynamic_nodes();
     let dyn_node1 = dyn_node_iter.next().unwrap();
     assert_eq!(dyn_node1.node.name, "dyn_pool");

@@ -23,19 +23,9 @@ impl <'a> LinuxFdtWrapper <'a> {
     pub(crate) fn setup(fdt_va: VirtAddr)  {
     // SAFETY: fdt from_ptr would check header and magic number
     GLOBAL_FDT.set(
-        unsafe { 
+        unsafe {
             LinuxFdtWrapper { fdt: LinuxFdt::from_ptr(fdt_va.as_usize() as *const u8).expect("Invalid fdt")}
         });
-    }
-
-    // scan fdt reserved memory and reserve it in memblock
-    pub(crate) fn early_scan_reserved_memory() {
-        let fdt = GLOBAL_FDT.deref();
-        // first reserved system memory
-        for r in fdt.sys_memory_reservations() {
-            GLOBAL_MEMBLOCK.lock().add_reserved(PhysAddr::from(r.address() as usize), r.size());
-        }
-
     }
 }
 

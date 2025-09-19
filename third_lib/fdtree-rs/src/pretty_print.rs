@@ -21,12 +21,7 @@ pub fn print_node(
                         write!(f, " ")?;
                     }
 
-                    match reg.size {
-                        Some(size) => {
-                            write!(f, "{:#x} {:#x}", reg.starting_address as usize, size)?
-                        }
-                        None => write!(f, "{:#x}", reg.starting_address as usize)?,
-                    }
+                    write!(f, "{:#x} {:#x}", reg.starting_address as usize, reg.size)?
                 }
                 writeln!(f, ">")?;
             }

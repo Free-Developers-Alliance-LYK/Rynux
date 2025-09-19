@@ -23,7 +23,7 @@ get_canonical_version()
 print_docs_reference()
 {
 	echo >&2 "***"
-	echo >&2 "*** Please see Documentation/quick-start.rst for details"
+	echo >&2 "*** Please see Documentation/quick-start.md for details"
 	echo >&2 "*** on how to set up the Rust support."
 	echo >&2 "***"
 }

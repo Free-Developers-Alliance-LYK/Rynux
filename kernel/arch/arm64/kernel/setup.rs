@@ -64,8 +64,6 @@ impl Arm64BootSetup {
         crate::drivers::fdt::LinuxFdtWrapper::setup(dt_virt);
         // init bootcoomand line from fdt bootargs
         crate::init::command_line::setup_from_fdt();
-        // early scan mem from fdt
-        crate::mm::memblock::setup_from_fdt();
         // reserve fdt mem
         GLOBAL_MEMBLOCK.lock().add_reserved(*FDT_POINTER.get().unwrap(), size);
     }
@@ -77,6 +75,7 @@ impl ArchBootSetupTrait for Arm64BootSetup {
         FixMap::early_fixmap_init();
         Self::setup_machine_fdt();
         crate::arch::arm64::mm::init::memblock_init();
+        crate::arch::arm64::mm::mmu::paging_init();
         crate::init::GLOBAL_COMMAND_LINE.lock().parse_early_options();
         // init arm64 memblock
         //crate::arch::arm64::mm::init::paging_init();

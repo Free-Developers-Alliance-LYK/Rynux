@@ -14,8 +14,8 @@ pub struct ValidReservedMemoryNode<'b, 'a> {
 
 impl <'b, 'a: 'b> ValidReservedMemoryNode<'b, 'a> {
     /// Returns an iterator over all of the valid regs
-    pub fn regions(&self) -> Option<RegIter<'a>> {
-        self.node.reg()
+    pub fn regions(&self) -> RegIter<'a> {
+        self.node.reg().unwrap()
     }
 
     /// return nomap property

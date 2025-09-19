@@ -16,13 +16,6 @@ case "$1" in
 binutils)
 	echo 2.25.0
 	;;
-gcc)
-	if [ "$ARCH" = parisc64 ]; then
-		echo 12.0.0
-	else
-		echo 5.1.0
-	fi
-	;;
 llvm)
 	if [ "$SRCARCH" = s390 ]; then
 		echo 15.0.0
@@ -33,7 +26,7 @@ llvm)
 	fi
 	;;
 rustc)
-	echo 1.83.0
+	echo 1.89.0
 	;;
 *)
 	echo "$1: unknown tool" >&2
