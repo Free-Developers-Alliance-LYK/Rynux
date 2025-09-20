@@ -2,9 +2,7 @@
 //! we assume the uart is already inited by uboot,and device address is
 //! identity map in arm64 boot.
 
-use crate::cfg_if;
-
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_QEMU)] {
         pub mod pl011;
         use pl011::Pl011Uart;

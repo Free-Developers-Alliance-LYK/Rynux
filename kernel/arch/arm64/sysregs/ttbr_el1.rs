@@ -1,8 +1,6 @@
 //! TTBR0_EL1
 
-use crate::cfg_if;
-
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
         use crate::klib::bits::genmask_ull;
         const TTBR_BADDR_MASK_52: u64 = genmask_ull(47, 2);

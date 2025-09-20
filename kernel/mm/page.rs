@@ -1,12 +1,12 @@
 //! Page management code.
 
-use crate::{cfg_if, macros::need_export};
+use crate::macros::need_export;
 
 /// Page configuration
 pub struct PageConfig();
 
 impl PageConfig {
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
             /// Page shift for 4KB pages.
             pub const PAGE_SHIFT: usize = 12;

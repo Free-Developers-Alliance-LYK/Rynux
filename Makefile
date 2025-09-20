@@ -951,16 +951,6 @@ help:
 	@$(or $(archhelp),\
 		echo '  No architecture-specific help defined for $(SRCARCH)')
 	@echo  ''
-	@$(if $(boards), \
-		$(foreach b, $(boards), \
-		printf "  %-27s - Build for %s\\n" $(b) $(subst _defconfig,,$(b));) \
-		echo '')
-	@$(if $(board-dirs), \
-		$(foreach b, $(board-dirs), \
-		printf "  %-16s - Show %s-specific targets\\n" help-$(b) $(b);) \
-		printf "  %-16s - Show all of the above\\n" help-boards; \
-		echo '')
-
 	@echo  '  make V=n   [targets] 1: verbose build'
 	@echo  '                       2: give reason for rebuild of target'
 	@echo  '                       V=1 and V=2 can be combined with V=12'
@@ -979,19 +969,6 @@ help:
 	@echo  ''
 	@echo  'Execute "make" or "make all" to build all targets marked with [*] '
 	@echo  'For further info see the ./README file'
-
-help-board-dirs := $(addprefix help-,$(board-dirs))
-
-help-boards: $(help-board-dirs)
-
-boards-per-dir = $(sort $(notdir $(wildcard $(srctree)/arch/$(SRCARCH)/configs/$*/*_defconfig)))
-
-$(help-board-dirs): help-%:
-	@echo  'Architecture-specific targets ($(SRCARCH) $*):'
-	@$(if $(boards-per-dir), \
-		$(foreach b, $(boards-per-dir), \
-		printf "  %-24s - Build for %s\\n" $*/$(b) $(subst _defconfig,,$(b));) \
-		echo '')
 
 # Rust targets
 # ---------------------------------------------------------------------------
@@ -1014,6 +991,15 @@ rusttest: prepare
 
 # Formatting targets
 PHONY += rustfmt rustfmtcheck
+
+
+# Generate rust-project.json (a file that describes the structure of non-Cargo
+# Rust projects) for rust-analyzer (an implementation of the Language Server
+# Protocol).
+PHONY += rust-analyzer
+rust-analyzer:
+	+$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust_is_available.sh
+	 $(Q)$(MAKE) $(build)=third_lib $@
 
 # We skip `rust/alloc` since we want to minimize the diff w.r.t. upstream.
 #

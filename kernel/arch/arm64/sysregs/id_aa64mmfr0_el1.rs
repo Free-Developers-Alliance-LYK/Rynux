@@ -1,6 +1,6 @@
 //! ID_AA64MMFR0_EL1
 
-use crate::{bitflags::bitflags, cfg_if};
+use crate::bitflags::bitflags;
 
 bitflags! {
     /// ID_AA64MMFR0_EL1
@@ -100,7 +100,7 @@ impl IdAa64mmfr0El1 {
     }
 
     const PARANGE_SHIFT: u64 = 0;
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_PA_BITS_52) ] {
             const ID_AA64MMFR0_EL1_PARANGE_MAX: PaRange = PaRange::Bits52;
         } else {
@@ -120,7 +120,7 @@ impl IdAa64mmfr0El1 {
         }
     }
 
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_4K_PAGES) ] {
             const TGRAN_OFFSET: u64 = 28;
             const TGRAN_SUPPORT_MIN: u64 = 0b0000;

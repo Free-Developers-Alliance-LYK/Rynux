@@ -1,12 +1,10 @@
 //! Kernel architecture-specific code.
 
-use crate::cfg_if;
-
-cfg_if! {
-    if #[cfg(test)] {
-        pub mod dummy;
-    } else if #[cfg(CONFIG_ARM64)] {
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_ARM64)] {
         pub mod arm64;
+    } else {
+        pub mod dummy;
     }
 }
 

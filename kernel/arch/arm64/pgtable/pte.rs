@@ -1,6 +1,6 @@
 //! Arm64 Page table PTE
 
-use crate::{arch::arm64::pgtable::config::Arm64PgtableConfig, cfg_if, mm::page::PageConfig};
+use crate::{arch::arm64::pgtable::config::Arm64PgtableConfig, mm::page::PageConfig};
 use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut, Index, IndexMut},
@@ -20,7 +20,7 @@ impl PteEntry {
     // Address mask
     const PTE_ADDR_LOW_MASK: u64 = ((1 << (50 - PteTable::SHIFT)) - 1) << PteTable::SHIFT;
 
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
             if #[cfg(CONFIG_ARM64_64K_PAGES)] {
                 use klib::bits::genmask_ull;
@@ -90,7 +90,7 @@ impl PgTableEntry for PteEntry {
         unsafe { core::ptr::write_volatile(&mut self.0, val) }
     }
 
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
             /// Consume the pte and convert it to a physical address
             #[inline(always)]

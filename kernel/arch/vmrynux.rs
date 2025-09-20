@@ -1,12 +1,7 @@
 //!  Arch Vmlinux
 
-use crate::cfg_if;
-
-cfg_if! {
-
-    if #[cfg(test)] {
-        // do nothing
-    } else if #[cfg(CONFIG_ARM64)] {
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_ARM64)] {
         use crate::mm::page::PageConfig;
         use crate::arch::arm64::mm::cache::L1_CACHE_BYTES;
         /// Default discarded section

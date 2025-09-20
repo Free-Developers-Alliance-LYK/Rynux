@@ -2,7 +2,6 @@
 
 use crate::{
     arch::arm64::{kernel::image::MIN_KIMG_ALIGN, pgtable::pmd::PmdTable},
-    cfg_if,
     klib::math::div_round_up,
     mm::page::PageConfig,
 };
@@ -12,7 +11,7 @@ pub struct Arm64PgtableConfig();
 
 #[allow(dead_code)]
 impl Arm64PgtableConfig {
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(all(CONFIG_ARM64_16K_PAGES, CONFIG_ARM64_VA_BITS_36)) ] {
             pub(crate) const HAS_PMD: bool = false;
             pub(crate) const HAS_PUD: bool = false;

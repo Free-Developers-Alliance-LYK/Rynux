@@ -5,7 +5,6 @@ use crate::{
         mm::{Arm64VaLayout, SEGMENT_ALIGN},
         pgtable::Arm64PgtableConfig,
     },
-    cfg_if,
     macros::need_export,
     mm::page::PageConfig,
     size::SZ_2M,
@@ -102,7 +101,7 @@ impl InitMap {
     // which it was linked. In the worst case, its runtime placement may intersect
     // with two adjacent PGDIR entries, which means that an additional page table
     // may be needed at each subordinate level.
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_RELOCATABLE)] {
             const EXTRA_PAGE: usize = 1;
         } else {

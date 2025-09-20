@@ -99,11 +99,26 @@ rusttestlib-fdtree_rs: private skip_flags = $(fdt_skip_flags)
 rusttestlib-fdtree_rs: $(src)/fdtree-rs/src/lib.rs  FORCE
 	+$(call if_changed,rustc_test_library)
 
+# ------------------------------- cfg_if ---------------------
+
+$(obj)/cfg_if.o: $(src)/cfg-if-1.0.3/src/lib.rs $(base_libs) FORCE
+	+$(call if_changed_rule,rustc_library)
+
+rusttestlib-cfg_if: $(src)/cfg-if-1.0.3/src/lib.rs FORCE
+	+$(call if_changed,rustc_test_library)
+
 # -------------------------------- rusttest libraries ---------------------
 
 rusttest: rusttestlib-const_format rusttestlib-static_assertions \
-	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdtree_rs 
+	rusttestlib-bitflags rusttestlib-tock_registers rusttestlib-fdtree_rs \
+	rusttestlib-cfg_if
 
+rust-analyzer:
+	$(Q)MAKEFLAGS= $(srctree)/scripts/generate_rust_analyzer.py \
+    --cfgs='core=$(core-cfgs)' 2024 \
+    $(realpath $(srctree)) $(realpath $(objtree)) \
+    $(rustc_sysroot) $(RUST_LIB_SRC) \
+    > rust-project.json
 
 
 # Ordinary directory descending
@@ -115,3 +130,4 @@ obj-y 			+= static_assertions.o
 obj-y 			+= bitflags.o
 obj-y 			+= tock_registers.o
 obj-y 			+= fdtree_rs.o
+obj-y 			+= cfg_if.o

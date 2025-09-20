@@ -3,11 +3,13 @@
 use crate::{
     arch::arm64::{mm::fixmap::FixMap, pgtable::pgprot::PtePgProt},
     arch::setup::ArchBootSetupTrait,
-    macros::{cache_aligned, section_cache_aligned, section_init_data, section_init_text},
-    mm::memblock::GLOBAL_MEMBLOCK,
+    macros::{cache_aligned, section_cache_aligned, section_init_data},
     mm::PhysAddr,
     types::OnceCell,
 };
+
+#[cfg(not(test))]
+use crate::mm::memblock::GLOBAL_MEMBLOCK;
 
 /// Have to define this struct with repr align
 #[allow(dead_code)]
@@ -54,8 +56,7 @@ pub fn set_fdt_pointer(pa: PhysAddr) {
 pub struct Arm64BootSetup;
 
 impl Arm64BootSetup {
-    /// early scan fdt
-    #[section_init_text]
+    #[cfg(not(test))]
     fn setup_machine_fdt() {
         let (dt_virt, size) =
             FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL_RO);
@@ -70,7 +71,7 @@ impl Arm64BootSetup {
 }
 
 impl ArchBootSetupTrait for Arm64BootSetup {
-    #[section_init_text]
+    #[cfg(not(test))]
     fn setup_arch() {
         FixMap::early_fixmap_init();
         Self::setup_machine_fdt();
@@ -82,4 +83,7 @@ impl ArchBootSetupTrait for Arm64BootSetup {
         // init arm64 memblock
         //crate::arch::arm64::mm::init::paging_init();
     }
+
+    #[cfg(test)]
+    fn setup_arch() {}
 }

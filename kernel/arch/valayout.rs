@@ -1,5 +1,4 @@
 //! Arch Virtual Address Layout
-use crate::cfg_if;
 
 /// Trait for architecture-specific virtual address layout.
 pub trait ArchVaLayout {
@@ -11,10 +10,10 @@ pub trait ArchVaLayout {
     fn linear_map_end() -> usize;
 }
 
-cfg_if! {
-    if #[cfg(test)] {
-        pub use super::dummy::va_layout::DummyVaLayout as VaLayout;
-    } else if #[cfg(CONFIG_ARM64)] {
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::mm::Arm64VaLayout as VaLayout;
+    } else {
+        pub use super::dummy::va_layout::DummyVaLayout as VaLayout;
     }
 }

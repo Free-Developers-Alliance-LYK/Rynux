@@ -24,6 +24,7 @@ compile_error!("This crate only supports little endian platforms!");
 //extern crate self as kernel;
 
 pub use bitflags;
+pub use cfg_if;
 pub use const_format;
 pub use fdtree_rs;
 pub use macros;
@@ -32,7 +33,7 @@ pub use tock_registers;
 
 pub mod arch;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(not(test))] {
         // vmrynux and global_sym only used in real image
         pub mod vmrynux;

@@ -1,8 +1,6 @@
 //! Linkage code.
 
-use crate::cfg_if;
-
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_FUNCTION_ALIGNMENT_4B)] {
         /// Function alignment
         pub const FUNCTION_ALIGNMENT: usize = 4;

@@ -1,7 +1,5 @@
 //! Architecture-specific IRQ code.
 
-use crate::cfg_if;
-
 /// Architecture-specific IRQ code.
 pub trait ArchIrq {
     /// The type used to store the IRQ state.
@@ -16,10 +14,10 @@ pub trait ArchIrq {
     fn local_restore(state: Self::IrqState);
 }
 
-cfg_if! {
-    if #[cfg(test)] {
-        pub use super::dummy::irq::DummyIrq as IRQ;
-    } else if #[cfg(CONFIG_ARM64)] {
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::irq::Arm64Irq as IRQ;
+    } else {
+        pub use super::dummy::irq::DummyIrq as IRQ;
     }
 }

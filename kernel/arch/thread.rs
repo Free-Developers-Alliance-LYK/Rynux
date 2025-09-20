@@ -1,7 +1,5 @@
 //! Rynux thread
 
-use crate::cfg_if;
-
 use crate::schedule::task::Task;
 
 /// Arch thread info
@@ -22,12 +20,12 @@ pub trait ArchCurrentTrait {
     fn write(task: *const Task);
 }
 
-cfg_if! {
-    if #[cfg(test)] {
-        pub use super::dummy::thread::DummyThreadInfo as ArchThreadInfo;
-        pub use super::dummy::thread::DummyCurrent as ArchCurrent;
-    } else if #[cfg(CONFIG_ARM64)] {
+cfg_if::cfg_if! {
+    if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::thread::Arm64ThreadInfo as ArchThreadInfo;
         pub use super::arm64::thread::Arm64Current as ArchCurrent;
+    } else {
+        pub use super::dummy::thread::DummyThreadInfo as ArchThreadInfo;
+        pub use super::dummy::thread::DummyCurrent as ArchCurrent;
     }
 }

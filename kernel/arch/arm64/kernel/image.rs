@@ -1,7 +1,7 @@
 //! Rynux arm64 image header
 
 use crate::{
-    cfg_if, const_format::concatcp, const_str_to_u8_array_with_null, macros::need_export,
+    const_format::concatcp, const_str_to_u8_array_with_null, macros::need_export,
     mm::page::PageConfig, size::*, static_assertions::const_assert_eq,
 };
 
@@ -73,7 +73,7 @@ impl HeadFlags {
     }
 }
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_PAGE_SIZE_4KB)] {
             const HEAD_SYMBOLS: &str = concatcp!{
                 define_image_le64_macro!("_kernel_size_le", "_end - _text"),
@@ -102,7 +102,7 @@ cfg_if! {
 pub static EXPORT_HEAD_SYMBOLS: [u8; HEAD_SYMBOLS.len() + 1] =
     const_str_to_u8_array_with_null!(HEAD_SYMBOLS);
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_4MB)] {
         /// Kernel Image Size
         pub const KERNEL_IMAGE_SIZE: usize = SZ_4M;

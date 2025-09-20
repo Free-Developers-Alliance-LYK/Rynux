@@ -11,7 +11,6 @@
 
 use super::{AllocError, AllocFlags, Allocator};
 use core::alloc::Layout;
-use core::cmp;
 use core::ptr;
 use core::ptr::NonNull;
 

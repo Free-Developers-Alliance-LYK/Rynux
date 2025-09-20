@@ -16,5 +16,8 @@
 /include/config/
 /include/generated/
 
+# generate analysis files
+rust-project.json
+
 *.swp
 *.swo

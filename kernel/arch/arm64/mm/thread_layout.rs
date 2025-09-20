@@ -1,6 +1,5 @@
 //! Thread memory layout for ARM64 architecture
 
-use crate::cfg_if;
 use crate::mm::page::PageConfig;
 
 /// ARM64-specific thread memory layout
@@ -11,7 +10,7 @@ impl Arm64ThreadMemLayout {
     pub const MIN_THREAD_SHIFT: usize = 14;
     /// Thread size
     pub const THREAD_SIZE: usize = 1 << Self::THREAD_SHIFT;
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_VMAP_STACK)] {
             const fn thread_shift() -> usize {
                 if Self::MIN_THREAD_SHIFT < PageConfig::PAGE_SHIFT {

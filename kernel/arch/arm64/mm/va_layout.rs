@@ -30,7 +30,6 @@ use crate::types::OnceCell;
 use crate::{
     arch::arm64::mm::fixmap::FixMap,
     arch::valayout::ArchVaLayout,
-    cfg_if,
     macros::need_export,
     mm::page::{Page, PageConfig},
     size::*,
@@ -56,7 +55,7 @@ impl ArchVaLayout for Arm64VaLayout {
 }
 
 impl Arm64VaLayout {
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_VA_BITS_36)] {
             #[allow(missing_docs)]
             pub const VA_BITS: usize = 36;

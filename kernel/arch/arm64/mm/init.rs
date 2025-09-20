@@ -3,12 +3,17 @@
 use crate::{
     arch::arm64::mm::{Arm64PhysConfig, Arm64VaLayout},
     drivers::fdt::GLOBAL_FDT,
-    global_sym::{_end, _stext},
-    mm::memblock::GLOBAL_MEMBLOCK,
     mm::{PhysAddr, VirtAddr},
 };
 
+#[cfg(not(test))]
+use crate::mm::memblock::GLOBAL_MEMBLOCK;
+
+#[cfg(not(test))]
+use crate::global_sym::{_end, _stext};
+
 /// Arm64 memblock init
+#[cfg(not(test))]
 pub fn memblock_init() {
     // scan mem from fdt
     GLOBAL_MEMBLOCK.lock().scan_mem_from_fdt(&GLOBAL_FDT);
@@ -53,4 +58,9 @@ pub fn memblock_init() {
     );
 
     GLOBAL_MEMBLOCK.lock().reserve_mem_from_fdt(&GLOBAL_FDT);
+}
+
+#[cfg(test)]
+pub fn memblock_init() {
+    // do nothing
 }

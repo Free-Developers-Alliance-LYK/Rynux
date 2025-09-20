@@ -2,7 +2,6 @@
 
 use crate::arch::arm64::mm::sparse_mem::SECTION_SIZE_BITS;
 use crate::arch::arm64::pgtable;
-use crate::cfg_if;
 
 /// Arm64 Phys Config
 pub struct Arm64PhysConfig();
@@ -13,7 +12,7 @@ impl Arm64PhysConfig {
     // be mapped efficiently, i.e., either PUD_SIZE (4k granule) or PMD_SIZE
     // (64k granule), or a multiple that can be mapped using contiguous bits
     // in the page tables: 32 * PMD_SIZE (16k granule)
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_4K_PAGES)] {
             // Phys mem start shift
             const MEM_START_SHIFT: usize = pgtable::PudTable::SHIFT;
@@ -28,7 +27,7 @@ impl Arm64PhysConfig {
         }
     }
 
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_PA_BITS_52)] {
             /// Physical address mask shift
             pub const PHYS_MASK_SHIFT: usize = 52;

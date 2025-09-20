@@ -2,7 +2,6 @@
 use crate::{
     arch::arm64::sysregs::{id_aa64mmfr0_el1, midr_el1, IdAa64mmfr0El1, MidrEl1},
     bitflags::bitflags,
-    cfg_if,
 };
 
 bitflags! {
@@ -251,7 +250,7 @@ impl Tcr {
     /// Inner shareable
     pub const SHARED: u64 = SharedFlags::shx(SharedFlags::INNER);
 
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(CONFIG_ARM64_64K_PAGES)] {
             /// 64KB granule
             pub const TG_FLAGS: u64 = TG::tgx(TG::_64K);

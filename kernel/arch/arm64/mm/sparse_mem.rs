@@ -1,8 +1,6 @@
 //! Arm64  Sparse memory config
 
-use crate::cfg_if;
-
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(CONFIG_PAGE_SIZE_64KB)] {
         /// Section size bits
         ///
