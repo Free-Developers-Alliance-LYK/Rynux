@@ -1021,13 +1021,11 @@ PHONY += rustfmt rustfmtcheck
 # when matching, which is a problem when e.g. `srctree` is `..`.
 # We `grep` afterwards in order to remove the directory entry itself.
 rustfmt:
-	$(Q)find $(abs_srctree) -type f -name '*.rs' \
-		-o -path $(abs_srctree)/rust/alloc -prune \
-		-o -path $(abs_objtree)/rust/test -prune \
-		| grep -Fv $(abs_srctree)/rust/alloc \
-		| grep -Fv $(abs_objtree)/rust/test \
-		| grep -Fv generated \
-		| xargs $(RUSTFMT) $(rustfmt_flags)
+	$(Q)find $(abs_srctree) $(RCS_FIND_IGNORE) \
+		-path $(abs_srctree)/third_lib -prune -o \
+		-path $(abs_srctree)/proc_macros/syn -prune -o \
+		 -type f -a -name '*.rs' -a ! -name '*generated*' -print \
+		 | xargs $(RUSTFMT) $(rustfmt_flags)
 
 rustfmtcheck: rustfmt_flags = --check
 rustfmtcheck: rustfmt
