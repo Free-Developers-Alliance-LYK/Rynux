@@ -134,7 +134,6 @@ pub extern "C" fn memmove(dest: *mut u8, src: *const u8, count: usize) -> *mut u
     dest
 }
 
-
 /// memcmp - Compare two areas of memory.
 ///
 /// # Arguments
@@ -218,6 +217,6 @@ macro_rules! const_str_to_u8_array_with_null {
             arr[bytes.len()] = 0; //NULL
             arr
         }
-        to_array::<{ S.len()+1 }>(S)
+        to_array::<{ S.len() + 1 }>(S)
     }};
 }

@@ -63,7 +63,7 @@ impl Console {
             write: None,
             read: None,
             flags,
-            index
+            index,
         }
     }
 
@@ -71,7 +71,6 @@ impl Console {
     pub fn name(&self) -> &str {
         core::str::from_utf8(&self.name[..self.name_len]).unwrap()
     }
-    
 }
 
 def_node! {
@@ -83,7 +82,8 @@ def_node! {
 type ConsoleList = crate::list::List<Arc<ConsoleNode>>;
 
 /// A global console mange list
-pub static GLOBAL_CONSOLE: Mutex<ConsoleList> = Mutex::new(ConsoleList::new(),Some("GlobalConsoleList"));
+pub static GLOBAL_CONSOLE: Mutex<ConsoleList> =
+    Mutex::new(ConsoleList::new(), Some("GlobalConsoleList"));
 
 impl ConsoleList {
     /// register a console
@@ -95,5 +95,4 @@ impl ConsoleList {
     pub fn is_register(&self, console: &Arc<ConsoleNode>) -> bool {
         self.iter().any(|c| core::ptr::eq(c, &**console))
     }
-    
 }

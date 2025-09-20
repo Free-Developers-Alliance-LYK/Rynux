@@ -5,7 +5,6 @@ use crate::arch::arm64::sysregs::MpidrEl1;
 use crate::arch::cpu::ArchProcessorTrait;
 use crate::macros::section_init_text;
 
-
 /// Arm64 processor manager
 pub struct Arm64Processor;
 
@@ -28,4 +27,3 @@ impl Arm64Processor {
         Self
     }
 }
-

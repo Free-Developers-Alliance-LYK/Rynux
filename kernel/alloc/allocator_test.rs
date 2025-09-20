@@ -9,7 +9,7 @@
 
 #![allow(missing_docs)]
 
-use super::{AllocError, Allocator, AllocFlags};
+use super::{AllocError, AllocFlags, Allocator};
 use core::alloc::Layout;
 use core::cmp;
 use core::ptr;
@@ -32,26 +32,27 @@ unsafe extern "C" {
 
 /// Returns a proper size to alloc a new object aligned to `new_layout`'s alignment.
 fn aligned_layout(layout: Layout) -> Result<Layout, AllocError> {
-     // ISO C (ISO/IEC 9899:2011) defines `aligned_alloc`:
-     //
-     // > The value of alignment shall be a valid alignment supported by the implementation
-     // [...].
-     //
-     // As an example of the "supported by the implementation" requirement, POSIX.1-2001 (IEEE
-     // 1003.1-2001) defines `posix_memalign`:
-     //
-     // > The value of alignment shall be a power of two multiple of sizeof (void *).
-     //
-     // and POSIX-based implementations of `aligned_alloc` inherit this requirement. At the time
-     // of writing, this is known to be the case on macOS (but not in glibc).
-     //
-     // Satisfy the stricter requirement to avoid spurious test failures on some platforms.
-     let min_align = core::mem::size_of::<*const std::ffi::c_void>();
-     let layout = layout.align_to(min_align).map_err(|_| AllocError::InvalidAlign)?;
-     let layout = layout.pad_to_align();
-     Ok(layout)
+    // ISO C (ISO/IEC 9899:2011) defines `aligned_alloc`:
+    //
+    // > The value of alignment shall be a valid alignment supported by the implementation
+    // [...].
+    //
+    // As an example of the "supported by the implementation" requirement, POSIX.1-2001 (IEEE
+    // 1003.1-2001) defines `posix_memalign`:
+    //
+    // > The value of alignment shall be a power of two multiple of sizeof (void *).
+    //
+    // and POSIX-based implementations of `aligned_alloc` inherit this requirement. At the time
+    // of writing, this is known to be the case on macOS (but not in glibc).
+    //
+    // Satisfy the stricter requirement to avoid spurious test failures on some platforms.
+    let min_align = core::mem::size_of::<*const std::ffi::c_void>();
+    let layout = layout
+        .align_to(min_align)
+        .map_err(|_| AllocError::InvalidAlign)?;
+    let layout = layout.pad_to_align();
+    Ok(layout)
 }
-
 
 // SAFETY:
 // - memory remains valid until it is explicitly freed,
@@ -77,11 +78,10 @@ unsafe impl Allocator for Cmalloc {
             dst
         };
         Ok(NonNull::slice_from_raw_parts(ptr, size))
-
     }
 
     unsafe fn free(ptr: NonNull<u8>, _layout: Layout) {
-        unsafe { libc_free(ptr.as_ptr().cast())};
+        unsafe { libc_free(ptr.as_ptr().cast()) };
     }
 
     unsafe fn realloc(
@@ -102,13 +102,19 @@ unsafe impl Allocator for Cmalloc {
             // SAFETY: `ptr` is a valid pointer to an allocation of size `old_size`
             // and `new` is a valid pointer to an allocation of size `new_layout.size()`.
             unsafe {
-                ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr() as *mut u8, old_layout.size().min(new_layout.size()));
+                ptr::copy_nonoverlapping(
+                    ptr.as_ptr(),
+                    new_ptr.as_ptr() as *mut u8,
+                    old_layout.size().min(new_layout.size()),
+                );
             }
         }
 
         // free the old memory block
         // SAFETY: `ptr` is a valid pointer to an allocation of size `old_layout.size()`.
-        unsafe {Self::free(ptr, old_layout);}
+        unsafe {
+            Self::free(ptr, old_layout);
+        }
         // return the new memory block
         Ok(new_ptr)
     }

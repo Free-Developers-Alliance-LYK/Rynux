@@ -1,15 +1,15 @@
 //! Arm64 Page table PUD
 
-use core::{marker::PhantomData, ptr::NonNull};
-use core::ops::{Deref, DerefMut, Index, IndexMut};
 use crate::arch::arm64::pgtable::config::Arm64PgtableConfig;
-use crate::mm::{VirtAddr, PhysAddr};
 use crate::mm::page::PageConfig;
+use crate::mm::{PhysAddr, VirtAddr};
 use crate::size::SZ_4K;
+use core::ops::{Deref, DerefMut, Index, IndexMut};
+use core::{marker::PhantomData, ptr::NonNull};
 
 use super::{
+    pmd::{PmdEntry, PmdTable},
     PgTableEntry, PteEntry,
-    pmd::{PmdTable, PmdEntry},
 };
 
 /// Pud
@@ -20,9 +20,9 @@ pub struct PudEntry(u64);
 #[allow(dead_code)]
 impl PudEntry {
     /// Type table for pud
-    pub const PUD_TYPE_TABLE: u64 =  3 << 0;
+    pub const PUD_TYPE_TABLE: u64 = 3 << 0;
     /// Section type
-    pub const PUD_TYPE_SECT: u64 = 1 << 0 ;
+    pub const PUD_TYPE_SECT: u64 = 1 << 0;
     /// AP[2]
     pub const PUD_SECT_RDONLY: u64 = 1 << 7;
     /// Pud AF
@@ -45,7 +45,7 @@ impl PgTableEntry for PudEntry {
     fn read(&self) -> u64 {
         unsafe { core::ptr::read_volatile(&self.0) }
     }
-    
+
     /// Write the value of the Pud
     #[inline(always)]
     fn write(&mut self, val: u64) {
@@ -85,14 +85,14 @@ impl PudTable {
     /// Size of a PUD entry in bytes.
     pub const ENTRY_SIZE: usize = 1 << Self::SHIFT;
     /// Number of entries per PUD
-    pub const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
+    pub const PTRS: usize = 1 << Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     /// Mask for PUD entry
     const MASK: usize = !(Self::ENTRY_SIZE - 1);
 
     /// Create a new PudTable
     pub const fn from_raw(base: *mut PudEntry) -> Self {
         Self {
-            base: unsafe {NonNull::new_unchecked(base)},
+            base: unsafe { NonNull::new_unchecked(base) },
             _marker: PhantomData,
             _downgrage_from_pgdir: false,
         }
@@ -100,7 +100,7 @@ impl PudTable {
 
     pub(crate) fn from_pgdir(base: *mut PudEntry) -> Self {
         Self {
-            base: unsafe {NonNull::new_unchecked(base)},
+            base: unsafe { NonNull::new_unchecked(base) },
             _marker: PhantomData,
             _downgrage_from_pgdir: true,
         }
@@ -130,7 +130,10 @@ impl PudTable {
     #[inline(always)]
     pub fn downgrade_to_pmd_table(&self) -> Option<PmdTable> {
         if Arm64PgtableConfig::PGTABLE_LEVELS == 2 {
-            assert!(self._downgrage_from_pgdir, "pud must be downgraded from pgdir");
+            assert!(
+                self._downgrage_from_pgdir,
+                "pud must be downgraded from pgdir"
+            );
             // whne PGTABLE_LEVELS IS 2, pud is not used, so pud down level to pmd
             Some(PmdTable::from_pud(self.base.as_ptr() as *mut PmdEntry))
         } else {

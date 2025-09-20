@@ -22,7 +22,7 @@ impl<'a> Iterator for ParamParser<'a> {
         }
 
         let (rest, param, val) = next_arg(self.args);
-    
+
         // if param is empty, val will also be dropped
         if param.is_empty() {
             if !rest.is_empty() {
@@ -45,7 +45,7 @@ fn next_arg(mut args: &str) -> (&str, &str, Option<&str>) {
 
     let mut in_quote = false;
     let mut quoted = false;
-    
+
     if args.starts_with('"') {
         in_quote = true;
         quoted = true;
@@ -109,7 +109,7 @@ fn next_arg(mut args: &str) -> (&str, &str, Option<&str>) {
     };
 
     let rest = if pair_end < bytes.len() {
-       let mut rest = &args[pair_end + 1 ..];
+        let mut rest = &args[pair_end + 1..];
         rest = rest.trim_start();
         rest
     } else {
@@ -152,7 +152,7 @@ mod tests {
         let args = "\"";
         let mut parser = ParamParser { args };
         let next = parser.next();
-        assert_eq!(next,None);
+        assert_eq!(next, None);
 
         // in quotes its raw value
         let args = "\"  ";
@@ -161,7 +161,6 @@ mod tests {
         assert_eq!(next, Some(("  ", None)));
         let next = parser.next();
         assert_eq!(next, None);
-
     }
 
     #[test]
@@ -204,10 +203,10 @@ mod tests {
 
     #[test]
     fn test_space() {
-        let args = r#"foo="bar baz" hello=world debug="yes" single "standalone" keyonly= path="/a b/c""#;
-;
+        let args =
+            r#"foo="bar baz" hello=world debug="yes" single "standalone" keyonly= path="/a b/c""#;
         let mut parser = ParamParser { args };
-    
+
         let next = parser.next();
         assert_eq!(next, Some(("foo", Some("bar baz"))));
         let next = parser.next();
@@ -217,7 +216,7 @@ mod tests {
         assert_eq!(next, Some(("debug", Some("yes"))));
         let next = parser.next();
         assert_eq!(next, Some(("single", None)));
-        
+
         let next = parser.next();
         assert_eq!(next, Some(("standalone", None)));
 
@@ -231,5 +230,3 @@ mod tests {
         assert_eq!(next, None);
     }
 }
-
-

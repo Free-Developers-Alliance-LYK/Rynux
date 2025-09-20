@@ -6,5 +6,5 @@
 //! use kernel::prelude::*;
 //! ```
 
-pub use crate::size::*;
 pub use crate::klib::*;
+pub use crate::size::*;

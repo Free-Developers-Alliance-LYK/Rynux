@@ -1,7 +1,7 @@
 //! Common lock base types.
 
-use core::cell::UnsafeCell;
 use crate::types::NotThreadSafe;
+use core::cell::UnsafeCell;
 
 /// The "backend" of a lock.
 ///
@@ -83,7 +83,6 @@ impl<T: ?Sized, B: Backend> Lock<T, B> {
         unsafe { B::try_lock(&mut *self.inner.get()).map(|state| BaseLockGuard::new(self, state)) }
     }
 }
-
 
 /// A lock guard.
 ///

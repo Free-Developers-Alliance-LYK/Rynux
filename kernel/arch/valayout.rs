@@ -5,7 +5,7 @@ use crate::cfg_if;
 pub trait ArchVaLayout {
     /// The virtual address of the start of the linear map
     fn kernel_va_start() -> usize;
-    /// Kernel image virtual memory and physical memory offset 
+    /// Kernel image virtual memory and physical memory offset
     fn kimg_va_offset() -> usize;
     /// liner map end
     fn linear_map_end() -> usize;

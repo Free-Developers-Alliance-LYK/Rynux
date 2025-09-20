@@ -2,7 +2,7 @@
 
 //! Kernel basic general library code.
 
+pub mod bits;
 pub mod cfg_if;
 pub mod math;
 pub mod string;
-pub mod bits;

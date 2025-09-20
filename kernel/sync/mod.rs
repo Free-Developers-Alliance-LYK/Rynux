@@ -1,4 +1,4 @@
 //! Synchronisation primitives.
 
-pub mod lock;
 pub mod arc;
+pub mod lock;

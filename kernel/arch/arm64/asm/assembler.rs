@@ -6,8 +6,7 @@
 #[macro_export]
 macro_rules! adr_l {
     ($dst:expr, $sym:expr) => {
-        concat!("adrp\t", $dst, ", ", $sym, "\n",
-                "add\t", $dst, ", ", $dst, ", :lo12:", $sym, "\n")
+        concat!("adrp\t", $dst, ", ", $sym, "\n", "add\t", $dst, ", ", $dst, ", :lo12:", $sym, "\n")
     };
 }
 
@@ -22,8 +21,9 @@ pub use adr_l;
 #[macro_export]
 macro_rules! str_l {
     ($src:expr, $sym:expr, $tmp:expr) => {
-        concat!("adrp\t", $tmp, ", ", $sym, "\n",
-                "str\t", $src, ", [", $tmp, ", :lo12:", $sym, "]\n")
+        concat!(
+            "adrp\t", $tmp, ", ", $sym, "\n", "str\t", $src, ", [", $tmp, ", :lo12:", $sym, "]\n"
+        )
     };
 }
 

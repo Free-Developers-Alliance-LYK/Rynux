@@ -1,8 +1,8 @@
 //! ARM64-specific IRQ handling code.
 
-use crate::compiler::barrier;
 use crate::arch::arm64::sysregs::Daif;
 use crate::arch::irq::ArchIrq;
+use crate::compiler::barrier;
 
 /// Arm64 IRQ
 pub struct Arm64Irq;

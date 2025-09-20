@@ -9,7 +9,7 @@ cfg_if! {
     } else if #[cfg(CONFIG_ARM64)] {
         use crate::mm::page::PageConfig;
         use crate::arch::arm64::mm::cache::L1_CACHE_BYTES;
-        /// Default discarded section 
+        /// Default discarded section
         ///
         /// Some archs want to discard exit text/data at runtime rather than
         /// link time due to cross-section references such as alt instructions,
@@ -17,7 +17,7 @@ cfg_if! {
         /// section definitions so that such archs put those in earlier section
         /// definitions.
         pub const EXIT_DISCARDS: &str = "";
-    
+
         /// Offset
         pub static LOAD_OFFSET: usize = 0;
         /// INIT TEXT ALIGN

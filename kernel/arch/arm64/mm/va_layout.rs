@@ -24,16 +24,16 @@
 //! |---------------|
 //!
 
-use crate::types::OnceCell;
 use crate::macros::section_rodata_after_init;
+use crate::types::OnceCell;
 
 use crate::{
-    arch::valayout::ArchVaLayout,
-    size::*,
-    cfg_if,
-    mm::page::{PageConfig, Page},
-    macros::need_export,
     arch::arm64::mm::fixmap::FixMap,
+    arch::valayout::ArchVaLayout,
+    cfg_if,
+    macros::need_export,
+    mm::page::{Page, PageConfig},
+    size::*,
 };
 
 /// Virtual Address Layout
@@ -45,7 +45,7 @@ impl ArchVaLayout for Arm64VaLayout {
         Arm64VaLayout::KERNNEL_VA_START
     }
 
-    fn linear_map_end() -> usize { 
+    fn linear_map_end() -> usize {
         Arm64VaLayout::KERNEL_VA_LINE_END
     }
 
@@ -78,7 +78,7 @@ impl Arm64VaLayout {
     }
 
     // the virtual address of the start of the linear map, at the start of
-    // the TTBR1 address space.   
+    // the TTBR1 address space.
     #[inline(always)]
     const fn liner_map_start(vabits: usize) -> usize {
         (-(1_isize << vabits)) as usize
@@ -89,7 +89,7 @@ impl Arm64VaLayout {
     const fn linear_map_end(vabits: usize) -> usize {
         (-(1_isize << (vabits - 1))) as usize
     }
-    
+
     /// The virtual address of the start of the linear map, at the start of the
     /// TTBR1 address space.
     pub const KERNNEL_VA_START: usize = Self::liner_map_start(Self::VA_BITS);
@@ -105,12 +105,12 @@ impl Arm64VaLayout {
 
     /// MODULES_VSIZE - the size of the module space.
     pub const MODULES_VSIZE: usize = SZ_2G;
-    
+
     /// MODULES_END - the end of the module space.
     pub const MODULES_END: usize = Self::MODULES_VADDR + Self::MODULES_VSIZE;
 
     /// KIMAGE_VADDR - the virtual address of the start of the kernel image
-    pub const  KIMAGE_VADDR: usize = Self::MODULES_END;
+    pub const KIMAGE_VADDR: usize = Self::MODULES_END;
 
     // VMEMMAP_RANGE - the range of the vmemmap
     // If we are configured with a 52-bit kernel VA then our VMEMMAP_SIZE
@@ -119,10 +119,11 @@ impl Arm64VaLayout {
     // keep a constant PAGE_OFFSET and "fallback" to using the higher end
     // of the VMEMMAP where 52-bit support is not available in hardware.
     const VMEMMAP_RANGE: usize = Self::KERNEL_VA_LINE_END - Self::KERNNEL_VA_START;
-    
+
     // VMEMMAP_SIZE - allows the whole linear region to be covered by
     //                a struct page array
-    const VMEMMAP_SIZE: usize = (Self::VMEMMAP_RANGE >> PageConfig::PAGE_SHIFT) * core::mem::size_of::<Page>();
+    const VMEMMAP_SIZE: usize =
+        (Self::VMEMMAP_RANGE >> PageConfig::PAGE_SHIFT) * core::mem::size_of::<Page>();
 
     /// VMEMMAP_START - the start of the vmemmap.
     pub const VMEMMAP_START: usize = Self::VMEMMAP_END - Self::VMEMMAP_SIZE;
@@ -132,29 +133,28 @@ impl Arm64VaLayout {
 
     // Size of the PCI I/O space. This must remain a power of two so that
     // IO_SPACE_LIMIT acts as a mask for the low bits of I/O addresses.
-    const PCI_IO_SIZE : usize = SZ_16M;
+    const PCI_IO_SIZE: usize = SZ_16M;
 
     /// PCI I/O Start
     pub const PCI_IO_START: usize = Self::VMEMMAP_END + SZ_8M;
     /// PCI I/O End
     pub const PCI_IO_END: usize = Self::PCI_IO_START + Self::PCI_IO_SIZE;
 
-
-    /// FIXMAP VA LAYOUT 
-    /// 
+    /// FIXMAP VA LAYOUT
+    ///
     /// -------  FIX START
     ///
     /// Temp Fixmap
     ///
     /// ------- FIX permanent start
-    /// 
+    ///
     /// Permanent Fixmap
     ///
     /// -------  FIX_TOP
     ///   8MB
     /// --------
 
-    /// Fixmap TOP 
+    /// Fixmap TOP
     pub const FIXMAP_TOP: usize = -(SZ_8M as isize) as usize;
     /// FIXMAP START
     pub const FIXMAP_START: usize = Self::FIXMAP_TOP - FixMap::FIXMAP_SIZE;
@@ -165,7 +165,7 @@ impl Arm64VaLayout {
 pub static EXPORT_KIMAGE_VADDR: usize = Arm64VaLayout::KIMAGE_VADDR;
 
 #[section_rodata_after_init]
-static KIMAGE_VOFFSET : OnceCell<usize> = OnceCell::new();
+static KIMAGE_VOFFSET: OnceCell<usize> = OnceCell::new();
 
 /// Set kimage voffset
 #[inline(always)]

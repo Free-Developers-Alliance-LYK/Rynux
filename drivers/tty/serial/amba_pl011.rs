@@ -1,4 +1,3 @@
-
 //! amba_pl011.rs
 
 use kernel::arch::arm64::early_debug::early_uart_put_str;

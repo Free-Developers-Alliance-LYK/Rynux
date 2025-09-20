@@ -19,7 +19,7 @@ impl ArchVaLayout for DummyVaLayout {
     }
 
     #[inline(always)]
-    /// Kernel image virtual memory and physical memory offset 
+    /// Kernel image virtual memory and physical memory offset
     fn kimg_va_offset() -> usize {
         0
     }

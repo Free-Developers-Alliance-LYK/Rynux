@@ -1,11 +1,11 @@
-//! TLB 
+//! TLB
 
 use crate::klib::bits::genmask64;
 use crate::mm::VirtAddr;
 
 #[allow(dead_code)]
 enum FlushOps {
-    Vaale1is
+    Vaale1is,
 }
 
 #[allow(dead_code)]
@@ -76,7 +76,7 @@ impl TlbFlushOps {
     fn tlbi_vaddr(addr: usize, asid: usize) -> usize {
         let mut ta: usize = 0;
         ta |= addr >> 12;
-        ta &=  genmask64(43, 0) as usize;
+        ta &= genmask64(43, 0) as usize;
         ta |= asid << 48;
         ta
     }
@@ -87,10 +87,17 @@ impl TlbFlushOps {
             FlushOps::Vaale1is => __tlbi!("vaale1is", addr),
         }
     }
-    
+
     #[inline(always)]
-    fn flush_tbl_range(_ops: FlushOps, _start: VirtAddr, _pages: usize, _stride: usize, 
-        _asid: usize, _tlb_level: TlbLevel, _tlbi_user: bool) {
+    fn flush_tbl_range(
+        _ops: FlushOps,
+        _start: VirtAddr,
+        _pages: usize,
+        _stride: usize,
+        _asid: usize,
+        _tlb_level: TlbLevel,
+        _tlbi_user: bool,
+    ) {
         todo!();
     }
 
@@ -98,7 +105,10 @@ impl TlbFlushOps {
     #[inline(always)]
     pub fn local_flush_tlb_all() {
         unsafe {
-            core::arch::asm!("dsb nshst; tlbi vmalle1; dsb nsh; isb", options(nostack, nomem));
+            core::arch::asm!(
+                "dsb nshst; tlbi vmalle1; dsb nsh; isb",
+                options(nostack, nomem)
+            );
         }
     }
 
@@ -106,7 +116,10 @@ impl TlbFlushOps {
     #[inline(always)]
     pub fn flush_tlb_all() {
         unsafe {
-            core::arch::asm!("dsb ishst; tlbi vmalle1is; dsb ish; isb", options(nostack, nomem));
+            core::arch::asm!(
+                "dsb ishst; tlbi vmalle1is; dsb ish; isb",
+                options(nostack, nomem)
+            );
         }
     }
 
@@ -128,8 +141,4 @@ impl TlbFlushOps {
         isb();
         */
     }
-
 }
-
-
-

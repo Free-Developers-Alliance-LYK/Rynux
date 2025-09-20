@@ -1,8 +1,8 @@
 //! Allocator support
 
+use crate::bitflags::bitflags;
 use core::alloc::Layout;
 use core::ptr::NonNull;
-use crate::bitflags::bitflags;
 
 bitflags! {
     /// Flags for memory allocation in the kernel.
@@ -12,7 +12,7 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     pub struct AllocFlags: u32 {
         /// Movable BIT: indicates that the page can be moved by page migration
-        /// during memory compaction or can be reclaimed. 
+        /// during memory compaction or can be reclaimed.
         const MOVABLE = 0b1 << 0;
         /// Reclaimable BIT: indicates that the page can be reclaimed
         const RECLAIMABLE = 0b1 << 1;
@@ -86,7 +86,7 @@ pub unsafe trait Allocator {
     ///   [`Allocator::free`] or [`Allocator::realloc`],
     /// - aligned to `layout.align()`,
     ///
-    fn alloc(new_layout: Layout, flags: AllocFlags) -> Result<NonNull<[u8]>, AllocError>; 
+    fn alloc(new_layout: Layout, flags: AllocFlags) -> Result<NonNull<[u8]>, AllocError>;
 
     /// For kernel allocations that should not stall for direct reclaim, start physical IO or
     /// use any filesystem callback.  It is very likely to fail to allocate memory, even for very
@@ -96,7 +96,7 @@ pub unsafe trait Allocator {
     /// If the requested size is smaller than the size of the existing allocation, `realloc` may or
     /// may not shrink the buffer; this is implementation specific to the allocator.
     ///                                                                    
-    /// On allocation failure, the existing buffer, if any, remains valid. 
+    /// On allocation failure, the existing buffer, if any, remains valid.
     ///                                                                    
     /// The buffer is represented as `NonNull<[u8]>`.                      
     ///                                                                    
@@ -105,7 +105,7 @@ pub unsafe trait Allocator {
         layout: Layout,
         old_layout: Layout,
         flags: AllocFlags,
-      ) -> Result<NonNull<[u8]>, AllocError>;
+    ) -> Result<NonNull<[u8]>, AllocError>;
 
     /// Free an existing memory allocation.
     ///

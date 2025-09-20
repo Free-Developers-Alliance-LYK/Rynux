@@ -5,18 +5,14 @@ macro_rules! dmb_dsb {
         impl sealed::Dmb for $A {
             #[inline(always)]
             fn __dmb(&self) {
-                unsafe {
-                    core::arch::asm!(concat!("DMB ", stringify!($A)), options(nostack))
-                }
+                unsafe { core::arch::asm!(concat!("DMB ", stringify!($A)), options(nostack)) }
             }
         }
 
         impl sealed::Dsb for $A {
             #[inline(always)]
             fn __dsb(&self) {
-                unsafe {
-                    core::arch::asm!(concat!("DSB ", stringify!($A)), options(nostack))
-                }
+                unsafe { core::arch::asm!(concat!("DSB ", stringify!($A)), options(nostack)) }
             }
         }
     };
@@ -72,11 +68,9 @@ dmb_dsb!(OSHLD);
 
 /// Instruction Synchronization Barrier
 #[inline(always)]
-pub fn isb()
-{
+pub fn isb() {
     unsafe { core::arch::asm!("isb", options(nostack)) }
 }
-
 
 /// Data Memory Barrier.
 #[inline(always)]

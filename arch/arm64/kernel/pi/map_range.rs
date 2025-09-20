@@ -1,46 +1,37 @@
 //! Map range
 //!
-//! TODO: 
+//! TODO:
 //! early_map_kernel:
 //!    - Parse the command line for CPU feature overrides
 //!    - CONFIG_RANDOMIZE_BASE support
-//!    - CONFIG_ARM64_LPA2 support 
+//!    - CONFIG_ARM64_LPA2 support
 //! map_kernel:
 //!  - External debuggers may need to write directly to the text mapping support
 //!  - CONFIG_UNWIND_PATCH_PAC_INTO_SCS support
 //!  - CONFIG_RELOCATABLE support
 //!  - CONFIG_ARM64_LPA2 support
 
-use core::{
-    cmp::min,
-};
+use core::cmp::min;
 
 use kernel::{
-    global_sym::*,
     arch::arm64::{
-        pgtable::{
-            Arm64PgtableConfig,
-            PtePgProt,
-            PteEntry,
-            PteTable,
-            PgdirEntry,
-            PmdEntry,
-            idmap::InitIdmap,
-            PgTableEntry,
-        },
-        early_debug::{early_uart_putchar, early_uart_put_u64_hex},
         asm::{
-            barrier::{isb, dsb, ISHST},
+            barrier::{dsb, isb, ISHST},
             tlb::TlbFlushOps,
         },
-        sysregs::Ttbr1El1,
+        early_debug::{early_uart_put_u64_hex, early_uart_putchar},
         mm::Arm64VaLayout,
+        pgtable::{
+            idmap::InitIdmap, Arm64PgtableConfig, PgTableEntry, PgdirEntry, PmdEntry, PteEntry,
+            PtePgProt, PteTable,
+        },
+        sysregs::Ttbr1El1,
     },
-
+    global_sym::*,
+    klib::string::{memcpy, memset},
+    macros::{page_aligned, section_init_data, section_init_text},
     mm::page::PageConfig,
     page_align,
-    macros::{section_init_text, page_aligned, section_init_data},
-    klib::string::{memset, memcpy},
 };
 
 /// map-range - Map a contiguous range of physical pages into virtual memory
@@ -79,14 +70,15 @@ pub unsafe extern "C" fn map_range(
     // remove type
     let mut protval = PtePgProt::from_bits_truncate(prot.bits() & !PtePgProt::PTE_TYPE_MASK);
 
-    let lshift: usize = (3-level) * Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
+    let lshift: usize = (3 - level) * Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     let lmask: usize = (PageConfig::PAGE_SIZE << lshift) - 1;
 
     let mut start = start & PageConfig::PAGE_MASK;
-    let mut pa = pa &PageConfig::PAGE_MASK;
+    let mut pa = pa & PageConfig::PAGE_MASK;
 
     // Advance tbl to the entry that covers start
-    let mut tbl: *mut PteEntry = unsafe {tbl.add((start >> (lshift + PageConfig::PAGE_SHIFT)) % PteTable::PTRS)};
+    let mut tbl: *mut PteEntry =
+        unsafe { tbl.add((start >> (lshift + PageConfig::PAGE_SHIFT)) % PteTable::PTRS) };
 
     // Set the right block/page bits for this level unless we are clearing the mapping
     if !protval.is_empty() {
@@ -97,7 +89,7 @@ pub unsafe extern "C" fn map_range(
         }
     }
 
-     while start < end {
+    while start < end {
         let next = min((start | lmask) + 1, page_align!(end));
 
         if level < 2 || (level == 2 && ((start | next | pa) & lmask) != 0) {
@@ -107,8 +99,8 @@ pub unsafe extern "C" fn map_range(
                     // set tbl entry
                     let tbl_entry = PteEntry::new(
                         PteEntry::from_phys((*pte).into()).value()
-                        | PmdEntry::PMD_TYPE_TABLE
-                        | PmdEntry::PMD_TABLE_UXN
+                            | PmdEntry::PMD_TYPE_TABLE
+                            | PmdEntry::PMD_TABLE_UXN,
                     );
                     *tbl = tbl_entry;
                     // move pte to next page
@@ -139,10 +131,8 @@ pub unsafe extern "C" fn map_range(
             }
 
             // Put down a block or page mapping
-            let tbl_content: PteEntry = PteEntry::new(
-                PteEntry::from_phys(pa.into()).value()
-                | protval.bits()
-            );
+            let tbl_content: PteEntry =
+                PteEntry::new(PteEntry::from_phys(pa.into()).value() | protval.bits());
 
             // set tbl entry
             unsafe {
@@ -155,7 +145,7 @@ pub unsafe extern "C" fn map_range(
 
         // move tbl to next entry
         unsafe {
-           tbl = tbl.add(1);
+            tbl = tbl.add(1);
         }
     }
 }
@@ -229,7 +219,7 @@ static mut FDT_PTES: FdtPtes = FdtPtes([0; InitIdmap::EARLY_FDT_PAGE_SIZE]);
 // Create fdt map
 #[section_init_text]
 fn map_fdt(fdt: usize) {
-    let efdt = fdt + InitIdmap::MAX_FDT_SIZE; 
+    let efdt = fdt + InitIdmap::MAX_FDT_SIZE;
     unsafe {
         let mut pte = &raw const FDT_PTES.0 as *mut FdtPtes as usize;
         map_range(
@@ -273,7 +263,6 @@ fn map_segment(
         );
     }
 }
-
 
 // Create kernel map
 #[section_init_text]
@@ -367,7 +356,11 @@ fn map_kernel(va_offset: usize) {
     // is mapped to text segment,it does not have write permission.
     // init_pg_dir can use PA because on stage1 init_pg_dir is mapped to
     // data segment, it has write/read permission.
-    memcpy((swapper_pg_dir as usize + va_offset) as *mut u8, init_pg_dir as *mut u8, PageConfig::PAGE_SIZE);
+    memcpy(
+        (swapper_pg_dir as usize + va_offset) as *mut u8,
+        init_pg_dir as *mut u8,
+        PageConfig::PAGE_SIZE,
+    );
     idmap_cpu_replace_ttbr1(swapper_pg_dir as usize);
 }
 
@@ -377,7 +370,11 @@ fn map_kernel(va_offset: usize) {
 pub unsafe extern "C" fn early_map_kernel(_boot_status: usize, fdt: usize) {
     map_fdt(fdt);
     // clear ZERO section
-    memset(__bss_start as *mut u8, 0, init_pg_end as usize - __bss_start as usize);
+    memset(
+        __bss_start as *mut u8,
+        0,
+        init_pg_end as usize - __bss_start as usize,
+    );
     let va_base = Arm64VaLayout::KIMAGE_VADDR;
     let pa_base = _text as usize;
     map_kernel(va_base - pa_base);
@@ -399,10 +396,7 @@ fn idmap_cpu_replace_ttbr1(ttbr1: usize) {
 }
 
 #[allow(dead_code)]
-fn dump_page_table(
-    start_addr: usize,
-    end_addr: usize,
-) {
+fn dump_page_table(start_addr: usize, end_addr: usize) {
     let mut addr = start_addr;
     let items_per_line = 4;
     early_uart_putchar(b'\n');

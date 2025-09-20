@@ -257,7 +257,7 @@ impl<G: GetLinks> RawList<G> {
     }
 
     ///  Just Get and not remove the first element of the list.
-    pub(crate) fn front(&self) ->  Option<NonNull<G::EntryType>> {
+    pub(crate) fn front(&self) -> Option<NonNull<G::EntryType>> {
         self.head
     }
 

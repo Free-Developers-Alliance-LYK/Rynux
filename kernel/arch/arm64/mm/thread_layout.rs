@@ -1,7 +1,7 @@
 //! Thread memory layout for ARM64 architecture
 
-use crate::mm::page::PageConfig;
 use crate::cfg_if;
+use crate::mm::page::PageConfig;
 
 /// ARM64-specific thread memory layout
 pub struct Arm64ThreadMemLayout();

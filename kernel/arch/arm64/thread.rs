@@ -1,5 +1,5 @@
 //! Arm64 thread info
-//! TODO: 
+//! TODO:
 //!   - not support CONFIG_ARM64_SW_TTBR0_PAN
 //!   - not support CONFIG_SHADOW_CALL_STACK
 //!   - not support CONFIG_CPU_BIG_ENDIAN
@@ -7,11 +7,11 @@
 
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::schedule::preempt::INIT_TASK_PREEMPT_COUNT;
-use crate::bitflags::bitflags;
-use crate::schedule::task::Task;
 use crate::arch::arm64::sysregs::sp_el0::SpEl0;
 use crate::arch::thread::ArchThreadInfoTrait;
+use crate::bitflags::bitflags;
+use crate::schedule::preempt::INIT_TASK_PREEMPT_COUNT;
+use crate::schedule::task::Task;
 
 bitflags! {
     /// Flags
@@ -26,7 +26,7 @@ bitflags! {
 /// Preempt info
 #[repr(C)]
 struct PreemptInfo {
-    raw: AtomicU64,  // [need_resched: u32 | count: u32] 
+    raw: AtomicU64, // [need_resched: u32 | count: u32]
 }
 
 #[allow(dead_code)]
@@ -88,19 +88,17 @@ impl PreemptInfo {
         loop {
             let c = ((cur >> Self::COUNT_SHIFT) & Self::FIELD_MASK) as u32;
             let new_c = f(c);
-            let new = (cur & !(Self::FIELD_MASK << Self::COUNT_SHIFT)) | ((new_c as u64) << Self::COUNT_SHIFT);
-            match self.raw.compare_exchange_weak(
-                cur,
-                new,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            ) {
+            let new = (cur & !(Self::FIELD_MASK << Self::COUNT_SHIFT))
+                | ((new_c as u64) << Self::COUNT_SHIFT);
+            match self
+                .raw
+                .compare_exchange_weak(cur, new, Ordering::Relaxed, Ordering::Relaxed)
+            {
                 Ok(_) => break,
                 Err(next) => cur = next,
             }
         }
     }
-
 }
 
 /// Thread info

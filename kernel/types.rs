@@ -1,14 +1,14 @@
 //! Rynux type
 
 use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
 use core::marker::PhantomData;
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 const UNINIT: u8 = 0;
 const WRITING: u8 = 1;
-const INIT:   u8 = 2;
+const INIT: u8 = 2;
 
 /// A cell which can be written to only once.
 pub struct OnceCell<T> {
@@ -30,9 +30,14 @@ impl<T> OnceCell<T> {
 
     /// Set the value of the cell.
     pub fn set(&self, value: T) {
-        match self.state.compare_exchange(UNINIT, WRITING, Ordering::Acquire, Ordering::Acquire) {
+        match self
+            .state
+            .compare_exchange(UNINIT, WRITING, Ordering::Acquire, Ordering::Acquire)
+        {
             Ok(_) => {
-                unsafe { (*self.value.get()).write(value); }
+                unsafe {
+                    (*self.value.get()).write(value);
+                }
                 self.state.store(INIT, Ordering::Release);
             }
             Err(INIT) => panic!("Already set"),
@@ -90,7 +95,6 @@ impl<T> DerefMut for OnceCell<T> {
 /// several threads in parallel.
 pub type NotThreadSafe = PhantomData<*mut ()>;
 
-
 /// Used to construct instances of type [`NotThreadSafe`] similar to how `PhantomData` is
 /// constructed.
 ///
@@ -105,6 +109,5 @@ pub enum ForStepResult {
     /// jump to
     JumpTo(usize),
     /// break
-    Break
+    Break,
 }
-

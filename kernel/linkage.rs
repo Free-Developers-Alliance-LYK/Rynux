@@ -22,4 +22,3 @@ cfg_if! {
         compile_error!("Unsupported function alignment");
     }
 }
-

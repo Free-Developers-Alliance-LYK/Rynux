@@ -17,19 +17,18 @@
 #![feature(alloc_layout_extra)]
 #![feature(unsize)]
 
-
 #[cfg(target_endian = "big")]
 compile_error!("This crate only supports little endian platforms!");
 
 // Allow proc-macros to refer to `::kernel` inside the `kernel` crate (this crate).
 //extern crate self as kernel;
 
+pub use bitflags;
+pub use const_format;
+pub use fdtree_rs;
 pub use macros;
 pub use static_assertions;
-pub use const_format;
-pub use bitflags;
 pub use tock_registers;
-pub use fdtree_rs;
 
 pub mod arch;
 
@@ -43,25 +42,25 @@ cfg_if! {
     }
 }
 
-pub mod klib;
-pub mod cpu;
 pub mod alloc;
-pub mod sync;
-pub mod size;
-pub mod mm;
-pub mod linkage;
-pub mod prelude;
-pub mod schedule;
-pub mod types;
 pub mod compiler;
+pub mod cpu;
 pub mod drivers;
-pub mod param;
-pub mod printk;
 pub mod error;
+pub mod klib;
+pub mod linkage;
 pub mod list;
+pub mod mm;
+pub mod param;
+pub mod prelude;
+pub mod printk;
+pub mod schedule;
+pub mod size;
+pub mod sync;
+pub mod types;
 
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
-        loop {}
+    loop {}
 }

@@ -9,12 +9,10 @@ impl ArchIrq for DummyIrq {
     type IrqState = ();
 
     #[inline(always)]
-    fn local_disable() {
-    }
+    fn local_disable() {}
 
     #[inline(always)]
-    fn local_enable() {
-    }
+    fn local_enable() {}
 
     #[inline(always)]
     fn local_save_and_disable() -> Self::IrqState {
@@ -22,6 +20,5 @@ impl ArchIrq for DummyIrq {
     }
 
     #[inline(always)]
-    fn local_restore(_flags: Self::IrqState) {
-    }
+    fn local_restore(_flags: Self::IrqState) {}
 }

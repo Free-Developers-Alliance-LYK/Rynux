@@ -1,10 +1,6 @@
 //! Page management code.
 
-use crate:: {
-    cfg_if,
-    macros::need_export,
-};
-
+use crate::{cfg_if, macros::need_export};
 
 /// Page configuration
 pub struct PageConfig();
@@ -36,12 +32,10 @@ impl PageConfig {
 
     /// Page size in bytes const.
     pub const PAGE_SIZE: usize = 1 << Self::PAGE_SHIFT;
-    
+
     /// Page mask
     pub const PAGE_MASK: usize = !(Self::PAGE_SIZE - 1);
-
 }
-
 
 /// Size of a page PA SIZE in bytes.
 #[need_export]
@@ -51,7 +45,8 @@ pub static EXPORT_PAGE_SIZE: usize = 1 << PageConfig::PAGE_SHIFT;
 #[macro_export]
 macro_rules! page_align {
     ($addr:expr) => {
-        (($addr + $crate::mm::page::PageConfig::PAGE_SIZE - 1) & !($crate::mm::page::PageConfig::PAGE_SIZE - 1))
+        (($addr + $crate::mm::page::PageConfig::PAGE_SIZE - 1)
+            & !($crate::mm::page::PageConfig::PAGE_SIZE - 1))
     };
 }
 

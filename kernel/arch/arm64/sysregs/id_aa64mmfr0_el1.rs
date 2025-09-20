@@ -1,9 +1,6 @@
 //! ID_AA64MMFR0_EL1
 
-use crate::{
-    cfg_if,
-    bitflags::bitflags,
-};
+use crate::{bitflags::bitflags, cfg_if};
 
 bitflags! {
     /// ID_AA64MMFR0_EL1
@@ -114,7 +111,8 @@ impl IdAa64mmfr0El1 {
     /// Read PARange
     #[inline(always)]
     pub(crate) fn parange(&self) -> PaRange {
-        let sys_pa_size = PaRange::from((self.bits() & Self::PARange.bits()) >> Self::PARANGE_SHIFT);
+        let sys_pa_size =
+            PaRange::from((self.bits() & Self::PARange.bits()) >> Self::PARANGE_SHIFT);
         if sys_pa_size > Self::ID_AA64MMFR0_EL1_PARANGE_MAX {
             Self::ID_AA64MMFR0_EL1_PARANGE_MAX
         } else {
@@ -143,6 +141,6 @@ impl IdAa64mmfr0El1 {
         let tg = (self.bits() >> Self::TGRAN_OFFSET) & 0b1111;
         if tg < Self::TGRAN_SUPPORT_MIN || tg > Self::TGRAN_SUPPORT_MAX {
             panic!("tgran check failed");
-        } 
+        }
     }
 }

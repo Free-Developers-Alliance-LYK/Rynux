@@ -90,11 +90,11 @@ impl MairEl1 {
 
     /// Default MAIR_EL1
     pub const MAIR_EL1_SET: Self = Self::from_bits_truncate(
-        Self::mair_attridx(MairAttr::DeviceNgnRnE, MairAttrIdx::DeviceNgnRnE) |
-        Self::mair_attridx(MairAttr::DeviceNgnRE, MairAttrIdx::DeviceNgnRE)   |
-        Self::mair_attridx(MairAttr::Normal, MairAttrIdx::Normal) |
-        Self::mair_attridx(MairAttr::NormalTagged, MairAttrIdx::NormalTagged) |
-        Self::mair_attridx(MairAttr::NormalNc, MairAttrIdx::NormalNc)
+        Self::mair_attridx(MairAttr::DeviceNgnRnE, MairAttrIdx::DeviceNgnRnE)
+            | Self::mair_attridx(MairAttr::DeviceNgnRE, MairAttrIdx::DeviceNgnRE)
+            | Self::mair_attridx(MairAttr::Normal, MairAttrIdx::Normal)
+            | Self::mair_attridx(MairAttr::NormalTagged, MairAttrIdx::NormalTagged)
+            | Self::mair_attridx(MairAttr::NormalNc, MairAttrIdx::NormalNc),
     );
 
     /// Read register.

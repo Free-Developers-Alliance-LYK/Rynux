@@ -1,6 +1,5 @@
 //! ARM64 lr
 
-
 /// LR
 pub struct Lr;
 

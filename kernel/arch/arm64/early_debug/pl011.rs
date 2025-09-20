@@ -71,10 +71,10 @@ impl Pl011Uart {
     /// Constrcut a new Pl011 UART instance from the base address.
     pub const unsafe fn new(base: *mut u8) -> Self {
         unsafe {
-        Self {
-            // SAFETY: base is a valid pointer
-            base: NonNull::new_unchecked(base as *mut Pl011UartRegs),
-        }
+            Self {
+                // SAFETY: base is a valid pointer
+                base: NonNull::new_unchecked(base as *mut Pl011UartRegs),
+            }
         }
     }
 
@@ -129,7 +129,7 @@ impl Pl011Uart {
     fn get_ris(&self) -> u32 {
         self.regs().ris.get()
     }
-    
+
     fn get_periphid0(&self) -> u32 {
         self.regs().periphid0.get()
     }
@@ -162,4 +162,3 @@ impl Pl011Uart {
         self.regs().pcellid3.get()
     }
 }
-

@@ -1,7 +1,7 @@
 //! Arm64 Phys Config
 
-use crate::arch::arm64::pgtable;
 use crate::arch::arm64::mm::sparse_mem::SECTION_SIZE_BITS;
+use crate::arch::arm64::pgtable;
 use crate::cfg_if;
 
 /// Arm64 Phys Config
@@ -42,12 +42,11 @@ impl Arm64PhysConfig {
         }
     }
 
-
     /// sparsemem vmemmap imposes an additional requirement on the alignment of
     /// memstart_addr, due to the fact that the base of the vmemmap region
     /// has a direct correspondence, and needs to appear sufficiently aligned
     /// in the virtual address space.
-    pub const  fn memstart_align() -> usize {
+    pub const fn memstart_align() -> usize {
         if Self::MEM_START_SHIFT < SECTION_SIZE_BITS {
             1 << SECTION_SIZE_BITS
         } else {
@@ -55,4 +54,3 @@ impl Arm64PhysConfig {
         }
     }
 }
-

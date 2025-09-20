@@ -14,7 +14,6 @@ bitflags! {
     }
 }
 
-
 impl CpacrEl1 {
     /// Read register.
     #[inline(always)]
@@ -37,4 +36,3 @@ impl CpacrEl1 {
         sys_coproc_write_raw!(u64, "CPACR_EL1", "x", cpacr);
     }
 }
-

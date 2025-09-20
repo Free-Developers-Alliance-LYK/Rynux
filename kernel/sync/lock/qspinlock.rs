@@ -1,8 +1,8 @@
 //! Queue Spinlock implement
 //!
 
-use core::sync::atomic::{AtomicU32, Ordering};
 use crate::bitflags;
+use core::sync::atomic::{AtomicU32, Ordering};
 
 bitflags::bitflags! {
     /// QSpinLock
@@ -35,18 +35,23 @@ impl QSpinLock {
             return false;
         }
 
-        self.atomic().compare_exchange(0, Self::LOCKED_VAL, Ordering::Acquire, Ordering::Relaxed).is_ok()
+        self.atomic()
+            .compare_exchange(0, Self::LOCKED_VAL, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 
     /// Lock
     pub fn lock(&mut self) {
-        if self.atomic().compare_exchange(0, Self::LOCKED_VAL, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+        if self
+            .atomic()
+            .compare_exchange(0, Self::LOCKED_VAL, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
             return;
         }
 
         self.queued_spin_lock_slowpath();
     }
-
 
     fn queued_spin_lock_slowpath(&mut self) {
         todo!()

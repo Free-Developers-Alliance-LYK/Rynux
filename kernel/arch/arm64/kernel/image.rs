@@ -1,13 +1,8 @@
 //! Rynux arm64 image header
 
 use crate::{
-    mm::page::PageConfig,
-    cfg_if,
-    const_str_to_u8_array_with_null,
-    static_assertions::const_assert_eq,
-    macros::need_export,
-    const_format::concatcp,
-    size::*,
+    cfg_if, const_format::concatcp, const_str_to_u8_array_with_null, macros::need_export,
+    mm::page::PageConfig, size::*, static_assertions::const_assert_eq,
 };
 
 #[allow(dead_code)]
@@ -24,8 +19,14 @@ macro_rules! data_le32_macro {
 macro_rules! define_image_le64_macro {
     ($sym:expr, $data:expr) => {
         concat!(
-            $sym, "_hi32 = ", data_le32_macro!($data), " >> 32;\n",
-            $sym, "_lo32 = ", data_le32_macro!($data), "& 0xffffffff;\n"
+            $sym,
+            "_hi32 = ",
+            data_le32_macro!($data),
+            " >> 32;\n",
+            $sym,
+            "_lo32 = ",
+            data_le32_macro!($data),
+            "& 0xffffffff;\n"
         )
     };
 }
@@ -60,9 +61,15 @@ impl HeadFlags {
     }
 
     const fn head_flags() -> u64 {
-        Self::head_flag(Self::_HEAD_FLAG_BE, Self::ARM64_IMAGE_FLAG_BE_SHIFT) |
-        Self::head_flag(Self::_HEAD_FLAG_PAGE_SIZE, Self::ARM64_IMAGE_FLAG_PAGE_SIZE_SHIFT) |
-        Self::head_flag(Self::_HEAD_FLAG_PHYS_BASE, Self::ARM64_IMAGE_FLAG_PHYS_BASE_SHIFT)
+        Self::head_flag(Self::_HEAD_FLAG_BE, Self::ARM64_IMAGE_FLAG_BE_SHIFT)
+            | Self::head_flag(
+                Self::_HEAD_FLAG_PAGE_SIZE,
+                Self::ARM64_IMAGE_FLAG_PAGE_SIZE_SHIFT,
+            )
+            | Self::head_flag(
+                Self::_HEAD_FLAG_PHYS_BASE,
+                Self::ARM64_IMAGE_FLAG_PHYS_BASE_SHIFT,
+            )
     }
 }
 
@@ -92,7 +99,8 @@ cfg_if! {
 
 #[need_export]
 #[allow(missing_docs)]
-pub static EXPORT_HEAD_SYMBOLS: [u8; HEAD_SYMBOLS.len()+1] = const_str_to_u8_array_with_null!(HEAD_SYMBOLS);
+pub static EXPORT_HEAD_SYMBOLS: [u8; HEAD_SYMBOLS.len() + 1] =
+    const_str_to_u8_array_with_null!(HEAD_SYMBOLS);
 
 cfg_if! {
     if #[cfg(CONFIG_KERNEL_IMAGE_SIZE_4MB)] {

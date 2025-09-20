@@ -214,7 +214,7 @@ impl fmt::Debug for Error {
 /// A [`Result`] with an [`Error`] error variant.
 ///
 ///
-/// ``` 
+/// ```
 /// fn example() -> Result {
 ///     Err(Error::Eperm)
 /// }

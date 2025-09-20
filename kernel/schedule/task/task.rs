@@ -1,14 +1,11 @@
 //! Rynux task struct
 
-use core::ptr::NonNull;
 use core::mem::ManuallyDrop;
+use core::ptr::NonNull;
 
-use super::{
-    TaskState,
-    TaskStack,
-};
-use crate::macros::cache_aligned;
+use super::{TaskStack, TaskState};
 use crate::arch::thread::{ArchThreadInfo, ArchThreadInfoTrait};
+use crate::macros::cache_aligned;
 use crate::sync::lock::spinlock::{RawSpinLockNoIrq, RawSpinLockNoIrqGuard};
 
 /// Task struct
@@ -16,7 +13,7 @@ use crate::sync::lock::spinlock::{RawSpinLockNoIrq, RawSpinLockNoIrqGuard};
 #[cache_aligned]
 pub struct Task {
     thread_info: ArchThreadInfo,
-    // state 
+    // state
     state: RawSpinLockNoIrq<TaskState>,
     // stack
     stack: TaskStack,
@@ -99,7 +96,6 @@ impl Task {
         self.thread_info.preempt_count()
     }
 
-
     #[inline(always)]
     /// lock state and return a manually drop guard
     pub fn lock_state_manual(&self) -> ManuallyDrop<RawSpinLockNoIrqGuard<'_, TaskState>> {
@@ -107,7 +103,7 @@ impl Task {
     }
 
     #[inline(always)]
-    /// set state 
+    /// set state
     pub fn set_state(&self, state: TaskState) {
         *self.state.lock() = state
     }
@@ -115,4 +111,3 @@ impl Task {
 
 unsafe impl Send for Task {}
 unsafe impl Sync for Task {}
-

@@ -1,14 +1,11 @@
 /// TCR_ELx
 use crate::{
-    cfg_if,
+    arch::arm64::sysregs::{id_aa64mmfr0_el1, midr_el1, IdAa64mmfr0El1, MidrEl1},
     bitflags::bitflags,
-    arch::arm64::sysregs::{
-        midr_el1,MidrEl1,
-        id_aa64mmfr0_el1,IdAa64mmfr0El1,
-    },
+    cfg_if,
 };
 
-bitflags!{
+bitflags! {
     /// TCR flags
     #[repr(transparent)]
     #[derive(Copy, Clone)]
@@ -114,7 +111,7 @@ impl IRGN {
     }
 }
 
-// Outer cacheability attribute for memory associated 
+// Outer cacheability attribute for memory associated
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 enum ORGN {
@@ -282,7 +279,8 @@ impl Tcr {
         sys_coproc_write_raw!(u64, "TCR_EL1", "x", tcr);
     }
 
-    const CLEAR_FUJITSU_ERRATUM_010001: Self = Self::from_bits_truncate(Tcr::NFD1.bits() | Tcr::NFD0.bits());
+    const CLEAR_FUJITSU_ERRATUM_010001: Self =
+        Self::from_bits_truncate(Tcr::NFD1.bits() | Tcr::NFD0.bits());
     const MIDR_FUJITSU_ERRATUM_010001: u64 = midr_el1::FUJITSU_A64FX.bits();
     // Fujitsu Erratum 010001 affects A64FX 1.0 and 1.1, (v0r0 and v1r0)
     const MIDR_FUJITSU_ERRATUM_010001_MASK: u64 = !MidrEl1::cpu_var_rev(1, 0);
@@ -290,14 +288,15 @@ impl Tcr {
     /// Clear TCR bits that trigger an errata on this CPU
     #[inline(always)]
     pub fn clear_errata_bits(&mut self) {
-        #[cfg(CONFIG_FUJITSU_ERRATUM_010001)] {
+        #[cfg(CONFIG_FUJITSU_ERRATUM_010001)]
+        {
             let midr = MidrEl1::read_raw() & Self::MIDR_FUJITSU_ERRATUM_010001_MASK;
-            if midr ==  Self::MIDR_FUJITSU_ERRATUM_010001 {
+            if midr == Self::MIDR_FUJITSU_ERRATUM_010001 {
                 self.remove(Self::CLEAR_FUJITSU_ERRATUM_010001);
             }
         }
     }
-    
+
     const T0SZ_OFFSET: u64 = 0;
     /// T0SZ
     #[inline(always)]
@@ -322,7 +321,7 @@ impl Tcr {
     fn set_ips(&mut self, ips: IPS) {
         // clear
         self.remove(Self::IPS);
-        *self = Self::from_bits_truncate(self.bits() | ips.to_tcr())  
+        *self = Self::from_bits_truncate(self.bits() | ips.to_tcr())
     }
 
     /// Compute the maximum physical address size supported by the system

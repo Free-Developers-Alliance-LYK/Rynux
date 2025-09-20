@@ -1,7 +1,7 @@
 //! Cpu state  manager
 
-use core::sync::atomic::{AtomicU64, Ordering};
 use super::CpuMask;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 struct CpuOnline {
     online_cnt: AtomicU64,
@@ -45,12 +45,13 @@ impl CpuStateManager {
 
     pub(super) fn boot_init(&self, boot_cpu_id: usize) {
         // Initialize the boot CPU ID.
-        self.boot_cpu_id.store(boot_cpu_id as u64, Ordering::Relaxed);
-        
+        self.boot_cpu_id
+            .store(boot_cpu_id as u64, Ordering::Relaxed);
+
         // Set the boot CPU as online.
         self.online.online_mask.set(boot_cpu_id);
         self.online.online_cnt.fetch_add(1, Ordering::Relaxed);
-        
+
         // Mark the boot CPU as active, present, and possible.
         self.active.set(boot_cpu_id);
         self.present.set(boot_cpu_id);

@@ -4,13 +4,13 @@
 //!
 //! Based on linux/rust/kernel/linked_list.rs
 //!
-//! TODO: 
+//! TODO:
 //!  - support kbox
 
 // use crate::alloc::{boxed::Box, sync::Arc};
+use crate::list::{raw_list, raw_list::RawList, GetLinks, Links};
 use crate::sync::arc::Arc;
 use core::{iter, ptr::NonNull};
-use crate::list::{raw_list, raw_list::RawList, GetLinks, Links};
 
 /// Wraps an object to be inserted in a linked list.
 pub trait Wrapper<T: ?Sized> {
@@ -64,7 +64,6 @@ impl<T: ?Sized> Wrapper<T> for Arc<T> {
         AsRef::as_ref(self)
     }
 }
-
 
 impl<T: ?Sized> Wrapper<T> for &T {
     #[inline]

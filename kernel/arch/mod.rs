@@ -11,12 +11,12 @@ cfg_if! {
 }
 
 pub mod cache;
+pub mod cpu;
+pub mod irq;
 pub mod mm;
 pub mod ptrace;
+pub mod setup;
 pub mod symbols;
 pub mod thread;
-pub mod cpu;
-pub mod setup;
-pub mod irq;
-pub mod vmrynux;
 pub mod valayout;
+pub mod vmrynux;

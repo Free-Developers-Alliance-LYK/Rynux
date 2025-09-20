@@ -2,8 +2,8 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Item, Meta, Token, Expr, ExprLit, Lit};
 use syn::punctuated::Punctuated;
+use syn::{parse_macro_input, Expr, ExprLit, Item, Lit, Meta, Token};
 
 pub(crate) fn section_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr with Punctuated::<Meta, Token![,]>::parse_terminated);
@@ -15,7 +15,11 @@ pub(crate) fn section_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
             let ident = nv.path.get_ident().map(|i| i.to_string());
             if let Some(name) = ident {
                 if name == "section" {
-                    if let Expr::Lit(ExprLit { lit: Lit::Str(lit_str), .. }) = &nv.value {
+                    if let Expr::Lit(ExprLit {
+                        lit: Lit::Str(lit_str),
+                        ..
+                    }) = &nv.value
+                    {
                         section = Some(lit_str.value());
                     }
                 }
@@ -36,15 +40,18 @@ pub(crate) fn section_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
 
     let output = match input {
         Item::Static(mut s) => {
-            s.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
+            s.attrs
+                .insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#s)
         }
         Item::Const(mut c) => {
-            c.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
+            c.attrs
+                .insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#c)
         }
         Item::Fn(mut f) => {
-            f.attrs.insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
+            f.attrs
+                .insert(0, syn::parse_quote!(#[unsafe(link_section = #section)]));
             quote!(#f)
         }
         other => {

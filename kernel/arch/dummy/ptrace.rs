@@ -13,13 +13,12 @@ pub struct PtRegs {
     pub pc: u64,
     /// Processor state
     pub pstate: u64,
-
 }
 
 impl PtRegs {
     /// From raw ptr
     #[inline(always)]
     pub unsafe fn from_raw(raw: *const Self) -> Self {
-        unsafe {*raw}
+        unsafe { *raw }
     }
 }

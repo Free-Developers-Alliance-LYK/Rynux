@@ -1,6 +1,5 @@
 //! dummy thread info
 
-
 use crate::arch::thread::ArchThreadInfoTrait;
 
 /// Thread info
@@ -14,9 +13,7 @@ pub struct DummyThreadInfo {
 impl DummyThreadInfo {
     /// Default thread info
     pub const fn default() -> Self {
-        Self {
-            cpu: 0,
-        }
+        Self { cpu: 0 }
     }
 }
 
@@ -25,13 +22,10 @@ impl ArchThreadInfoTrait for DummyThreadInfo {
         0
     }
 
-    fn preempt_count_add(&self, _val: u32) {
-    }
+    fn preempt_count_add(&self, _val: u32) {}
 
-    fn preempt_count_sub(&self, _val: u32) {
-    }
+    fn preempt_count_sub(&self, _val: u32) {}
 }
-
 
 use crate::arch::thread::ArchCurrentTrait;
 use crate::schedule::task::Task;
@@ -45,6 +39,5 @@ impl ArchCurrentTrait for DummyCurrent {
     }
 
     #[inline(always)]
-    fn write(_task: *const Task) {
-    }
+    fn write(_task: *const Task) {}
 }

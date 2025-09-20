@@ -7,7 +7,7 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Copy, Clone)]
     pub struct IdAa64dfr0El1: u64 {
-        /// BRPS 
+        /// BRPS
         const BRPS = 0b1111 << 12;
         /// PMUVer
         const PMUVer = 0b1111 << 8;
@@ -85,6 +85,4 @@ impl IdAa64dfr0El1 {
         let id_aa64dfr0_el1 = Self::read();
         PmuVer::from((id_aa64dfr0_el1.bits() & Self::PMUVer.bits()) >> Self::PMUVER_SHIFT)
     }
-
 }
-

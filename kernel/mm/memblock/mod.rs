@@ -1,17 +1,14 @@
 //! Memblock mem managemnt
 mod memblock_region;
-pub use memblock_region::{MemBlockTypeFlags,MemBlockRegionArray, MemBlockRegion};
+pub use memblock_region::{MemBlockRegion, MemBlockRegionArray, MemBlockTypeFlags};
 
+use crate::mm::{page::PageConfig, PhysAddr, VirtAddr};
 use core::ptr::NonNull;
-use crate::mm::{
-    PhysAddr,VirtAddr,
-    page::PageConfig,
-};
 
-use crate::macros::section_init_data;
-use crate::sync::lock::RawSpinLockNoIrq;
 use crate::alloc::{AllocError, AllocFlags};
 use crate::drivers::fdt::LinuxFdtWrapper;
+use crate::macros::section_init_data;
+use crate::sync::lock::RawSpinLockNoIrq;
 
 /// Memblock
 #[allow(dead_code)] // TODO: Remove it after finishing
@@ -37,8 +34,11 @@ pub struct FreeMemIter<'a> {
 }
 
 impl<'a> FreeMemIter<'a> {
-    fn new(mem: &'a [MemBlockRegion], reserved: &'a [MemBlockRegion],
-        flags: MemBlockTypeFlags) -> Self {
+    fn new(
+        mem: &'a [MemBlockRegion],
+        reserved: &'a [MemBlockRegion],
+        flags: MemBlockTypeFlags,
+    ) -> Self {
         FreeMemIter {
             mem,
             reserved,
@@ -50,23 +50,28 @@ impl<'a> FreeMemIter<'a> {
         }
     }
 
-    // nomap and device managed shoud not be used, unless explicitly specified, 
+    // nomap and device managed shoud not be used, unless explicitly specified,
     // when specified mirror,can only use mirror region
     #[inline(always)]
     fn should_skip_region(region: &MemBlockRegion, flags: MemBlockTypeFlags) -> bool {
         // if we want mirror memory skip non-mirror memory regions
-        if flags.contains(MemBlockTypeFlags::MIRROR) && !region.flags
-        .contains(MemBlockTypeFlags::MIRROR) {
+        if flags.contains(MemBlockTypeFlags::MIRROR)
+            && !region.flags.contains(MemBlockTypeFlags::MIRROR)
+        {
             return true;
         }
 
         // skip nomap mem unless we were asked for it explicitly
-        if !flags.contains(MemBlockTypeFlags::NOMAP) && region.flags.contains(MemBlockTypeFlags::NOMAP) {
+        if !flags.contains(MemBlockTypeFlags::NOMAP)
+            && region.flags.contains(MemBlockTypeFlags::NOMAP)
+        {
             return true;
         }
 
         // skip driver-managed mem unless we were asked for it explicitly
-        if !flags.contains(MemBlockTypeFlags::DRIVER_MANAGED) && region.flags.contains(MemBlockTypeFlags::DRIVER_MANAGED) {
+        if !flags.contains(MemBlockTypeFlags::DRIVER_MANAGED)
+            && region.flags.contains(MemBlockTypeFlags::DRIVER_MANAGED)
+        {
             return true;
         }
 
@@ -78,7 +83,7 @@ impl<'a> Iterator for FreeMemIter<'a> {
     type Item = (PhysAddr, PhysAddr);
 
     fn next(&mut self) -> Option<Self::Item> {
-        for (idx_m,mem_region) in self.mem.iter().enumerate().skip(self.idx_mem as usize) {
+        for (idx_m, mem_region) in self.mem.iter().enumerate().skip(self.idx_mem as usize) {
             if Self::should_skip_region(mem_region, self.flags) {
                 continue;
             }
@@ -87,15 +92,15 @@ impl<'a> Iterator for FreeMemIter<'a> {
             let mem_end = mem_start + mem_region.size;
 
             // we are looking for avaiable reserved reegion than include mem_region
-            // There are these cases: 
+            // There are these cases:
             //                       m_start                   m_end
             //          r_end
-            //                                        r_end    
-            //                                                                r_end 
+            //                                        r_end
+            //                                                                r_end
             // r_start                       rstart                   rstart
             //
             // only one case is ok,
-            //      m_start              m_end 
+            //      m_start              m_end
             //  r_start                     r_end
             //
             for idx_r in self.idx_res..=self.reserved.len() {
@@ -115,7 +120,7 @@ impl<'a> Iterator for FreeMemIter<'a> {
                     break;
                 }
 
-                // if the two regions intersect, done 
+                // if the two regions intersect, done
                 if mem_start < res_end {
                     let found_start = mem_start.max(res_start);
                     let found_end = mem_end.min(res_end);
@@ -140,7 +145,7 @@ impl<'a> Iterator for FreeMemIter<'a> {
 
 impl DoubleEndedIterator for FreeMemIter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        for idx_m  in (0..self.idx_mem_back).rev() {
+        for idx_m in (0..self.idx_mem_back).rev() {
             let mem_region = &self.mem[idx_m];
             if Self::should_skip_region(mem_region, self.flags) {
                 continue;
@@ -148,7 +153,6 @@ impl DoubleEndedIterator for FreeMemIter<'_> {
 
             let mem_start = mem_region.base;
             let mem_end = mem_start + mem_region.size;
-
 
             // we are looking for avaiable reserved reegion than include mem_region
             // There are these cases:
@@ -195,12 +199,11 @@ impl DoubleEndedIterator for FreeMemIter<'_> {
             }
         }
         None
-
     }
 }
 
 impl MemBlock {
-    // When set MEMBLOCK_ALLOC_ACCESSIBLE, it will limit with memblock 
+    // When set MEMBLOCK_ALLOC_ACCESSIBLE, it will limit with memblock
     // current limit
     const MEMBLOCK_ALLOC_ACCESSIBLE: PhysAddr = PhysAddr::from(0);
 
@@ -232,7 +235,7 @@ impl MemBlock {
     /// Remove a memory region
     ///
     /// # Arguments
-    /// 
+    ///
     /// * `base` - Base address of the region
     /// * `size` - Size of the region
     ///
@@ -242,9 +245,9 @@ impl MemBlock {
     }
 
     /// Cap mem from current memory region
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `base` - Base address of the new region
     /// * `size` - Size of the new region
     ///
@@ -254,26 +257,28 @@ impl MemBlock {
         self.memory.cap_range(base, size);
 
         // then truncated reserved region
-        self.reserved.remove_range(PhysAddr::from(0), base.as_usize());
+        self.reserved
+            .remove_range(PhysAddr::from(0), base.as_usize());
         self.reserved.remove_range(base + size, usize::MAX);
     }
 
     /// Add new reserved region
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `base` - Base address of the new region
     /// * `size` - Size of the new region
     ///
     #[inline(always)]
     pub fn add_reserved(&mut self, base: PhysAddr, size: usize) {
-        self.reserved.add_range(base, size, MemBlockTypeFlags::NORMAL);
+        self.reserved
+            .add_range(base, size, MemBlockTypeFlags::NORMAL);
     }
 
     /// Remove a reserved region
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `base` - Base address of the region
     /// * `size` - Size of the region
     ///
@@ -285,11 +290,7 @@ impl MemBlock {
 
     #[inline(always)]
     fn iter_free(&self, flags: MemBlockTypeFlags) -> FreeMemIter<'_> {
-        FreeMemIter::new(
-            &self.memory,
-            &self.reserved,
-            flags,
-        )
+        FreeMemIter::new(&self.memory, &self.reserved, flags)
     }
 
     fn find_free_mem_range_bottom_up(
@@ -336,7 +337,7 @@ impl MemBlock {
         let iter = self.iter_free(flags).rev();
         for (free_start, free_end) in iter {
             let this_start = free_start.max(start);
-            let this_end   = free_end.min(end);
+            let this_end = free_end.min(end);
 
             // is enough space?
             let end_minus_size = match this_end.checked_sub(PhysAddr::from(size)) {
@@ -350,7 +351,6 @@ impl MemBlock {
             if cand >= this_start {
                 return Some(cand);
             }
-
         }
         None
     }
@@ -401,13 +401,7 @@ impl MemBlock {
         // The first page should never be allocated
         start = start.max(PhysAddr::from(PageConfig::PAGE_SIZE));
 
-        let found = self.find_free_mem_range(
-            start,
-            end,
-            align,
-            size,
-            MemBlockTypeFlags::NORMAL,
-        );
+        let found = self.find_free_mem_range(start, end, align, size, MemBlockTypeFlags::NORMAL);
 
         if let Some(phys) = found {
             // add found range to reserved memory
@@ -421,7 +415,12 @@ impl MemBlock {
     /// Alloc phys memory from the memblock allocator
     #[inline]
     pub fn alloc_phys(&mut self, size: usize, align: usize) -> Result<PhysAddr, AllocError> {
-        self.alloc_phys_with_limit(size, align, Self::MEMBLOCK_ALLOC_LOW_LIMIT, Self::MEMBLOCK_ALLOC_ACCESSIBLE)
+        self.alloc_phys_with_limit(
+            size,
+            align,
+            Self::MEMBLOCK_ALLOC_LOW_LIMIT,
+            Self::MEMBLOCK_ALLOC_ACCESSIBLE,
+        )
     }
 
     /// Free phys memory allocated by the memblock allocator
@@ -433,9 +432,18 @@ impl MemBlock {
 
     /// Alloc memory from the memblock allocator
     #[inline]
-    pub fn alloc(&mut self, size: usize, align: usize, _flags: AllocFlags) -> Result<NonNull<u8>, AllocError> {
-
-        let phys = self.alloc_phys_with_limit(size, align, Self::MEMBLOCK_ALLOC_LOW_LIMIT, Self::MEMBLOCK_ALLOC_ACCESSIBLE)?;
+    pub fn alloc(
+        &mut self,
+        size: usize,
+        align: usize,
+        _flags: AllocFlags,
+    ) -> Result<NonNull<u8>, AllocError> {
+        let phys = self.alloc_phys_with_limit(
+            size,
+            align,
+            Self::MEMBLOCK_ALLOC_LOW_LIMIT,
+            Self::MEMBLOCK_ALLOC_ACCESSIBLE,
+        )?;
 
         let virt_addr = phys.to_virt();
 
@@ -468,16 +476,17 @@ impl MemBlock {
     /// Return the end of dram
     #[inline(always)]
     pub fn end_of_dram(&self) -> PhysAddr {
-        self.memory.get(self.memory.len() - 1).unwrap().base + self.memory.get(self.memory.len() - 1).unwrap().size
+        self.memory.get(self.memory.len() - 1).unwrap().base
+            + self.memory.get(self.memory.len() - 1).unwrap().size
     }
 
     #[inline(always)]
-    fn range_in_ram(&self,start: PhysAddr, size: usize) -> bool {
+    fn range_in_ram(&self, start: PhysAddr, size: usize) -> bool {
         self.memory.overlaps_region(start, size)
     }
 
     #[inline(always)]
-    fn range_in_reserved(&self,start: PhysAddr, size: usize) -> bool {
+    fn range_in_reserved(&self, start: PhysAddr, size: usize) -> bool {
         self.reserved.overlaps_region(start, size)
     }
 
@@ -492,7 +501,7 @@ impl MemBlock {
         }
 
         // Handle linux,usable-memory-range property
-        if let Some(regions) =  fdt.chosen().usable_mem_region() {
+        if let Some(regions) = fdt.chosen().usable_mem_region() {
             for r in regions {
                 let start = PhysAddr::from(r.starting_address as usize);
                 self.cap_memory(start, r.size);
@@ -500,20 +509,18 @@ impl MemBlock {
         }
     }
 
-
     #[inline(always)]
     fn mark_memblock_nopmap(&mut self, start: PhysAddr, size: usize) {
-        self.memory.set_ctrl_flags(start, size, true,  MemBlockTypeFlags::NOMAP);
+        self.memory
+            .set_ctrl_flags(start, size, true, MemBlockTypeFlags::NOMAP);
     }
-
 
     fn reserved_fdt_reg_mem(&mut self, start: PhysAddr, size: usize, nomap: bool) -> bool {
         if nomap {
             // If the memory is already reserved (by another region), we
             // should now allow it to be marked nomap,but don't worry
             // if the region isn't ram  memory as it won't be mapped.
-            if self.range_in_ram(start, size) &&
-                self.range_in_reserved(start, size) {
+            if self.range_in_ram(start, size) && self.range_in_reserved(start, size) {
                 return false;
             }
             self.mark_memblock_nopmap(start, size);
@@ -549,7 +556,6 @@ impl MemBlock {
 
         // TODO: reserved elfcorehdr
     }
-
 }
 
 #[cfg(not(test))]
@@ -557,15 +563,18 @@ impl MemBlock {
 #[allow(dead_code)] // TODO: Remove it after finishing
 /// Global static instance of the MemBlock allocator.
 /// Actually MEMBLOCK doesn't need to be protect, we use `RawSpinNoPreemptLockIrq`
-/// to ensure that the allocator will only be used in: 
+/// to ensure that the allocator will only be used in:
 ///  - the initialization phase before scheduling is enabled
 ///  - avoid use unsafe to access it, because it is only used in the initialization phase
-pub static GLOBAL_MEMBLOCK: RawSpinLockNoIrq<MemBlock> = RawSpinLockNoIrq::new(MemBlock {
-    bottom_up: false,
-    current_limit: PhysAddr::from(MemBlock::MEMBLOCK_ALLOC_ANYWHERE),
-    memory: MemBlockRegionArray::new_static("memory"),
-    reserved: MemBlockRegionArray::new_static("reserved"),
-}, Some("MEMBLOCK"));
+pub static GLOBAL_MEMBLOCK: RawSpinLockNoIrq<MemBlock> = RawSpinLockNoIrq::new(
+    MemBlock {
+        bottom_up: false,
+        current_limit: PhysAddr::from(MemBlock::MEMBLOCK_ALLOC_ANYWHERE),
+        memory: MemBlockRegionArray::new_static("memory"),
+        reserved: MemBlockRegionArray::new_static("reserved"),
+    },
+    Some("MEMBLOCK"),
+);
 
 #[cfg(test)]
 mod tests {
@@ -581,16 +590,28 @@ mod tests {
 
     fn assert_reserved(idx: usize, memblock: &MemBlock, base: PhysAddr, size: usize) {
         let reserved = memblock.reserved.get(idx);
-        assert!(reserved.is_some(), "Reserved memory at index {} should exist", idx);
+        assert!(
+            reserved.is_some(),
+            "Reserved memory at index {} should exist",
+            idx
+        );
         let reserved = reserved.unwrap();
-        assert_eq!(reserved.base, base, "Reserved memory base at index {} should be {:?}", idx, base);
-        assert_eq!(reserved.size, size, "Reserved memory size at index {} should be {}", idx, size);
+        assert_eq!(
+            reserved.base, base,
+            "Reserved memory base at index {} should be {:?}",
+            idx, base
+        );
+        assert_eq!(
+            reserved.size, size,
+            "Reserved memory size at index {} should be {}",
+            idx, size
+        );
     }
 
     #[test]
     fn test_alloc_basic() {
         let mut memblock = new_memblock();
-        // Add some memory regions 
+        // Add some memory regions
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
         // now we have two memory regions: [0x1000, 0x2000)
         let alloc_size = 0x1000;
@@ -598,7 +619,11 @@ mod tests {
         let phys = memblock.alloc_phys(alloc_size, align);
         assert!(phys.is_ok(), "Allocation should succeed");
         let phys = phys.unwrap();
-        assert_eq!(phys, PhysAddr::from(0x1000), "Allocated address should be 0x1000");
+        assert_eq!(
+            phys,
+            PhysAddr::from(0x1000),
+            "Allocated address should be 0x1000"
+        );
         // Now we should have reserved memory at 0x1000
         assert_reserved(0, &memblock, PhysAddr::from(0x1000), alloc_size);
         // free
@@ -608,22 +633,33 @@ mod tests {
         let phys2 = memblock.alloc_phys(alloc_size, align);
         assert!(phys2.is_ok(), "Second allocation should succeed");
         let phys2 = phys2.unwrap();
-        assert_eq!(phys2, PhysAddr::from(0x1000), "Second allocated address should be 0x1000");
+        assert_eq!(
+            phys2,
+            PhysAddr::from(0x1000),
+            "Second allocated address should be 0x1000"
+        );
         // Now we should have two reserved memory regions: [0x1000, 0x2000) and [0x3000, 0x4000)
         assert_reserved(0, &memblock, PhysAddr::from(0x1000), alloc_size);
 
         // no memory left for allocation
         let phys3 = memblock.alloc_phys(alloc_size, align);
-        assert!(phys3.is_err(), "Third allocation should fail, no memory left");
+        assert!(
+            phys3.is_err(),
+            "Third allocation should fail, no memory left"
+        );
         let err = phys3.unwrap_err();
-        assert_eq!(err, AllocError::NoMemory, "Expected NoMemory error for third allocation");
+        assert_eq!(
+            err,
+            AllocError::NoMemory,
+            "Expected NoMemory error for third allocation"
+        );
     }
 
     #[test]
     fn test_alloc_basic_top_down() {
-        let mut memblock = new_memblock(); 
+        let mut memblock = new_memblock();
         memblock.bottom_up = false; // Set to top-down allocation
-        // Add some memory regions
+                                    // Add some memory regions
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
         memblock.add_memory(PhysAddr::from(0x3000), 0x1000);
         // now we have two memory regions: [0x1000, 0x2000) and [0x3000, 0x4000)
@@ -633,15 +669,23 @@ mod tests {
         let phys = memblock.alloc_phys(alloc_size, align);
         assert!(phys.is_ok(), "Allocation should succeed");
         let phys = phys.unwrap();
-        assert_eq!(phys, PhysAddr::from(0x3000), "Allocated address should be 0x3000");
+        assert_eq!(
+            phys,
+            PhysAddr::from(0x3000),
+            "Allocated address should be 0x3000"
+        );
         // Now we should have reserved memory at 0x3000
         assert_reserved(0, &memblock, PhysAddr::from(0x3000), alloc_size);
- 
+
         // continue allocating memory
         let phys2 = memblock.alloc_phys(alloc_size, align);
         assert!(phys2.is_ok(), "Second allocation should succeed");
         let phys2 = phys2.unwrap();
-        assert_eq!(phys2, PhysAddr::from(0x1000), "Second allocated address should be 0x1000");
+        assert_eq!(
+            phys2,
+            PhysAddr::from(0x1000),
+            "Second allocated address should be 0x1000"
+        );
         // Now we should have two reserved memory regions: [0x3000, 0x4000) and [0x1000, 0x2000)
         assert_reserved(1, &memblock, PhysAddr::from(0x3000), alloc_size);
         assert_reserved(0, &memblock, PhysAddr::from(0x1000), alloc_size);
@@ -656,9 +700,16 @@ mod tests {
         let alloc_size = 0x3000; // Larger than the available memory
         let align = 0x1000;
         let phys = memblock.alloc_phys(alloc_size, align);
-        assert!(phys.is_err(), "Allocation with size larger than available should fail");
+        assert!(
+            phys.is_err(),
+            "Allocation with size larger than available should fail"
+        );
         let err = phys.unwrap_err();
-        assert_eq!(err, AllocError::NoMemory, "Expected NoMemory error for allocation larger than available");
+        assert_eq!(
+            err,
+            AllocError::NoMemory,
+            "Expected NoMemory error for allocation larger than available"
+        );
 
         memblock.add_memory(PhysAddr::from(0x5000), 0x3000);
         // Now we have [0x1000, 0x3000)  [0x5000, 0x8000) is available
@@ -668,22 +719,37 @@ mod tests {
         let phys = memblock.alloc_phys(alloc_size, align);
         assert!(phys.is_ok(), "Allocation with size 0x3000 should succeed");
         let phys = phys.unwrap();
-        assert_eq!(phys, PhysAddr::from(0x5000), "Allocated address should be 0x5000");
+        assert_eq!(
+            phys,
+            PhysAddr::from(0x5000),
+            "Allocated address should be 0x5000"
+        );
         // Now we should have reserved memory at 0x5000
         assert_reserved(0, &memblock, PhysAddr::from(0x5000), alloc_size);
 
         // Try to allocate again, should fail
         let phys2 = memblock.alloc_phys(alloc_size, align);
-        assert!(phys2.is_err(), "Second allocation with size 0x3000 should fail, no memory left");
+        assert!(
+            phys2.is_err(),
+            "Second allocation with size 0x3000 should fail, no memory left"
+        );
         let err = phys2.unwrap_err();
-        assert_eq!(err, AllocError::NoMemory, "Expected NoMemory error for second allocation with size 0x3000");
+        assert_eq!(
+            err,
+            AllocError::NoMemory,
+            "Expected NoMemory error for second allocation with size 0x3000"
+        );
 
         // allocate smaller size
         let alloc_size = 0x1000; // Smaller than the available memory
         let phys3 = memblock.alloc_phys(alloc_size, align);
         assert!(phys3.is_ok(), "Allocation with size 0x1000 should succeed");
         let phys3 = phys3.unwrap();
-        assert_eq!(phys3, PhysAddr::from(0x1000), "Allocated address should be 0x8000");
+        assert_eq!(
+            phys3,
+            PhysAddr::from(0x1000),
+            "Allocated address should be 0x8000"
+        );
         // Now we should have two reserved memory
         assert_reserved(0, &memblock, PhysAddr::from(0x1000), 0x1000);
         assert_reserved(1, &memblock, PhysAddr::from(0x5000), 0x3000);
@@ -693,15 +759,22 @@ mod tests {
     fn test_alloc_size_larger_top_down() {
         let mut memblock = new_memblock();
         memblock.bottom_up = false; // Set to top-down allocation
-        // Add some memory regions now we have 0x1000-0x3000
+                                    // Add some memory regions now we have 0x1000-0x3000
         memblock.add_memory(PhysAddr::from(0x1000), 0x2000);
         // Try to allocate larger than available size
         let alloc_size = 0x3000; // Larger than the available memory
         let align = 0x1000;
         let phys = memblock.alloc_phys(alloc_size, align);
-        assert!(phys.is_err(), "Allocation with size larger than available should fail");
+        assert!(
+            phys.is_err(),
+            "Allocation with size larger than available should fail"
+        );
         let err = phys.unwrap_err();
-        assert_eq!(err, AllocError::NoMemory, "Expected NoMemory error for allocation larger than available");
+        assert_eq!(
+            err,
+            AllocError::NoMemory,
+            "Expected NoMemory error for allocation larger than available"
+        );
 
         memblock.add_memory(PhysAddr::from(0x5000), 0x3000);
         memblock.add_memory(PhysAddr::from(0x9000), 0x3000);
@@ -712,7 +785,11 @@ mod tests {
         let phys = memblock.alloc_phys(alloc_size, align);
         assert!(phys.is_ok(), "Allocation with size 0x3000 should succeed");
         let phys = phys.unwrap();
-        assert_eq!(phys, PhysAddr::from(0x9000), "Allocated address should be 0x9000");
+        assert_eq!(
+            phys,
+            PhysAddr::from(0x9000),
+            "Allocated address should be 0x9000"
+        );
         // Now we should have reserved memory at 0x9000
         assert_reserved(0, &memblock, PhysAddr::from(0x9000), alloc_size);
 
@@ -721,7 +798,11 @@ mod tests {
         let phys3 = memblock.alloc_phys(alloc_size, align);
         assert!(phys3.is_ok(), "Allocation with size 0x1000 should succeed");
         let phys3 = phys3.unwrap();
-        assert_eq!(phys3, PhysAddr::from(0x7000), "Allocated address should be 0x7000");
+        assert_eq!(
+            phys3,
+            PhysAddr::from(0x7000),
+            "Allocated address should be 0x7000"
+        );
         // Now we should have two reserved memory
         assert_reserved(0, &memblock, PhysAddr::from(0x7000), 0x1000);
         assert_reserved(1, &memblock, PhysAddr::from(0x9000), 0x3000);
@@ -742,7 +823,12 @@ mod tests {
             assert!(phys.is_ok(), "Allocation with size {} should succeed", size);
             let phys = phys.unwrap();
             // Check if the allocated address is aligned
-            assert!(phys.as_usize() % align == 0, "Allocated address for size {} should be aligned to {}", size, align);
+            assert!(
+                phys.as_usize() % align == 0,
+                "Allocated address for size {} should be aligned to {}",
+                size,
+                align
+            );
         }
     }
 
@@ -757,22 +843,33 @@ mod tests {
         let phys = memblock.alloc_phys(alloc_size, align);
         assert!(phys.is_err(), "Allocation with size 0 should fail");
         let err = phys.unwrap_err();
-        assert_eq!(err, AllocError::InvalidSize, "Expected InvalidSize error for allocation with size 0");
+        assert_eq!(
+            err,
+            AllocError::InvalidSize,
+            "Expected InvalidSize error for allocation with size 0"
+        );
     }
 
     #[test]
     fn test_alloc_with_invalid_align() {
         let mut memblock = new_memblock();
-        // Add some memory regions 
+        // Add some memory regions
         memblock.add_memory(PhysAddr::from(0x1000), 0x1000);
 
         // Try to allocate with invalid alignment
         let alloc_size = 0x1000;
         let align = 0; // Invalid alignment
         let phys = memblock.alloc_phys(alloc_size, align);
-        assert!(phys.is_err(), "Allocation with invalid alignment should fail");
+        assert!(
+            phys.is_err(),
+            "Allocation with invalid alignment should fail"
+        );
         let err = phys.unwrap_err();
-        assert_eq!(err, AllocError::InvalidAlign, "Expected InvalidAlign error for allocation with invalid alignment");
+        assert_eq!(
+            err,
+            AllocError::InvalidAlign,
+            "Expected InvalidAlign error for allocation with invalid alignment"
+        );
     }
 
     #[test]
@@ -792,4 +889,3 @@ mod tests {
         assert_eq!(memblock.memory[0].size, 0x1000);
     }
 }
-

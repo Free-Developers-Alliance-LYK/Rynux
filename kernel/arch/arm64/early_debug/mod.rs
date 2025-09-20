@@ -12,7 +12,7 @@ cfg_if! {
         pub const EARLY_UART_BASE: usize = 0x0900_0000;
         static UART: Pl011Uart = unsafe {
             Pl011Uart::new(EARLY_UART_BASE as *mut u8)};
-    } else if #[cfg(CONFIG_RASPI4B)] { 
+    } else if #[cfg(CONFIG_RASPI4B)] {
         pub mod pl011;
         use pl011::Pl011Uart;
         /// Raspberry Pi 4B UART base address
@@ -54,13 +54,13 @@ fn uart_put_u64_hex_le(val: u64) {
 /// Early uart put
 #[unsafe(no_mangle)]
 pub fn early_uart_putchar(c: u8) {
-      match c {
-          b'\n' => {
-              UART.putchar(b'\r');
-              UART.putchar(b'\n');
-          }
-          c => UART.putchar(c),
-      }
+    match c {
+        b'\n' => {
+            UART.putchar(b'\r');
+            UART.putchar(b'\n');
+        }
+        c => UART.putchar(c),
+    }
 }
 
 #[unsafe(no_mangle)]

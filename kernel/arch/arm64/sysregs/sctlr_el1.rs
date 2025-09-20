@@ -130,19 +130,38 @@ impl SctlrEl1 {
     const ENDIAN_SET: Self = Self::from_bits_truncate(0);
 
     /// INIT_SCTLR_EL1_MMU_OFF
-    pub const INIT_SCTLR_EL1_MMU_OFF: Self = Self::from_bits_truncate(Self::ENDIAN_SET.bits() | Self::LSMAOE.bits() | Self::nTLSMD.bits() | Self::EIS.bits() | Self::TSCXT.bits() | Self::EOS.bits());
+    pub const INIT_SCTLR_EL1_MMU_OFF: Self = Self::from_bits_truncate(
+        Self::ENDIAN_SET.bits()
+            | Self::LSMAOE.bits()
+            | Self::nTLSMD.bits()
+            | Self::EIS.bits()
+            | Self::TSCXT.bits()
+            | Self::EOS.bits(),
+    );
 
     /// INIT_SCTLR_EL1_MMU_ON
     pub const INIT_SCTLR_EL1_MMU_ON: Self = Self::from_bits_truncate(
-        Self::M.bits() | Self::C.bits() | Self::SA.bits() |
-        Self::SA0.bits() | Self::SED.bits() | Self::I.bits() |
-        Self::DZE.bits() | Self::UCT.bits() | Self::nTWE.bits() |
-        Self::IESB.bits() | Self::SPAN.bits() | Self::ITFSB.bits() |
-        Self::ENDIAN_SET.bits() | Self::UCI.bits() | Self::EPAN.bits() |
-        Self::LSMAOE.bits() | Self::nTLSMD.bits() | Self::EIS.bits() |
-        Self::TSCXT.bits() | Self::EOS.bits()
+        Self::M.bits()
+            | Self::C.bits()
+            | Self::SA.bits()
+            | Self::SA0.bits()
+            | Self::SED.bits()
+            | Self::I.bits()
+            | Self::DZE.bits()
+            | Self::UCT.bits()
+            | Self::nTWE.bits()
+            | Self::IESB.bits()
+            | Self::SPAN.bits()
+            | Self::ITFSB.bits()
+            | Self::ENDIAN_SET.bits()
+            | Self::UCI.bits()
+            | Self::EPAN.bits()
+            | Self::LSMAOE.bits()
+            | Self::nTLSMD.bits()
+            | Self::EIS.bits()
+            | Self::TSCXT.bits()
+            | Self::EOS.bits(),
     );
-
 
     /// EE bit shift
     pub const ELX_EE_SHIFT: u64 = 25;
@@ -160,12 +179,6 @@ impl SctlrEl1 {
     pub fn write(&self) {
         let sctlr = self.bits();
         sys_coproc_write_raw!(u64, "SCTLR_EL1", "x", sctlr);
-        unsafe {
-            core::arch::asm!(
-            "isb",
-            "ic iallu",
-            "dsb nsh",
-            "isb",)
-        }
+        unsafe { core::arch::asm!("isb", "ic iallu", "dsb nsh", "isb",) }
     }
 }

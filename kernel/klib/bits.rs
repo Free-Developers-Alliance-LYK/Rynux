@@ -53,19 +53,19 @@ pub const fn genmask128(h: u32, l: u32) -> u128 {
 mod tests {
     use super::*;
 
-     #[test]
+    #[test]
     fn test_genmask_basic() {
-            assert_eq!(genmask32(32 - 1, 0), !0u32);
-            assert_eq!(genmask32(15, 8), 0xFF00);
-            assert_eq!(genmask32(7, 0), 0xFF);
-            assert_eq!(genmask32(0, 0), 1);
-            assert_eq!(genmask32(3, 1), 0b1110);
+        assert_eq!(genmask32(32 - 1, 0), !0u32);
+        assert_eq!(genmask32(15, 8), 0xFF00);
+        assert_eq!(genmask32(7, 0), 0xFF);
+        assert_eq!(genmask32(0, 0), 1);
+        assert_eq!(genmask32(3, 1), 0b1110);
 
-            assert_eq!(genmask64(64 - 1, 0), !0u64);
-            assert_eq!(genmask64(31, 0), 0xFFFF_FFFF);
-            assert_eq!(genmask64(63, 32), 0xFFFF_FFFF_0000_0000);
-            assert_eq!(genmask64(15, 8), 0xFF00);
-            assert_eq!(genmask64(0, 0), 1);
+        assert_eq!(genmask64(64 - 1, 0), !0u64);
+        assert_eq!(genmask64(31, 0), 0xFFFF_FFFF);
+        assert_eq!(genmask64(63, 32), 0xFFFF_FFFF_0000_0000);
+        assert_eq!(genmask64(15, 8), 0xFF00);
+        assert_eq!(genmask64(0, 0), 1);
     }
 
     #[test]
@@ -75,5 +75,3 @@ mod tests {
         assert_eq!(genmask128(7, 8), 0);
     }
 }
-
-

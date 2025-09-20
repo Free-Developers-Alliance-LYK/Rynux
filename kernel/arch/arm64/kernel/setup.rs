@@ -1,15 +1,12 @@
 //! Rynux arm64 setup
 
 use crate::{
-    macros::{section_cache_aligned, section_init_data, cache_aligned, section_init_text},
+    arch::arm64::{mm::fixmap::FixMap, pgtable::pgprot::PtePgProt},
+    arch::setup::ArchBootSetupTrait,
+    macros::{cache_aligned, section_cache_aligned, section_init_data, section_init_text},
+    mm::memblock::GLOBAL_MEMBLOCK,
     mm::PhysAddr,
     types::OnceCell,
-    arch::setup::ArchBootSetupTrait,
-    arch::arm64::{
-        pgtable::pgprot::PtePgProt,
-        mm::fixmap::FixMap,
-    },
-    mm::memblock::GLOBAL_MEMBLOCK,
 };
 
 /// Have to define this struct with repr align
@@ -46,7 +43,7 @@ pub const BOOT_CPU_MODE_EL2: usize = 0xe12;
 
 /// FDT phys addr
 #[section_init_data]
-static FDT_POINTER : OnceCell<PhysAddr> = OnceCell::new();
+static FDT_POINTER: OnceCell<PhysAddr> = OnceCell::new();
 
 /// Set FDT pointer
 pub fn set_fdt_pointer(pa: PhysAddr) {
@@ -60,12 +57,15 @@ impl Arm64BootSetup {
     /// early scan fdt
     #[section_init_text]
     fn setup_machine_fdt() {
-        let (dt_virt, size) = FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL_RO);
+        let (dt_virt, size) =
+            FixMap::remap_fdt(*FDT_POINTER.get().unwrap(), PtePgProt::PAGE_KERNEL_RO);
         crate::drivers::fdt::LinuxFdtWrapper::setup(dt_virt);
         // init bootcoomand line from fdt bootargs
         crate::init::command_line::setup_from_fdt();
         // reserve fdt mem
-        GLOBAL_MEMBLOCK.lock().add_reserved(*FDT_POINTER.get().unwrap(), size);
+        GLOBAL_MEMBLOCK
+            .lock()
+            .add_reserved(*FDT_POINTER.get().unwrap(), size);
     }
 }
 
@@ -76,7 +76,9 @@ impl ArchBootSetupTrait for Arm64BootSetup {
         Self::setup_machine_fdt();
         crate::arch::arm64::mm::init::memblock_init();
         crate::arch::arm64::mm::mmu::paging_init();
-        crate::init::GLOBAL_COMMAND_LINE.lock().parse_early_options();
+        crate::init::GLOBAL_COMMAND_LINE
+            .lock()
+            .parse_early_options();
         // init arm64 memblock
         //crate::arch::arm64::mm::init::paging_init();
     }

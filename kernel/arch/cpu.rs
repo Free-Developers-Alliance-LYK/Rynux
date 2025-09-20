@@ -22,4 +22,3 @@ cfg_if! {
         pub use super::arm64::cpu::Arm64Processor as ArchProcessor;
     }
 }
-

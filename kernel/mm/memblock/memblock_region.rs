@@ -1,10 +1,10 @@
 //! Memblock region implement
 
-use core::ops::{Deref, DerefMut, Index, IndexMut};
-use crate::mm::PhysAddr;
 use crate::bitflags::bitflags;
 use crate::macros::section_init_text;
+use crate::mm::PhysAddr;
 use crate::types::ForStepResult;
+use core::ops::{Deref, DerefMut, Index, IndexMut};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -38,11 +38,7 @@ pub struct MemBlockRegion {
 
 impl MemBlockRegion {
     const fn new(base: PhysAddr, size: usize, flags: MemBlockTypeFlags) -> Self {
-        Self {
-            base,
-            size,
-            flags,
-        }
+        Self { base, size, flags }
     }
 }
 
@@ -105,13 +101,13 @@ impl RegionStorage {
 
                 // special case for empty array
                 if *count == 0 {
-                    regions[0] = MemBlockRegion::new(PhysAddr::from(0), 0, MemBlockTypeFlags::NORMAL);
+                    regions[0] =
+                        MemBlockRegion::new(PhysAddr::from(0), 0, MemBlockTypeFlags::NORMAL);
                 }
             }
             RegionStorage::Dynamic => todo!(),
         }
     }
-
 
     #[inline]
     fn split_mut_pair(&mut self, idx: usize) -> (&mut MemBlockRegion, &mut MemBlockRegion) {
@@ -124,7 +120,6 @@ impl RegionStorage {
         }
     }
 
-
     // merge neighboring compatible regions
     //
     // # Arguments
@@ -134,7 +129,9 @@ impl RegionStorage {
     //
     #[section_init_text]
     fn merge_regions(&mut self, start_rgn: usize, mut end_rgn: usize) {
-        if self.len() < 2 { return; }
+        if self.len() < 2 {
+            return;
+        }
         let mut i = if start_rgn != 0 { start_rgn - 1 } else { 0 };
         end_rgn = end_rgn.min(self.len() - 1);
 
@@ -155,8 +152,8 @@ impl RegionStorage {
                 match self {
                     RegionStorage::Static { regions, count } => {
                         // move forward from next + 1, index of which is i + 2
-                        let slice = &mut regions[.. *count];
-                        slice.copy_within(i + 2 .. *count, i + 1);
+                        let slice = &mut regions[..*count];
+                        slice.copy_within(i + 2..*count, i + 1);
                         *count -= 1;
                     }
                     RegionStorage::Dynamic => todo!(),
@@ -181,9 +178,7 @@ impl Deref for MemBlockRegionArray {
 
     fn deref(&self) -> &Self::Target {
         match &self.regions {
-            RegionStorage::Static { regions, count } => {
-                &regions[..*count]
-            }
+            RegionStorage::Static { regions, count } => &regions[..*count],
             RegionStorage::Dynamic => {
                 panic!("Dynamic not supported yet");
             }
@@ -194,9 +189,7 @@ impl Deref for MemBlockRegionArray {
 impl DerefMut for MemBlockRegionArray {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match &mut self.regions {
-            RegionStorage::Static { regions, count } => {
-                &mut regions[..*count]
-            }
+            RegionStorage::Static { regions, count } => &mut regions[..*count],
             RegionStorage::Dynamic => {
                 panic!("Dynamic region storage is not supported yet");
             }
@@ -208,7 +201,7 @@ impl Index<usize> for MemBlockRegionArray {
     type Output = MemBlockRegion;
 
     fn index(&self, index: usize) -> &Self::Output {
-        let slice: &[MemBlockRegion] = &**self; 
+        let slice: &[MemBlockRegion] = &**self;
         assert!(index < slice.len(), "index out of bounds");
         &slice[index]
     }
@@ -216,7 +209,7 @@ impl Index<usize> for MemBlockRegionArray {
 
 impl IndexMut<usize> for MemBlockRegionArray {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        let slice: &mut [MemBlockRegion] = &mut **self; 
+        let slice: &mut [MemBlockRegion] = &mut **self;
         assert!(index < slice.len(), "index out of bounds");
         &mut slice[index]
     }
@@ -229,7 +222,8 @@ impl MemBlockRegionArray {
     pub const fn new_static(name: &'static str) -> Self {
         Self {
             regions: RegionStorage::Static {
-                regions: [MemBlockRegion::new(PhysAddr::from(0), 0, MemBlockTypeFlags::NORMAL); INIT_MEMBLOCK_MEMORY_REGIONS],
+                regions: [MemBlockRegion::new(PhysAddr::from(0), 0, MemBlockTypeFlags::NORMAL);
+                    INIT_MEMBLOCK_MEMORY_REGIONS],
                 count: 0,
             },
             total_size: 0,
@@ -268,14 +262,14 @@ impl MemBlockRegionArray {
         *idx = 0;
         while *idx < self.len() {
             match f(self, *idx) {
-                ForStepResult::Next  => *idx += 1,
+                ForStepResult::Next => *idx += 1,
                 ForStepResult::JumpTo(j) => *idx = j,
                 ForStepResult::Break => break,
             }
         }
     }
 
-    /// Add a new region 
+    /// Add a new region
     ///
     /// # Arguments
     ///
@@ -295,7 +289,7 @@ impl MemBlockRegionArray {
         size = end - base;
 
         if size == 0 {
-            return ;
+            return;
         }
 
         // special case for empty array
@@ -312,8 +306,8 @@ impl MemBlockRegionArray {
 
         // All possible cases:
         //  low   ------------------------------------  high
-        //           [reg.base            reg.end] 
-        //      ]                   ]                          ] 
+        //           [reg.base            reg.end]
+        //      ]                   ]                          ]
         //  [                    [                   [
         //
         // The left and right intervals can be arranged and combined
@@ -334,7 +328,7 @@ impl MemBlockRegionArray {
                 return ForStepResult::Next;
             }
 
-            // Left three case: 
+            // Left three case:
             //  - intersect from below
             //  - fully contained
             //  - intersect from above
@@ -343,7 +337,10 @@ impl MemBlockRegionArray {
             if r_base > base {
                 // TODO:  warn if flags not match
                 if flags != r.flags {
-                    panic!("Cannot add region with different flags: {:?} != {:?}", flags, r.flags);
+                    panic!(
+                        "Cannot add region with different flags: {:?} != {:?}",
+                        flags, r.flags
+                    );
                 }
 
                 nr_new += 1;
@@ -354,12 +351,12 @@ impl MemBlockRegionArray {
                 end_rgn = id + 1;
                 this.insert_region(id, MemBlockRegion::new(base, r_base - base, flags));
                 //change base to r_end
-                base = r_end.min(end); 
+                base = r_end.min(end);
                 return ForStepResult::JumpTo(id + 2);
             }
 
             //change base to r_end
-            base = r_end.min(end); 
+            base = r_end.min(end);
             ForStepResult::Next
         });
 
@@ -412,7 +409,7 @@ impl MemBlockRegionArray {
 
         // All possible cases:
         //  low   ------------------------------------  high
-        //            [rbase            rend] 
+        //            [rbase            rend]
         //       end              end                end
         //  base            base                base
         //
@@ -420,7 +417,7 @@ impl MemBlockRegionArray {
         //
         self.for_each(&mut idx, |this, id| {
             let r_base = this[id].base;
-            let r_end =  this[id].base + this[id].size;
+            let r_end = this[id].base + this[id].size;
             let r_flags = this[id].flags;
 
             // The interval is on the left do nothing
@@ -433,7 +430,7 @@ impl MemBlockRegionArray {
                 return ForStepResult::Next;
             }
 
-            // Left three case: 
+            // Left three case:
             //  - intersect from left
             //  - fully contained
             //  - intersect from right
@@ -517,7 +514,13 @@ impl MemBlockRegionArray {
     }
 
     /// set flags for a range of memory regions
-    pub fn set_ctrl_flags(&mut self, base: PhysAddr, size: usize, set: bool, flags: MemBlockTypeFlags) {
+    pub fn set_ctrl_flags(
+        &mut self,
+        base: PhysAddr,
+        size: usize,
+        set: bool,
+        flags: MemBlockTypeFlags,
+    ) {
         let (start_rgn, end_rgn) = self.isolate_range(base, size);
         for i in start_rgn..end_rgn {
             if set {
@@ -528,7 +531,6 @@ impl MemBlockRegionArray {
         }
         self.regions.merge_regions(start_rgn, end_rgn);
     }
-
 }
 
 #[cfg(test)]
@@ -574,7 +576,7 @@ mod tests {
         assert_eq!(memblock[0].base, PhysAddr::from(0x1000));
         assert_eq!(memblock[0].size, 0x2000);
         assert_eq!(memblock.total_size, 0x2000);
-    
+
         // test not neighboring regions are not merged
         memblock.add_range(PhysAddr::from(0x4000), 0x1000, MemBlockTypeFlags::NORMAL);
         assert_eq!(memblock.len(), 2);
@@ -671,7 +673,7 @@ mod tests {
         assert_eq!(memblock[1].size, 0x1000);
         assert_eq!(memblock.total_size, 0x2000);
         // now region is [0x1000, 0x2000), [0x3000, 0x4000)
-        // recover 
+        // recover
         memblock.add_range(PhysAddr::from(0x2000), 0x1000, MemBlockTypeFlags::NORMAL);
         assert_eq!(memblock.len(), 1);
         assert_eq!(memblock[0].base, PhysAddr::from(0x1000));
@@ -743,8 +745,8 @@ mod tests {
         // now region is [0x1000, 0x4000) [0x5000, 0x8000)
         assert!(memblock.overlaps_region(PhysAddr::from(0x2000), 0x1000));
         assert!(memblock.overlaps_region(PhysAddr::from(0x3000), 0x2000));
-        assert!(memblock.overlaps_region(PhysAddr::from(0x4000),0x2000));
-        assert!(memblock.overlaps_region(PhysAddr::from(0x6000),0x1000));
+        assert!(memblock.overlaps_region(PhysAddr::from(0x4000), 0x2000));
+        assert!(memblock.overlaps_region(PhysAddr::from(0x6000), 0x1000));
         assert!(!memblock.overlaps_region(PhysAddr::from(0xc0000), 0x1000));
         assert!(!memblock.overlaps_region(PhysAddr::from(0xc0000), 0x0));
     }
@@ -760,7 +762,12 @@ mod tests {
 
         // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
         // set flags for middle regions
-        memblock.set_ctrl_flags(PhysAddr::from(0x2000), 0x2000, true, MemBlockTypeFlags::NOMAP);
+        memblock.set_ctrl_flags(
+            PhysAddr::from(0x2000),
+            0x2000,
+            true,
+            MemBlockTypeFlags::NOMAP,
+        );
         assert_eq!(memblock.len(), 3);
         assert!(memblock[0].flags == MemBlockTypeFlags::NORMAL);
         assert!(memblock[1].flags == MemBlockTypeFlags::NORMAL | MemBlockTypeFlags::NOMAP);
@@ -776,7 +783,12 @@ mod tests {
 
         // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
         // clear flags for middle RegionStorage
-        memblock.set_ctrl_flags(PhysAddr::from(0x2000), 0x2000, false, MemBlockTypeFlags::NOMAP);
+        memblock.set_ctrl_flags(
+            PhysAddr::from(0x2000),
+            0x2000,
+            false,
+            MemBlockTypeFlags::NOMAP,
+        );
         assert_eq!(memblock.len(), 3);
         assert!(memblock[0].flags == MemBlockTypeFlags::NORMAL);
         assert!(memblock[1].flags == MemBlockTypeFlags::NORMAL);
@@ -785,7 +797,12 @@ mod tests {
 
         // now region is [0x1000, 0x2000), [0x3000, 0x4000), [0x5000, 0x6000)
         // test it would isolate the regions first
-        memblock.set_ctrl_flags(PhysAddr::from(0x1800), 0x4000, true, MemBlockTypeFlags::NOMAP);
+        memblock.set_ctrl_flags(
+            PhysAddr::from(0x1800),
+            0x4000,
+            true,
+            MemBlockTypeFlags::NOMAP,
+        );
 
         // now region is
         // [0x1000, 0x1800) Normal
@@ -816,6 +833,4 @@ mod tests {
         assert!(memblock[4].size == 0x800);
         assert_eq!(memblock.total_size, 0x3000);
     }
-
 }
-

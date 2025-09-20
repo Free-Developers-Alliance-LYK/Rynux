@@ -3,7 +3,7 @@
 //!  - head:  efi support
 //!  - record_mmu_state: big endian support
 //!  - init_kernel_el: boot from el2
-//!  - __cpu_setup: 
+//!  - __cpu_setup:
 //!     - MTE support V
 //!     - VA_BITS_52 SUPPORT
 //!     - CONFIG_ARM64_HW_AFDBM
@@ -12,25 +12,22 @@
 //!    - not support vhe
 
 use kernel::{
-    global_sym::*,
-    arch::ptrace::PtRegs,
     arch::arm64::{
-        asm::assembler::{adr_l, str_l, eret},
+        asm::assembler::{adr_l, eret, str_l},
         asm::barrier::isb,
-        sysregs::*,
-        pgtable::idmap::InitIdmap,
+        early_debug::{early_uart_put_u64_hex, early_uart_putchar},
         mm::Arm64VaLayout,
-        early_debug::{early_uart_putchar, early_uart_put_u64_hex},
+        pgtable::idmap::InitIdmap,
+        sysregs::*,
     },
+    arch::ptrace::PtRegs,
+    global_sym::*,
+    macros::{section_idmap_text, section_init_text},
     schedule::task::TaskRef,
-
-    macros::{
-        section_idmap_text,
-        section_init_text
-    },
 };
 
-core::arch::global_asm!(r#"
+core::arch::global_asm!(
+    r#"
     .section .head.text, "ax"
     .global _head
 _head:
@@ -45,8 +42,8 @@ _head:
     .quad 0
     .ascii "ARM\x64"
     .long 0
-"#);
-
+"#
+);
 
 /*
  * The following callee saved general purpose registers are used on the
@@ -61,67 +58,67 @@ _head:
 #[unsafe(naked)]
 #[section_idmap_text]
 unsafe extern "C" fn primary_entry() -> ! {
-        core::arch::naked_asm!(
-            "bl record_mmu_state", // x19 save mmu state
-            "bl preserve_boot_args", // x21 save fdt
+    core::arch::naked_asm!(
+        "bl record_mmu_state", // x19 save mmu state
+        "bl preserve_boot_args", // x21 save fdt
 
-            // init stack
-            "adrp x1, {early_init_stack}",
-            "mov sp, x1",
-            "mov x29, xzr",
+        // init stack
+        "adrp x1, {early_init_stack}",
+        "mov sp, x1",
+        "mov x29, xzr",
 
-            // create init idmap
-            "adrp x0, {init_idmap_pg_dir}",
-            "mov x1, xzr",
-            "bl {__pi_create_init_idmap}",
-            
-            /*
-             * If the page tables have been populated with non-cacheable
-             * accesses (MMU disabled), invalidate those tables again to
-             * remove any speculatively loaded cache lineso.
-             */
-            "cbnz x19, 0f",
-            "dmb     sy",
-            "mov x1, x0", // end of used region
+        // create init idmap
+        "adrp x0, {init_idmap_pg_dir}",
+        "mov x1, xzr",
+        "bl {__pi_create_init_idmap}",
 
-            "adrp    x0, {init_idmap_pg_dir}",
-            adr_l!("x2", "{dcache_inval_poc}"),
-            "blr x2",
-            "b 1f",
+        /*
+         * If the page tables have been populated with non-cacheable
+         * accesses (MMU disabled), invalidate those tables again to
+         * remove any speculatively loaded cache lineso.
+         */
+        "cbnz x19, 0f",
+        "dmb     sy",
+        "mov x1, x0", // end of used region
 
-            /*
-             * If we entered with the MMU and caches on, clean the ID mapped part
-             * of the primary boot code to the PoC so we can safely execute it with
-             * the MMU off.
-             */
-            "0:",
-            "adrp x0, {__idmap_text_start}",
-            adr_l!("x1", "{__idmap_text_end}"),
-            adr_l!("x2", "{dcache_clean_poc}"),
-            "blr x2",
+        "adrp    x0, {init_idmap_pg_dir}",
+        adr_l!("x2", "{dcache_inval_poc}"),
+        "blr x2",
+        "b 1f",
 
-            "1:",
-            "mov x0, x19",
-            "bl {init_kernel_el}",
-            "mov x20, x0", // X20 = boot mode
+        /*
+         * If we entered with the MMU and caches on, clean the ID mapped part
+         * of the primary boot code to the PoC so we can safely execute it with
+         * the MMU off.
+         */
+        "0:",
+        "adrp x0, {__idmap_text_start}",
+        adr_l!("x1", "{__idmap_text_end}"),
+        adr_l!("x2", "{dcache_clean_poc}"),
+        "blr x2",
 
-            // The following calls CPU setup code, see arch/arm64/mm/proc.S for
-            // details.
-            // On return, the CPU will be ready for the MMU to be turned on and
-            // the TCR will have been set.
-            "bl {__cpu_setup}", // initialise processor
-            "b {__primary_switch}",
-            early_init_stack = sym early_init_stack,
-            init_idmap_pg_dir = sym init_idmap_pg_dir,
-            __pi_create_init_idmap = sym __pi_create_init_idmap,
-            dcache_inval_poc = sym kernel::arch::arm64::mm::cache::dcache_inval_poc,
-            __idmap_text_start = sym __idmap_text_start,
-            __idmap_text_end = sym __idmap_text_end,
-            dcache_clean_poc = sym kernel::arch::arm64::mm::cache::dcache_clean_poc,
-            init_kernel_el = sym init_kernel_el,
-            __cpu_setup = sym __cpu_setup,
-            __primary_switch = sym __primary_switch,
-        );
+        "1:",
+        "mov x0, x19",
+        "bl {init_kernel_el}",
+        "mov x20, x0", // X20 = boot mode
+
+        // The following calls CPU setup code, see arch/arm64/mm/proc.S for
+        // details.
+        // On return, the CPU will be ready for the MMU to be turned on and
+        // the TCR will have been set.
+        "bl {__cpu_setup}", // initialise processor
+        "b {__primary_switch}",
+        early_init_stack = sym early_init_stack,
+        init_idmap_pg_dir = sym init_idmap_pg_dir,
+        __pi_create_init_idmap = sym __pi_create_init_idmap,
+        dcache_inval_poc = sym kernel::arch::arm64::mm::cache::dcache_inval_poc,
+        __idmap_text_start = sym __idmap_text_start,
+        __idmap_text_end = sym __idmap_text_end,
+        dcache_clean_poc = sym kernel::arch::arm64::mm::cache::dcache_clean_poc,
+        init_kernel_el = sym init_kernel_el,
+        __cpu_setup = sym __cpu_setup,
+        __primary_switch = sym __primary_switch,
+    );
 }
 
 #[unsafe(no_mangle)]
@@ -129,24 +126,24 @@ unsafe extern "C" fn primary_entry() -> ! {
 #[section_init_text]
 unsafe extern "C" fn record_mmu_state() -> ! {
     // Record the mmu state in x19
-        core::arch::naked_asm!(
-            "mrs x19, CurrentEL",
-            "cmp x19, {CurrentEL_EL2}",
-            "mrs x19, sctlr_el1",
-            "b.ne 0f",
-            "mrs x19, sctlr_el2",
-            "0:",
-            "tbnz x19, {sctlr_elx_ee_shift}, 1f",
-            "tst x19, {sctlr_elx_c}", // Z := (C == 0)
-            "and x19, x19, {sctlr_elx_m}", // isolate M bit
-            "csel x19, xzr, x19, eq", // clear x19 if Z
-            "ret",
-            "1:", //TODO: now we do nothing if EE is not match
-            CurrentEL_EL2 = const CurrentEL::EL2.bits(),
-            sctlr_elx_ee_shift =  const SctlrEl1::ELX_EE_SHIFT,
-            sctlr_elx_c = const SctlrEl1::C.bits(),
-            sctlr_elx_m = const SctlrEl1::M.bits(),
-        );
+    core::arch::naked_asm!(
+        "mrs x19, CurrentEL",
+        "cmp x19, {CurrentEL_EL2}",
+        "mrs x19, sctlr_el1",
+        "b.ne 0f",
+        "mrs x19, sctlr_el2",
+        "0:",
+        "tbnz x19, {sctlr_elx_ee_shift}, 1f",
+        "tst x19, {sctlr_elx_c}", // Z := (C == 0)
+        "and x19, x19, {sctlr_elx_m}", // isolate M bit
+        "csel x19, xzr, x19, eq", // clear x19 if Z
+        "ret",
+        "1:", //TODO: now we do nothing if EE is not match
+        CurrentEL_EL2 = const CurrentEL::EL2.bits(),
+        sctlr_elx_ee_shift =  const SctlrEl1::ELX_EE_SHIFT,
+        sctlr_elx_c = const SctlrEl1::C.bits(),
+        sctlr_elx_m = const SctlrEl1::M.bits(),
+    );
 }
 
 #[unsafe(no_mangle)]
@@ -205,7 +202,6 @@ unsafe extern "C" fn init_kernel_el(mmu_state: usize) {
     }
 }
 
-
 /*
  * __cpu_setup
  *
@@ -226,15 +222,21 @@ unsafe extern "C" fn __cpu_setup() {
     PmuserenrEl0::reset();
     // Disable AMU access from EL0
     AmuserenrEl0::reset();
-    
+
     /* Default values for VMSA control registers. These will be adjusted
      * below depending on detected CPU features.
      */
     let mair = MairEl1::MAIR_EL1_SET;
-    let mut tcr = Tcr::from_bits_truncate(Tcr::t0sz(InitIdmap::VA_BITS as u64) |
-        Tcr::t1sz(Arm64VaLayout::VA_BITS as u64) | Tcr::CACHE_FLAGS | Tcr::SHARED |
-        Tcr::TG_FLAGS | Tcr::AS.bits() | Tcr::TBI0.bits() |
-        Tcr::A1.bits());
+    let mut tcr = Tcr::from_bits_truncate(
+        Tcr::t0sz(InitIdmap::VA_BITS as u64)
+            | Tcr::t1sz(Arm64VaLayout::VA_BITS as u64)
+            | Tcr::CACHE_FLAGS
+            | Tcr::SHARED
+            | Tcr::TG_FLAGS
+            | Tcr::AS.bits()
+            | Tcr::TBI0.bits()
+            | Tcr::A1.bits(),
+    );
     tcr.clear_errata_bits();
     // Set the IPS
     tcr.compute_set_pa_size();
@@ -244,7 +246,7 @@ unsafe extern "C" fn __cpu_setup() {
     let tcr2 = Tcr2El1::from_bits_truncate(0);
     let pie_support = IdAa64mmfr3El1::read().s1pie_support();
     if pie_support {
-        //TODO: init pire0 pir_el1 
+        //TODO: init pire0 pir_el1
     }
     if IdAa64mmfr3El1::read().tcrx_support() {
         tcr2.write();
@@ -301,13 +303,13 @@ fn __init_cpu_task(task: &TaskRef) {
     task.zero_stack();
     let mut sp = task.top_of_stack().as_ptr() as u64;
     // reserve ptregs space and init sp
-    sp  -= core::mem::size_of::<PtRegs>() as u64;
+    sp -= core::mem::size_of::<PtRegs>() as u64;
     Sp::write_raw(sp);
 
     // init pt_regs
-    let mut pt_regs = unsafe {PtRegs::from_raw(sp as *const _)};
+    let mut pt_regs = unsafe { PtRegs::from_raw(sp as *const _) };
     pt_regs.init_stackframe();
-    
+
     // init last task stack frame(X29) point to pt_regs
     X29::write_raw(pt_regs.stackframe.as_ptr() as u64);
 

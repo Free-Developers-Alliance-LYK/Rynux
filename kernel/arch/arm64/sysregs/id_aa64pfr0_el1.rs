@@ -19,25 +19,25 @@ bitflags! {
         const AMU = 0b1111 << 44;
         /// MPAM
         const MPAM = 0b1111 << 40;
-        /// SEL2 
+        /// SEL2
         const SEL2 = 0b1111 << 36;
         /// SVE
         const SVE = 0b1111 << 32;
         /// RAS
         const RAS = 0b1111 << 28;
-        /// GIC 
+        /// GIC
         const GIC = 0b1111 << 24;
         /// AdvSIMD
         const AdvSIMD = 0b1111 << 20;
         /// FP
         const FP = 0b1111 << 16;
-        /// EL3 
+        /// EL3
         const EL3 = 0b1111 << 12;
-        /// EL2 
+        /// EL2
         const EL2 = 0b1111 << 8;
-        /// EL1 
+        /// EL1
         const EL1 = 0b1111 << 4;
-        /// EL0 
+        /// EL0
         const EL0 = 0b1111 << 0;
     }
 }
@@ -65,7 +65,6 @@ impl From<u64> for Amu {
     }
 }
 
-
 impl IdAa64pfr0El1 {
     const AMU_SHIFT: u64 = 16;
 
@@ -84,7 +83,7 @@ impl IdAa64pfr0El1 {
         sys_coproc_read_raw!(u64, "ID_AA64PFR0_EL1", "x", id_aa64pfr0_el1);
         id_aa64pfr0_el1
     }
-    
+
     /// Write register.
     #[inline(always)]
     pub fn write(&self) {
@@ -98,14 +97,10 @@ impl IdAa64pfr0El1 {
         sys_coproc_write_raw!(u64, "ID_AA64PFR0_EL1", "x", id_aa64pfr0_el1);
     }
 
-
     /// Read PMU
     #[inline(always)]
     pub fn read_amu() -> Amu {
         let id_aa64pfr0_el1 = Self::read();
         Amu::from((id_aa64pfr0_el1.bits() & Self::AMU.bits()) >> Self::AMU_SHIFT)
     }
-
 }
-
-

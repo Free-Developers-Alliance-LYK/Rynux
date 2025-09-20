@@ -1,10 +1,10 @@
 //! Arm64 Page table PMD
 
-use core::{marker::PhantomData, ptr::NonNull};
-use core::ops::{Deref, DerefMut, Index, IndexMut};
-use crate::arch::arm64::pgtable::Arm64PgtableConfig;
-use crate::mm::{PhysAddr, VirtAddr, page::PageConfig};
 use super::{PgTableEntry, PteEntry, PtePgProt};
+use crate::arch::arm64::pgtable::Arm64PgtableConfig;
+use crate::mm::{page::PageConfig, PhysAddr, VirtAddr};
+use core::ops::{Deref, DerefMut, Index, IndexMut};
+use core::{marker::PhantomData, ptr::NonNull};
 
 /// Pmd
 #[derive(Copy, Clone)]
@@ -14,7 +14,7 @@ pub struct PmdEntry(u64);
 #[allow(dead_code)]
 impl PmdEntry {
     /// Type table for pmd
-    pub const PMD_TYPE_TABLE: u64 =  3 << 0;
+    pub const PMD_TYPE_TABLE: u64 = 3 << 0;
     /// Section type
     pub const PMD_TYPE_SECT: u64 = 1 << 0;
     /// Section type mask
@@ -45,7 +45,7 @@ impl PgTableEntry for PmdEntry {
     fn read(&self) -> u64 {
         unsafe { core::ptr::read_volatile(&self.0) }
     }
-    
+
     /// Write the value of the Pud
     #[inline(always)]
     fn write(&mut self, val: u64) {
@@ -87,7 +87,7 @@ impl PmdTable {
     pub const ENTRY_SIZE: usize = 1 << Self::SHIFT;
 
     /// Number of entries per PMD
-    pub const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
+    pub const PTRS: usize = 1 << Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
 
     /// Mask for PMD entry
     const MASK: usize = !(Self::ENTRY_SIZE - 1);
@@ -116,10 +116,10 @@ impl PmdTable {
     // - Otherwise, defaults to 4 (for safety; can be adjusted for other configurations).
     const fn pmd_cont_shift(page_shift: usize) -> usize {
         match page_shift {
-            12 => 4,  // 4KB pages
-            14 => 5,  // 16KB pages
-            16 => 5,  // 64KB pages
-            _  => 4,  // Default/fallback value
+            12 => 4, // 4KB pages
+            14 => 5, // 16KB pages
+            16 => 5, // 64KB pages
+            _ => 4,  // Default/fallback value
         }
     }
 
@@ -182,17 +182,13 @@ impl Deref for PmdTable {
     type Target = [PmdEntry];
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            core::slice::from_raw_parts(self.base.as_ptr(), Self::PTRS)
-        }
+        unsafe { core::slice::from_raw_parts(self.base.as_ptr(), Self::PTRS) }
     }
 }
 
 impl DerefMut for PmdTable {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            core::slice::from_raw_parts_mut(self.base.as_ptr(), Self::PTRS)
-        }
+        unsafe { core::slice::from_raw_parts_mut(self.base.as_ptr(), Self::PTRS) }
     }
 }
 

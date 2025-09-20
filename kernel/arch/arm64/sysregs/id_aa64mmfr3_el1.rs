@@ -58,7 +58,7 @@ impl IdAa64mmfr3El1 {
         sys_coproc_read_raw!(u64, "ID_AA64MMFR3_EL1", "x", id_aa64mmfr3_el1);
         id_aa64mmfr3_el1
     }
- 
+
     const S1PIE_OFFSET: u64 = 8;
     /// s1pie
     #[inline(always)]
@@ -84,6 +84,4 @@ impl IdAa64mmfr3El1 {
     pub fn tcrx_support(&self) -> bool {
         self.tcrx() != 0
     }
-
 }
-

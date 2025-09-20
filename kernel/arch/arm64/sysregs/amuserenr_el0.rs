@@ -1,7 +1,7 @@
 //! ARM64 amuserenr_el0
 
+use super::id_aa64pfr0_el1::{Amu, IdAa64pfr0El1};
 use crate::bitflags::bitflags;
-use super::id_aa64pfr0_el1::{IdAa64pfr0El1, Amu};
 
 bitflags! {
     /// AMUSERENR_EL0
@@ -50,5 +50,4 @@ impl AmuserenrEl0 {
             Self::write_raw(0);
         }
     }
-
 }

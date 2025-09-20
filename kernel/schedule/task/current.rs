@@ -3,9 +3,9 @@
 use core::mem::ManuallyDrop;
 use core::ops::Deref;
 
-use crate::sync::arc::Arc;
-use crate::arch::thread::{ArchCurrentTrait, ArchCurrent};
+use crate::arch::thread::{ArchCurrent, ArchCurrentTrait};
 use crate::schedule::task::{Task, TaskRef};
+use crate::sync::arc::Arc;
 
 /// Current task Wrapper
 pub struct CurrentTask(ManuallyDrop<TaskRef>);
@@ -61,7 +61,7 @@ impl CurrentTask {
     pub fn switch_current(prev: Self, next: TaskRef) {
         let Self(arc) = prev;
         ManuallyDrop::into_inner(arc); // `call Arc::drop()` to decrease prev task reference count.
-        //SAFETY: next is a valid task ref.
+                                       //SAFETY: next is a valid task ref.
         Self::set_current(next);
     }
 }

@@ -1,10 +1,9 @@
 //! kernel alloc module
 
-
-pub mod kbox;
 mod allocator;
+pub mod kbox;
 
-pub use allocator::{AllocFlags, AllocError, Allocator, dangling_from_layout};
+pub use allocator::{dangling_from_layout, AllocError, AllocFlags, Allocator};
 
 use crate::cfg_if;
 cfg_if! {

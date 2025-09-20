@@ -1,7 +1,7 @@
 //! Rynux task stack
 
-use core::ptr::NonNull;
 use core::alloc::Layout;
+use core::ptr::NonNull;
 
 /// Task stack
 #[derive(Copy, Clone)]
@@ -27,10 +27,8 @@ impl TaskStack {
     /// Get top stack
     #[inline(always)]
     pub const fn top(&self) -> NonNull<u8> {
-         // SAFETY: stack size is include in layout
-         unsafe {
-             core::mem::transmute(self.ptr.as_ptr().add(self.layout.size()))
-         }
+        // SAFETY: stack size is include in layout
+        unsafe { core::mem::transmute(self.ptr.as_ptr().add(self.layout.size())) }
     }
 
     /// Get end stack

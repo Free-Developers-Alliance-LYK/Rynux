@@ -24,7 +24,7 @@ pub trait ArchCurrentTrait {
 
 cfg_if! {
     if #[cfg(test)] {
-        pub use super::dummy::thread::DummyThreadInfo as ArchThreadInfo; 
+        pub use super::dummy::thread::DummyThreadInfo as ArchThreadInfo;
         pub use super::dummy::thread::DummyCurrent as ArchCurrent;
     } else if #[cfg(CONFIG_ARM64)] {
         pub use super::arm64::thread::Arm64ThreadInfo as ArchThreadInfo;

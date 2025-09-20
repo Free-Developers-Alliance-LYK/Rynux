@@ -26,7 +26,7 @@ bitflags! {
 
 #[allow(non_upper_case_globals)]
 impl SpsrEl1 {
-    /// Modes EL0 
+    /// Modes EL0
     pub const MODE_EL0t: Self = Self::from_bits_truncate(0b0000);
     /// EL1 with SP_EL0 (EL1t)
     pub const MODE_EL1t: Self = Self::from_bits_truncate(0b0100);
@@ -42,7 +42,9 @@ impl SpsrEl1 {
     pub const MODE_EL3h: Self = Self::from_bits_truncate(0b1101);
 
     /// INIT_PSTATE_EL1
-    pub const INIT_PSTATE_EL1: Self = Self::from_bits_truncate(Self::D.bits() | Self::A.bits() | Self::I.bits() | Self::F.bits() | Self::MODE_EL1h.bits());
+    pub const INIT_PSTATE_EL1: Self = Self::from_bits_truncate(
+        Self::D.bits() | Self::A.bits() | Self::I.bits() | Self::F.bits() | Self::MODE_EL1h.bits(),
+    );
 
     /// Read register.
     #[inline(always)]

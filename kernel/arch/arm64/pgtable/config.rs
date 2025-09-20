@@ -1,14 +1,10 @@
 //! Arm64 Pgtable Config
 
 use crate::{
+    arch::arm64::{kernel::image::MIN_KIMG_ALIGN, pgtable::pmd::PmdTable},
     cfg_if,
-    mm::page::PageConfig,
-    arch::arm64::{
-        kernel::image::MIN_KIMG_ALIGN,
-        pgtable::pmd::PmdTable,
-    },
     klib::math::div_round_up,
-    
+    mm::page::PageConfig,
 };
 
 /// Arm64 Pgtable Config
@@ -55,7 +51,6 @@ impl Arm64PgtableConfig {
         }
     }
 
-
     pub(crate) const PTDESC_ORDER: usize = 3;
 
     /// Number of VA bits resolved by a single translation table level
@@ -71,7 +66,7 @@ impl Arm64PgtableConfig {
         div_round_up(va_bits - PageConfig::PAGE_SHIFT, Self::PTDESC_TABLE_SHIFT)
         //((va_bits - PTDESC_ORDER - 1) / PTDESC_TABLE_SHIFT)
     }
-    
+
     /// Size mapped by an entry at level n ( -1 <= n <= 3)
     /// We map PTDESC_TABLE_SHIFT at all translation levels and PAGE_SHIFT bits
     /// in the final page. The maximum number of translation levels supported by
@@ -84,7 +79,7 @@ impl Arm64PgtableConfig {
     /// Rearranging it a bit we get :
     ///   (4 - n) * PTDESC_TABLE_SHIFT + PTDESC_ORDER
     pub const fn hw_pgtable_levels_shift(n: usize) -> usize {
-        (4 - n) * Self::PTDESC_TABLE_SHIFT +  Self::PTDESC_ORDER
+        (4 - n) * Self::PTDESC_TABLE_SHIFT + Self::PTDESC_ORDER
     }
 
     // The physical and virtual addresses of the start of the kernel image are
@@ -106,7 +101,8 @@ impl Arm64PgtableConfig {
     pub(crate) const SWAPPER_SKIP_LEVEL: usize = Self::swapper_skip_level_shift().0;
     pub(crate) const SWAPPER_BLOCK_SHIFT: usize = Self::swapper_skip_level_shift().1;
     pub(crate) const SWAPPER_BLOCK_SIZE: usize = 1 << Self::SWAPPER_BLOCK_SHIFT;
-    pub(crate) const SWAPPER_PGTABLE_LEVELS: usize = Self::PGTABLE_LEVELS - Self::SWAPPER_SKIP_LEVEL;
+    pub(crate) const SWAPPER_PGTABLE_LEVELS: usize =
+        Self::PGTABLE_LEVELS - Self::SWAPPER_SKIP_LEVEL;
 
     /// Calculate the number of entries in a span of virtual addresses
     pub const fn spann_nr_entries(vstart: usize, vend: usize, shift: usize) -> usize {

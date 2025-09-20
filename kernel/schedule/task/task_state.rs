@@ -1,5 +1,4 @@
 ///! Rynux task state
-
 use crate::bitflags::bitflags;
 
 bitflags! {
@@ -24,7 +23,7 @@ bitflags! {
         const EXITING_DEAD = 1 << 5;
         /// Task is EXITING Zombie
         const EXITING_ZOMBIE = 1 << 6;
-        
+
         // Used in tsk->state again
         /// Task is PARKED
         const PARKED = 1 << 7;

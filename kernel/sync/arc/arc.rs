@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
 //! A reference-counted pointera(linux/rust/kernel/sync/arc.rs).
-//! 
+//!
 //!
 //! This module implements a way for users to create reference-counted objects and pointers to
 //! them. Such a pointer automatically increments and decrements the count, and drops the
@@ -141,7 +141,7 @@ pub struct ArcInner<T: ?Sized> {
 }
 
 #[allow(dead_code)]
-impl <T> ArcInner<T> {
+impl<T> ArcInner<T> {
     /// Creates a new [`ArcInner<T>`].
     const fn new(data: T) -> Self {
         Self {
@@ -160,7 +160,6 @@ impl <T> ArcInner<T> {
         }
     }
 }
-
 
 // SAFETY: It is safe to send `Arc<T>` to another thread when the underlying `T` is `Sync` because
 // it effectively means sharing `&T` (which is safe because `T` is `Sync`); additionally, it needs
@@ -236,12 +235,16 @@ impl<T: ?Sized> Arc<T> {
     /// Construct a new [`Arc`] from a static reference.
     ///
     /// # Safety
-    /// 
+    ///
     /// The lifetime of the object must be `'static`.
     pub const unsafe fn from_static(inner: &'static ArcInner<T>) -> Self {
         // INVARIANT: We know that the inner pointer is valid and that the reference count will never
         // reach zero, so the invariants hold.
-        unsafe { Self::from_inner(NonNull::new_unchecked(inner as *const ArcInner<T> as *mut ArcInner<T>))} 
+        unsafe {
+            Self::from_inner(NonNull::new_unchecked(
+                inner as *const ArcInner<T> as *mut ArcInner<T>,
+            ))
+        }
     }
 
     #[inline]
@@ -297,7 +300,6 @@ impl<T: ?Sized> Arc<T> {
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         core::ptr::eq(this.ptr.as_ptr(), other.ptr.as_ptr())
     }
-
 }
 
 impl<T: ?Sized> Deref for Arc<T> {

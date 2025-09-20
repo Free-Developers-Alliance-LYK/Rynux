@@ -7,7 +7,6 @@ const PREEMPT_OFFSET: u64 = 1 << PREEMPT_SHIFT;
 /// Task init Disable preemption until the scheduler is running.
 pub const INIT_TASK_PREEMPT_COUNT: u64 = PREEMPT_OFFSET;
 
-
 /// Disable preemption.
 #[inline(never)]
 pub fn preempt_disable() {

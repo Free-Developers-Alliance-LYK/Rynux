@@ -1,12 +1,12 @@
 //! Command line parsing
 
-use crate::types::OnceCell;
+use crate::arch::arm64::early_debug::early_uart_put_str;
 use crate::drivers::fdt::GLOBAL_FDT;
 use crate::macros::section_init_text;
-use crate::sync::lock::RawSpinLockNoIrq;
-use crate::param::ParamParser;
 use crate::param::obs_param::for_each_setup_param;
-use crate::arch::arm64::early_debug::early_uart_put_str;
+use crate::param::ParamParser;
+use crate::sync::lock::RawSpinLockNoIrq;
+use crate::types::OnceCell;
 
 const COMMAND_LINE_SIZE: usize = 2048;
 
@@ -29,7 +29,7 @@ impl CommandLine {
         if self.parsed_early_options {
             return;
         }
-    
+
         let tmp_cmdline = self.as_str();
         let parser = ParamParser::new(tmp_cmdline);
 
@@ -46,10 +46,11 @@ impl CommandLine {
 }
 
 /// A static instance of the command line.
-pub static GLOBAL_COMMAND_LINE: RawSpinLockNoIrq<OnceCell<CommandLine>> = RawSpinLockNoIrq::new(OnceCell::new(), Some("GLOBAL_COMMAND_LINE"));
+pub static GLOBAL_COMMAND_LINE: RawSpinLockNoIrq<OnceCell<CommandLine>> =
+    RawSpinLockNoIrq::new(OnceCell::new(), Some("GLOBAL_COMMAND_LINE"));
 
 #[section_init_text]
-pub(crate) fn setup_from_fdt()  {
+pub(crate) fn setup_from_fdt() {
     let chosen = GLOBAL_FDT.chosen();
     let bootargs = chosen.bootargs().unwrap().as_bytes();
     if bootargs.len() >= COMMAND_LINE_SIZE {
@@ -58,7 +59,7 @@ pub(crate) fn setup_from_fdt()  {
 
     let mut buf = [0; COMMAND_LINE_SIZE];
     buf[..bootargs.len()].copy_from_slice(bootargs);
-   
+
     early_uart_put_str("bootargs: ");
     early_uart_put_str(core::str::from_utf8(bootargs).unwrap());
     early_uart_put_str("\n");

@@ -1,4 +1,4 @@
-//! Arm64 smp 
+//! Arm64 smp
 
 use crate::arch::arm64::sysregs::MpidrEl1;
 use crate::arch::cpu::MAX_CPUS;
@@ -52,12 +52,12 @@ impl CpuLogicalMap {
     pub fn set_main_cpu_hwid(&mut self, hwid: u64) {
         self.main_cpu_hwid = hwid;
     }
-
 }
 
 /// This variable does not actually have concurrency and is only processed once
 /// in the boot process, but using RawSpinLockIrq ensures that it can be compiled.
-pub static __CPU_LOGICAL_MAP: RawSpinLockNoIrq<CpuLogicalMap> = RawSpinLockNoIrq::new(CpuLogicalMap::new(), None);
+pub static __CPU_LOGICAL_MAP: RawSpinLockNoIrq<CpuLogicalMap> =
+    RawSpinLockNoIrq::new(CpuLogicalMap::new(), None);
 
 #[allow(dead_code)]
 /// write CPU map

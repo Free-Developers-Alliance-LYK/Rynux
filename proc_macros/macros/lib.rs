@@ -10,10 +10,10 @@
 
 #[macro_use]
 mod concat_idents;
-mod helpers;
-mod paste;
-mod link;
 mod aligned;
+mod helpers;
+mod link;
+mod paste;
 
 use proc_macro::TokenStream;
 
@@ -178,66 +178,42 @@ use quote::quote;
 
 #[proc_macro_attribute]
 pub fn section_cache_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".data..cacheline_aligned").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".data..cacheline_aligned").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_init_data(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".init.data").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".init.data").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_init_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".init.text").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".init.text").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_read_mostly(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".data..read_mostly").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".data..read_mostly").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_idmap_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".idmap.text").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".idmap.text").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_rodata_after_init(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".data..ro_after_init").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".data..ro_after_init").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_spinlock_text(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".spinlock.text").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".spinlock.text").into(), item)
 }
 
 #[proc_macro_attribute]
 pub fn section_bss_page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    link::section_impl(
-        quote!(section = ".bss..page_aligned").into(),
-        item,
-    )
+    link::section_impl(quote!(section = ".bss..page_aligned").into(), item)
 }
 
 use syn::parse_macro_input;
@@ -268,31 +244,21 @@ pub fn need_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     output.into()
 }
 
-
 #[cfg(CONFIG_ARM64)]
 #[proc_macro_attribute]
 pub fn cache_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // L1 cache aligend
-    aligned::aligned_impl(
-        quote!(align = 64).into(),
-        item,
-    )
+    aligned::aligned_impl(quote!(align = 64).into(), item)
 }
 
 #[cfg(CONFIG_PAGE_SIZE_4KB)]
 #[proc_macro_attribute]
 pub fn page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    aligned::aligned_impl(
-        quote!(align = 4096).into(),
-        item,
-    )
+    aligned::aligned_impl(quote!(align = 4096).into(), item)
 }
 
 #[cfg(CONFIG_PAGE_SIZE_16KB)]
 #[proc_macro_attribute]
 pub fn page_aligned(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    aligned::aligned_impl(
-        quote!(align = 16384).into(),
-        item,
-    )
+    aligned::aligned_impl(quote!(align = 16384).into(), item)
 }

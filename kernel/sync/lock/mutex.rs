@@ -1,19 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
 
 //! Rynux mutex implement
-//! 
+//!
 //!
 
-
-use core::sync::atomic::{AtomicUsize, Ordering};
+use crate::schedule::{current, task::TaskState, WaitQueue};
 use core::cell::UnsafeCell;
-use crate::schedule::{
-    current,
-    task::TaskState,
-    WaitQueue,
-};
-
-
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 /// A mutual exclusion primitive.
 ///
@@ -52,7 +45,6 @@ pub struct MutexLockInner {
     wait_queue: WaitQueue,
 }
 
-
 impl MutexLockInner {
     const fn new() -> Self {
         Self {
@@ -88,13 +80,12 @@ impl super::Backend for MutexBackend {
             if let Some(guard) = Self::try_lock(inner) {
                 return guard;
             }
-            inner.wait_queue.wait_until(TaskState::UNINTERRUPTIBLE, 
-                 || {
-                   inner.owner.load(Ordering::Acquire) == 0
+            inner.wait_queue.wait_until(TaskState::UNINTERRUPTIBLE, || {
+                inner.owner.load(Ordering::Acquire) == 0
             });
         }
     }
-        
+
     fn unlock(inner: &mut Self::Inner, _guard_state: &Self::GuardState) {
         let owner = inner.owner.load(Ordering::Relaxed);
         assert_eq!(owner, current().as_ptr() as usize);
@@ -104,15 +95,21 @@ impl super::Backend for MutexBackend {
 
     fn try_lock(inner: &mut Self::Inner) -> Option<Self::GuardState> {
         let curr_ptr = current().as_ptr() as usize;
-        
-        if inner.owner.compare_exchange(0, curr_ptr, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+
+        if inner
+            .owner
+            .compare_exchange(0, curr_ptr, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
+        {
             return Some(());
         }
         None
     }
 
     fn assert_is_held(inner: &Self::Inner) {
-        assert_eq!(inner.owner.load(Ordering::Relaxed), current().as_ptr() as usize);
+        assert_eq!(
+            inner.owner.load(Ordering::Relaxed),
+            current().as_ptr() as usize
+        );
     }
 }
-

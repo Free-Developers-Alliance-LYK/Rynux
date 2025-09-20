@@ -1,6 +1,5 @@
 //! ARM64 elr_el1
 
-
 /// ELR_EL1
 #[repr(transparent)]
 #[derive(Copy, Clone)]

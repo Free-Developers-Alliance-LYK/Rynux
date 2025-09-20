@@ -3,13 +3,11 @@
 use core::ops::{Deref, DerefMut, Index, IndexMut};
 use core::{marker::PhantomData, ptr::NonNull};
 
-use super::{Arm64PgtableConfig, PteEntry};
-use crate::arch::arm64::{
-    mm::Arm64VaLayout,
-};
-use crate::mm::{PhysAddr, VirtAddr};
-use super::pud::{PudTable, PudEntry};
+use super::pud::{PudEntry, PudTable};
 use super::PgTableEntry;
+use super::{Arm64PgtableConfig, PteEntry};
+use crate::arch::arm64::mm::Arm64VaLayout;
+use crate::mm::{PhysAddr, VirtAddr};
 
 /// Pgdir
 #[derive(Copy, Clone)]
@@ -99,7 +97,7 @@ impl PgdirTable {
     pub const fn from_raw(base: *mut PgdirEntry) -> Self {
         Self {
             // SAFETY: caller make sure it is valid
-            base: unsafe {NonNull::new_unchecked(base)},
+            base: unsafe { NonNull::new_unchecked(base) },
             len: Self::PTRS,
             _marker: PhantomData,
         }
@@ -144,17 +142,13 @@ impl Deref for PgdirTable {
     type Target = [PgdirEntry];
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            core::slice::from_raw_parts(self.base.as_ptr(), self.len)
-        }
+        unsafe { core::slice::from_raw_parts(self.base.as_ptr(), self.len) }
     }
 }
 
 impl DerefMut for PgdirTable {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            core::slice::from_raw_parts_mut(self.base.as_ptr(), self.len)
-        }
+        unsafe { core::slice::from_raw_parts_mut(self.base.as_ptr(), self.len) }
     }
 }
 

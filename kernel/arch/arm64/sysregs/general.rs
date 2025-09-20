@@ -19,7 +19,6 @@ impl Sp {
     }
 }
 
-
 ///x0
 pub struct X0;
 impl X0 {
@@ -55,4 +54,3 @@ impl X29 {
         write_raw!(u64, "x29", "x", x29);
     }
 }
-

@@ -1,19 +1,23 @@
 //! Arm64 Page table idmap
 use crate::{
-    cfg_if,
     arch::arm64::{
-        mm::{SEGMENT_ALIGN,Arm64VaLayout},
-        pgtable::Arm64PgtableConfig,
         kernel::image::KERNEL_IMAGE_SIZE,
+        mm::{Arm64VaLayout, SEGMENT_ALIGN},
+        pgtable::Arm64PgtableConfig,
     },
-    mm::page::PageConfig,
+    cfg_if,
     macros::need_export,
+    mm::page::PageConfig,
     size::SZ_2M,
 };
 
 const fn early_entries(lvl: usize, vstart: usize, vend: usize) -> usize {
-    ((vend - 1) >> (Arm64PgtableConfig::SWAPPER_BLOCK_SHIFT + lvl * Arm64PgtableConfig::PTDESC_TABLE_SHIFT))
-         - (vstart >> (Arm64PgtableConfig::SWAPPER_BLOCK_SHIFT + lvl * Arm64PgtableConfig::PTDESC_TABLE_SHIFT)) + 1
+    ((vend - 1)
+        >> (Arm64PgtableConfig::SWAPPER_BLOCK_SHIFT + lvl * Arm64PgtableConfig::PTDESC_TABLE_SHIFT))
+        - (vstart
+            >> (Arm64PgtableConfig::SWAPPER_BLOCK_SHIFT
+                + lvl * Arm64PgtableConfig::PTDESC_TABLE_SHIFT))
+        + 1
 }
 
 const fn early_level(lvl: usize, lvls: usize, vstart: usize, vend: usize, add: usize) -> usize {
@@ -30,7 +34,6 @@ const fn early_pages(lvls: usize, vstart: usize, vend: usize, add: usize) -> usi
     + early_level(2, lvls, vstart, vend, add) // each entry needs a next level page table
     + early_level(1, lvls, vstart, vend, add) // each entry needs a next level page table
 }
-
 
 // kernel end vaddr
 const _END: usize = Arm64VaLayout::KIMAGE_VADDR + KERNEL_IMAGE_SIZE;
@@ -71,9 +74,11 @@ impl InitIdmap {
     /// address,but it may use section mapping.
     pub const PGTABLE_LEVELS: usize = Self::LEVELS - Arm64PgtableConfig::SWAPPER_SKIP_LEVEL;
     /// The number of page tables needed for the initial identity mapping.
-    pub const DIR_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, Arm64VaLayout::KIMAGE_VADDR, _END, 1);
+    pub const DIR_PAGES: usize =
+        early_pages(Self::PGTABLE_LEVELS, Arm64VaLayout::KIMAGE_VADDR, _END, 1);
     /// The size of the initial identity mapping.
-    pub const DIR_SIZE: usize = (Self::DIR_PAGES + Self::early_idmap_extra_pages()) * PageConfig::PAGE_SIZE;
+    pub const DIR_SIZE: usize =
+        (Self::DIR_PAGES + Self::early_idmap_extra_pages()) * PageConfig::PAGE_SIZE;
 
     /// The maximum size of the FDT.
     pub const MAX_FDT_SIZE: usize = SZ_2M;
@@ -81,7 +86,8 @@ impl InitIdmap {
     // The number of page tables needed for the initial FDT mapping.
     const EARLY_FDT_PAGES: usize = early_pages(Self::PGTABLE_LEVELS, 0, Self::MAX_FDT_SIZE, 1) - 1;
     /// Page table memory size required for early FDT mapping
-    pub const EARLY_FDT_PAGE_SIZE: usize = (Self::EARLY_FDT_PAGES + Self::early_idmap_extra_fdt_pages()) * PageConfig::PAGE_SIZE;
+    pub const EARLY_FDT_PAGE_SIZE: usize =
+        (Self::EARLY_FDT_PAGES + Self::early_idmap_extra_fdt_pages()) * PageConfig::PAGE_SIZE;
 }
 
 /// The size of the initial identity mapping.
@@ -105,7 +111,7 @@ impl InitMap {
     }
 
     const fn early_segment_extra_pages() -> usize {
-         /* The number of segments in the kernel image (text, rodata, inittext, initdata, data+bss) */
+        /* The number of segments in the kernel image (text, rodata, inittext, initdata, data+bss) */
         const KERNEL_SEGMENT_COUNT: usize = 5;
         if Arm64PgtableConfig::SWAPPER_BLOCK_SIZE > SEGMENT_ALIGN {
             KERNEL_SEGMENT_COUNT + 1
@@ -115,11 +121,16 @@ impl InitMap {
     }
 
     /// The number of page tables needed for the initial mapping.
-    pub const DIR_PAGES: usize = early_pages(Arm64PgtableConfig::SWAPPER_PGTABLE_LEVELS,
-        Arm64VaLayout::KIMAGE_VADDR, _END, Self::EXTRA_PAGE);
+    pub const DIR_PAGES: usize = early_pages(
+        Arm64PgtableConfig::SWAPPER_PGTABLE_LEVELS,
+        Arm64VaLayout::KIMAGE_VADDR,
+        _END,
+        Self::EXTRA_PAGE,
+    );
 
     /// The size of the initial page tables.
-    pub const DIR_SIZE: usize = (Self::DIR_PAGES + Self::early_segment_extra_pages()) * PageConfig::PAGE_SIZE;
+    pub const DIR_SIZE: usize =
+        (Self::DIR_PAGES + Self::early_segment_extra_pages()) * PageConfig::PAGE_SIZE;
 }
 
 /// The size of the initial page tables.

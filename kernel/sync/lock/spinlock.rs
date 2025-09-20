@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
 
 //! A kernel spinlock.
-//! TODO: 
+//! TODO:
 //!    - support lock_class_key
 
+use crate::{
+    arch::irq::{ArchIrq, IRQ},
+    macros::section_spinlock_text,
+    schedule::preempt::{preempt_disable, preempt_enable},
+};
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicBool, Ordering};
-use crate::{
-    arch::irq::{IRQ, ArchIrq},
-    schedule::preempt::{preempt_disable, preempt_enable},
-    macros::section_spinlock_text,
-};
 
 /// A IRQ-Safe and will disable preempt spinlock.
 ///
@@ -60,7 +60,9 @@ impl<T> RawSpinLockNoIrq<T> {
     /// Constructs a new raw spinlock.
     pub const fn new(t: T, name: Option<&'static str>) -> Self {
         Self {
-            inner: UnsafeCell::new(SpinLockInner{lock: AtomicBool::new(false)}),
+            inner: UnsafeCell::new(SpinLockInner {
+                lock: AtomicBool::new(false),
+            }),
             data: UnsafeCell::new(t),
             _name: name,
         }
@@ -77,7 +79,11 @@ impl super::Backend for RawSpinLockNoIrqBackend {
         preempt_disable();
         // can fail to lock even if the spinlock is not locked. May be more efficient than `try_lock`
         //  when called in a loop.
-        while inner.lock.compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
+        while inner
+            .lock
+            .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             // Wait until the lock looks unlocked before retrying
             core::hint::spin_loop();
         }
@@ -95,7 +101,10 @@ impl super::Backend for RawSpinLockNoIrqBackend {
     fn try_lock(inner: &mut Self::Inner) -> Option<Self::GuardState> {
         let irq = IRQ::local_save_and_disable();
         preempt_disable();
-        let locked = inner.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok();
+        let locked = inner
+            .lock
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok();
         if locked {
             Some(irq)
         } else {
@@ -103,7 +112,6 @@ impl super::Backend for RawSpinLockNoIrqBackend {
             preempt_enable();
             None
         }
-
     }
 
     fn assert_is_held(inner: &Self::Inner) {

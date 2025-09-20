@@ -18,7 +18,6 @@ bitflags! {
     }
 }
 
-
 impl Daif {
     /// Read raw register.
     #[inline(always)]

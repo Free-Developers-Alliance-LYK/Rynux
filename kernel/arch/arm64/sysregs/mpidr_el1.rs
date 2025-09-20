@@ -1,6 +1,5 @@
 //! ARM64 mpidr_el1
 
-
 use crate::bitflags::bitflags;
 
 bitflags! {
@@ -24,7 +23,6 @@ bitflags! {
     }
 }
 
-
 impl MpidrEl1 {
     /// Invalid HWID
     pub const INVALID_HWID: u64 = u64::MAX;
@@ -36,7 +34,7 @@ impl MpidrEl1 {
         sys_coproc_read_raw!(u64, "MPIDR_EL1", "x", mpidr);
         Self::from_bits_truncate(mpidr)
     }
-    
+
     /// Read register raw.
     #[inline(always)]
     pub fn read_raw() -> u64 {
@@ -48,10 +46,7 @@ impl MpidrEl1 {
     #[inline(always)]
     /// Affinity
     pub fn affinity(&self) -> u64 {
-        self.bits() & (Self::AFF3.bits() |
-            Self::AFF2.bits() |
-            Self::AFF1.bits() | 
-            Self::AFF0.bits())
+        self.bits()
+            & (Self::AFF3.bits() | Self::AFF2.bits() | Self::AFF1.bits() | Self::AFF0.bits())
     }
-
 }

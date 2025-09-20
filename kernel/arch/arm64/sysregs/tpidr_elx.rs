@@ -1,6 +1,5 @@
 //! ARM64 tpidr_elx
 
-
 /// TPIDR_EL1
 pub struct TpidrEl1;
 

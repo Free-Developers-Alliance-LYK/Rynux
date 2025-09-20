@@ -2,19 +2,19 @@
 //!
 //! TODO: support ACPI
 
+use super::uart_port::{UartPort, UartPortIoType};
 use crate::macros::section_init_text;
+use crate::param::obs_param::early_setup_param;
 use crate::param::ParamHandleErr;
 use crate::printk::console::{Console, ConsoleFlags};
-use crate::param::obs_param::early_setup_param;
 use crate::{
-    printk::console::{GLOBAL_CONSOLE, ConsoleNode},
-    sync::{
-        lock::RawSpinLockNoIrq,
-        arc::{Arc, ArcInner},
-    },
     fdtree_rs::chosen::Stdout,
+    printk::console::{ConsoleNode, GLOBAL_CONSOLE},
+    sync::{
+        arc::{Arc, ArcInner},
+        lock::RawSpinLockNoIrq,
+    },
 };
-use super::uart_port::{UartPort, UartPortIoType};
 
 /// Earlycon device
 #[allow(dead_code)]
@@ -23,29 +23,35 @@ pub struct EarlyConDevice {
     port: RawSpinLockNoIrq<UartPort>,
 }
 
-
-/// SAFETY: we know what we are doing here. 
-/// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
-static EARLYCON_CONSOLE_NODE: ArcInner<ConsoleNode> = ArcInner::new_static(ConsoleNode::new(
-        Console::empty("uart", ConsoleFlags::from_bits_truncate(
-                        ConsoleFlags::CON_PRINTBUFFER.bits() | ConsoleFlags::CON_BOOT.bits()), 0)
-));
+/// SAFETY: we know what we are doing here.
+/// we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic.
+static EARLYCON_CONSOLE_NODE: ArcInner<ConsoleNode> =
+    ArcInner::new_static(ConsoleNode::new(Console::empty(
+        "uart",
+        ConsoleFlags::from_bits_truncate(
+            ConsoleFlags::CON_PRINTBUFFER.bits() | ConsoleFlags::CON_BOOT.bits(),
+        ),
+        0,
+    )));
 
 static EARLYCON_DEV: EarlyConDevice = EarlyConDevice {
-        // SAFETY: we know what we are doing here. 
-        // we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic. 
-        console: unsafe {Arc::from_static(&EARLYCON_CONSOLE_NODE)},
-        port: RawSpinLockNoIrq::new(UartPort::new_empty(), None),
+    // SAFETY: we know what we are doing here.
+    // we use a satic mem to init Arc, if this init Arc refcont to 0, it will panic.
+    console: unsafe { Arc::from_static(&EARLYCON_CONSOLE_NODE) },
+    port: RawSpinLockNoIrq::new(UartPort::new_empty(), None),
 };
 
-
 impl EarlyConDevice {
-    fn init_from_fdt_node(&self, _con_id: &EarlyConId, _node: Stdout<'_, '_>, _options: Option<&str>) 
-        -> Result<(), ParamHandleErr> {
+    fn init_from_fdt_node(
+        &self,
+        _con_id: &EarlyConId,
+        _node: Stdout<'_, '_>,
+        _options: Option<&str>,
+    ) -> Result<(), ParamHandleErr> {
         if GLOBAL_CONSOLE.lock().is_register(&self.console) {
             return Ok(());
         }
-    
+
         let mut port = self.port.lock();
         port.set_iotype(UartPortIoType::Mem);
         Ok(())
@@ -69,7 +75,11 @@ pub struct EarlyConId {
 
 impl EarlyConId {
     /// Create a new EarlyConId
-    pub const fn new(name: &'static str, compatible: &'static str, setup: fn(&mut EarlyConDevice, Option<&'static str>)) -> Self {
+    pub const fn new(
+        name: &'static str,
+        compatible: &'static str,
+        setup: fn(&mut EarlyConDevice, Option<&'static str>),
+    ) -> Self {
         Self {
             name,
             compatible,
@@ -82,7 +92,7 @@ impl EarlyConId {
         // SAFETY: __earlycon_table and __earlycon_table_end are defined in link script
         unsafe {
             let start = __earlycon_table as *const EarlyConId;
-            let end   = __earlycon_table_end   as *const EarlyConId;
+            let end = __earlycon_table_end as *const EarlyConId;
             let n = (end as usize - start as usize) / core::mem::size_of::<EarlyConId>();
             let slice = core::slice::from_raw_parts(start, n);
             for id in slice {
@@ -108,13 +118,18 @@ macro_rules! earlycon_declare {
     ($name:ident, $compatible:expr, $fn:ident) => {
         #[unsafe(link_section = "__earlycon_table")]
         #[used]
-        static $name: $crate::drivers::tty::serial::earlycon::EarlyConId = $crate::drivers::tty::serial::earlycon::EarlyConId::new(stringify!($name), $compatible, $fn);
+        static $name: $crate::drivers::tty::serial::earlycon::EarlyConId =
+            $crate::drivers::tty::serial::earlycon::EarlyConId::new(
+                stringify!($name),
+                $compatible,
+                $fn,
+            );
     };
 }
 
 pub use earlycon_declare;
 
-fn init_earlycon_from_fdt() -> Result<(), ParamHandleErr> { 
+fn init_earlycon_from_fdt() -> Result<(), ParamHandleErr> {
     let stdout = crate::drivers::fdt::GLOBAL_FDT.chosen().stdout();
     match stdout {
         Some(stdout) => {
@@ -125,9 +140,7 @@ fn init_earlycon_from_fdt() -> Result<(), ParamHandleErr> {
                 Some(earlycon_id) => {
                     EARLYCON_DEV.init_from_fdt_node(earlycon_id, stdout, options)?;
                 }
-                None => {
-                    return Err(ParamHandleErr::Unknown)
-                }
+                None => return Err(ParamHandleErr::Unknown),
             }
         }
         None => {
@@ -142,7 +155,7 @@ fn init_earlycon_from_fdt() -> Result<(), ParamHandleErr> {
 fn setup_earlycon_param(val: Option<&str>) -> Result<(), ParamHandleErr> {
     match val {
         Some(_val) => todo!(),
-        None =>  return init_earlycon_from_fdt(),
+        None => return init_earlycon_from_fdt(),
     }
 }
 

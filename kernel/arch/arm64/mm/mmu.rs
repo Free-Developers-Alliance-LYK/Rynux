@@ -20,23 +20,17 @@ pub enum CpuStatus {
 }
 
 use crate::{
+    arch::arm64::{
+        mm::fixmap::FixMap,
+        mm::Arm64VaLayout,
+        pgtable::{
+            PgTableEntry, PgdirTable, PmdEntry, PmdTable, PteEntry, PtePgProt, PteTable, PudEntry,
+            PudTable,
+        },
+    },
     bitflags::bitflags,
     macros::section_init_text,
-    mm::{
-        VirtAddr, PhysAddr,page::PageConfig,
-    },
-    arch::arm64::{
-        pgtable::{
-            PtePgProt,
-            PgdirTable,
-            PudTable, PudEntry,
-            PmdTable,PmdEntry,
-            PteTable,PteEntry,
-            PgTableEntry,
-        },
-        mm::Arm64VaLayout,
-        mm::fixmap::FixMap,
-    },
+    mm::{page::PageConfig, PhysAddr, VirtAddr},
 };
 
 bitflags! {
@@ -62,7 +56,11 @@ impl Mmu {
         let new = PteEntry::new(new);
         // the following mapping attributes may be updated in live kernel
         // mappings without the need for break-before-make
-        let mask = PtePgProt::PTE_PXN.bits() | PtePgProt::PTE_RDONLY.bits() | PtePgProt::PTE_WRITE.bits() | PtePgProt::PTE_NG.bits() | PtePgProt::PTE_SWBITS_MASK; 
+        let mask = PtePgProt::PTE_PXN.bits()
+            | PtePgProt::PTE_RDONLY.bits()
+            | PtePgProt::PTE_WRITE.bits()
+            | PtePgProt::PTE_NG.bits()
+            | PtePgProt::PTE_SWBITS_MASK;
 
         // creating or taking down mappings is always safe
         if !old.is_valid() || new.is_valid() {
@@ -88,34 +86,42 @@ impl Mmu {
         true
     }
 
-    fn init_pte(pte_tbl: &mut PteTable, 
-        virt: VirtAddr, end: VirtAddr, mut phys: PhysAddr, prot: PtePgProt)
-        {
-            let mut cur_virt = virt;
-            while cur_virt < end {
-                let pte_entry = &mut pte_tbl[PteTable::addr_index(cur_virt)];
-                let old_pte = pte_entry.read(); 
-                pte_entry.write(
-                    PteEntry::from_phys(phys.align_down_page()).value()
-                    | prot.bits());
+    fn init_pte(
+        pte_tbl: &mut PteTable,
+        virt: VirtAddr,
+        end: VirtAddr,
+        mut phys: PhysAddr,
+        prot: PtePgProt,
+    ) {
+        let mut cur_virt = virt;
+        while cur_virt < end {
+            let pte_entry = &mut pte_tbl[PteTable::addr_index(cur_virt)];
+            let old_pte = pte_entry.read();
+            pte_entry.write(PteEntry::from_phys(phys.align_down_page()).value() | prot.bits());
 
-                debug_assert!(!Self::pgattr_change_is_safe(old_pte, pte_entry.read()));
-                cur_virt += PageConfig::PAGE_SIZE;
-                phys += PageConfig::PAGE_SIZE;
-            }
+            debug_assert!(!Self::pgattr_change_is_safe(old_pte, pte_entry.read()));
+            cur_virt += PageConfig::PAGE_SIZE;
+            phys += PageConfig::PAGE_SIZE;
         }
+    }
 
-    fn alloc_init_cont_pte(pte_tbl: &mut PteTable, 
-        virt: VirtAddr, end: VirtAddr, mut phys: PhysAddr, prot: PtePgProt, flags: MmuMapFlags)
-    {
+    fn alloc_init_cont_pte(
+        pte_tbl: &mut PteTable,
+        virt: VirtAddr,
+        end: VirtAddr,
+        mut phys: PhysAddr,
+        prot: PtePgProt,
+        flags: MmuMapFlags,
+    ) {
         let mut cur_virt = virt;
         while cur_virt < end {
             let next = PteTable::cont_addr_end_next(cur_virt, end);
-            let prot = if cur_virt.is_aligned(PteTable::CONT_ENTRY_SIZE) &&
-                next.is_aligned(PteTable::CONT_ENTRY_SIZE) &&
-                phys.is_aligned(PteTable::CONT_ENTRY_SIZE) &&
-                !flags.contains(MmuMapFlags::NO_CONT) {
-                    prot | PtePgProt::PTE_CONT
+            let prot = if cur_virt.is_aligned(PteTable::CONT_ENTRY_SIZE)
+                && next.is_aligned(PteTable::CONT_ENTRY_SIZE)
+                && phys.is_aligned(PteTable::CONT_ENTRY_SIZE)
+                && !flags.contains(MmuMapFlags::NO_CONT)
+            {
+                prot | PtePgProt::PTE_CONT
             } else {
                 prot
             };
@@ -126,54 +132,67 @@ impl Mmu {
         }
     }
 
-    fn init_pmd(pmd_tbl: &mut PmdTable, 
-        virt: VirtAddr, end: VirtAddr, mut phys: PhysAddr, prot: PtePgProt, no_alloc: bool, flags: MmuMapFlags)
-        {
-            let mut cur_virt = virt;
-            while cur_virt < end {
-                let next = PmdTable::addr_end_next(cur_virt, end);
-                let pmd_entry = &mut pmd_tbl[PmdTable::addr_index(cur_virt)];
-                // try sect map
-                if cur_virt.is_aligned(PmdTable::ENTRY_SIZE) &&
-                    next.is_aligned(PmdTable::ENTRY_SIZE) &&
-                    phys.is_aligned(PmdTable::ENTRY_SIZE) &&
-                    !flags.contains(MmuMapFlags::NO_BLOCK) {
-                    let old_pmd = pmd_entry.read();
-                    pmd_entry.write(
-                        PmdEntry::from_phys(phys.align_down_page()).value()
-                        | PmdEntry::mk_pmd_sect_prot(prot));
-                    debug_assert!(Self::pgattr_change_is_safe(old_pmd, pmd_entry.read()));
-                } else {
-                    if pmd_entry.is_none() {
-                        if no_alloc {
-                            panic!("create_pmd_mapping: no_alloc is true but pmd_entry is none");
-                        } 
-                        // todo finish alloc pte table and init
-                        todo!();
+    fn init_pmd(
+        pmd_tbl: &mut PmdTable,
+        virt: VirtAddr,
+        end: VirtAddr,
+        mut phys: PhysAddr,
+        prot: PtePgProt,
+        no_alloc: bool,
+        flags: MmuMapFlags,
+    ) {
+        let mut cur_virt = virt;
+        while cur_virt < end {
+            let next = PmdTable::addr_end_next(cur_virt, end);
+            let pmd_entry = &mut pmd_tbl[PmdTable::addr_index(cur_virt)];
+            // try sect map
+            if cur_virt.is_aligned(PmdTable::ENTRY_SIZE)
+                && next.is_aligned(PmdTable::ENTRY_SIZE)
+                && phys.is_aligned(PmdTable::ENTRY_SIZE)
+                && !flags.contains(MmuMapFlags::NO_BLOCK)
+            {
+                let old_pmd = pmd_entry.read();
+                pmd_entry.write(
+                    PmdEntry::from_phys(phys.align_down_page()).value()
+                        | PmdEntry::mk_pmd_sect_prot(prot),
+                );
+                debug_assert!(Self::pgattr_change_is_safe(old_pmd, pmd_entry.read()));
+            } else {
+                if pmd_entry.is_none() {
+                    if no_alloc {
+                        panic!("create_pmd_mapping: no_alloc is true but pmd_entry is none");
                     }
-
-                    let pte_tbl_phys = pmd_entry.to_phys();
-                    let pte_tbl_virt = FixMap::set_pte_map(pte_tbl_phys);
-                    let mut pte_tbl = PteTable::from_raw(pte_tbl_virt.as_usize() as *mut PteEntry);
-                    Self::alloc_init_cont_pte(&mut pte_tbl, cur_virt, next, phys, prot, flags);
+                    // todo finish alloc pte table and init
+                    todo!();
                 }
-                cur_virt = next;
-                phys += next - cur_virt;
+
+                let pte_tbl_phys = pmd_entry.to_phys();
+                let pte_tbl_virt = FixMap::set_pte_map(pte_tbl_phys);
+                let mut pte_tbl = PteTable::from_raw(pte_tbl_virt.as_usize() as *mut PteEntry);
+                Self::alloc_init_cont_pte(&mut pte_tbl, cur_virt, next, phys, prot, flags);
             }
+            cur_virt = next;
+            phys += next - cur_virt;
         }
+    }
 
-
-    fn alloc_init_cont_pmd(pmd_tbl: &mut PmdTable, 
-        virt: VirtAddr, end: VirtAddr, mut phys: PhysAddr, prot: PtePgProt, no_alloc: bool, flags: MmuMapFlags)
-    {
+    fn alloc_init_cont_pmd(
+        pmd_tbl: &mut PmdTable,
+        virt: VirtAddr,
+        end: VirtAddr,
+        mut phys: PhysAddr,
+        prot: PtePgProt,
+        no_alloc: bool,
+        flags: MmuMapFlags,
+    ) {
         let mut cur_virt = virt;
         while cur_virt < end {
             let next = PmdTable::cont_addr_end_next(cur_virt, end);
 
-            let prot = if cur_virt.is_aligned(PmdTable::CONT_ENTRY_SIZE) &&
-                next.is_aligned(PmdTable::CONT_ENTRY_SIZE) &&
-                phys.is_aligned(PmdTable::CONT_ENTRY_SIZE) &&
-                !flags.contains(MmuMapFlags::NO_CONT)
+            let prot = if cur_virt.is_aligned(PmdTable::CONT_ENTRY_SIZE)
+                && next.is_aligned(PmdTable::CONT_ENTRY_SIZE)
+                && phys.is_aligned(PmdTable::CONT_ENTRY_SIZE)
+                && !flags.contains(MmuMapFlags::NO_CONT)
             {
                 prot | PtePgProt::PTE_CONT
             } else {
@@ -187,9 +206,15 @@ impl Mmu {
         }
     }
 
-    fn alloc_init_pud(pud_tbl: &mut PudTable, 
-        virt: VirtAddr, end: VirtAddr, mut phys: PhysAddr, prot: PtePgProt, no_alloc: bool, flags: MmuMapFlags)
-    {
+    fn alloc_init_pud(
+        pud_tbl: &mut PudTable,
+        virt: VirtAddr,
+        end: VirtAddr,
+        mut phys: PhysAddr,
+        prot: PtePgProt,
+        no_alloc: bool,
+        flags: MmuMapFlags,
+    ) {
         match &mut pud_tbl.downgrade_to_pmd_table() {
             Some(pmd_tbl) => {
                 Self::alloc_init_cont_pmd(pmd_tbl, virt, end, phys, prot, no_alloc, flags);
@@ -200,19 +225,22 @@ impl Mmu {
                     let next = PudTable::addr_end_next(cur_virt, end);
 
                     // For 4K granule only, attempt to put down a 1GB block
-                    if PudTable::support_sect() && 
-                        cur_virt.is_aligned(PudTable::ENTRY_SIZE) &&
-                        next.is_aligned(PudTable::ENTRY_SIZE) &&
-                        phys.is_aligned(PudTable::ENTRY_SIZE) &&
-                        !flags.contains(MmuMapFlags::NO_BLOCK) {
-                            // no need to alloc pmd table
-                            todo!();
+                    if PudTable::support_sect()
+                        && cur_virt.is_aligned(PudTable::ENTRY_SIZE)
+                        && next.is_aligned(PudTable::ENTRY_SIZE)
+                        && phys.is_aligned(PudTable::ENTRY_SIZE)
+                        && !flags.contains(MmuMapFlags::NO_BLOCK)
+                    {
+                        // no need to alloc pmd table
+                        todo!();
                     } else {
                         let pud_entry = &mut pud_tbl[PudTable::addr_index(cur_virt)];
                         if pud_entry.is_none() {
                             if no_alloc {
-                                panic!("create_pud_mapping: no_alloc is true but pud_entry is none");
-                            } 
+                                panic!(
+                                    "create_pud_mapping: no_alloc is true but pud_entry is none"
+                                );
+                            }
                             // todo finish alloc pmd table and init
                             todo!();
                         }
@@ -221,10 +249,17 @@ impl Mmu {
                         // first we need to map pmdtable to fixmap
                         let pmd_tbl_raw_phys = pud_entry.to_phys();
                         let pmd_tbl_raw_virt = FixMap::set_pmd_map(pmd_tbl_raw_phys);
-                        let mut pmd_tbl = PmdTable::from_raw(
-                            pmd_tbl_raw_virt.as_usize() as *mut PmdEntry
+                        let mut pmd_tbl =
+                            PmdTable::from_raw(pmd_tbl_raw_virt.as_usize() as *mut PmdEntry);
+                        Self::alloc_init_cont_pmd(
+                            &mut pmd_tbl,
+                            cur_virt,
+                            next,
+                            phys,
+                            prot,
+                            no_alloc,
+                            flags,
                         );
-                        Self::alloc_init_cont_pmd(&mut pmd_tbl, cur_virt, next, phys, prot, no_alloc, flags);
                         FixMap::clear_pmd_map();
                     }
                     cur_virt = next;
@@ -234,9 +269,15 @@ impl Mmu {
         }
     }
 
-    fn create_pgd_mapping(pgd_tbl: &mut PgdirTable, 
-        phys: PhysAddr, virt: VirtAddr, size: usize, prot: PtePgProt, no_alloc: bool, flags: MmuMapFlags)
-    {
+    fn create_pgd_mapping(
+        pgd_tbl: &mut PgdirTable,
+        phys: PhysAddr,
+        virt: VirtAddr,
+        size: usize,
+        prot: PtePgProt,
+        no_alloc: bool,
+        flags: MmuMapFlags,
+    ) {
         // TODO: USE MUTEX LOCK TO PROTECT FIXMAP VIRT REGION
         // make sure virt and phys has the same offset
         assert_eq!(phys.align_offset_page(), virt.align_offset_page());
@@ -258,7 +299,7 @@ impl Mmu {
                     if pgd_entry.is_none() {
                         if no_alloc {
                             panic!("create_pgd_mapping: no_alloc is true but pgd_entry is none");
-                        } 
+                        }
                         // todo  fini alloc pud table and init
                         todo!();
                     }
@@ -266,11 +307,18 @@ impl Mmu {
                     // need to map pudtable to fixmap
                     let pud_tbl_raw_phys = pgd_entry.to_phys();
                     let pud_tbl_raw_virt = FixMap::set_pud_map(pud_tbl_raw_phys);
-                    let mut pud_tbl = PudTable::from_raw(
-                            pud_tbl_raw_virt.as_usize() as *mut PudEntry
-                    );
+                    let mut pud_tbl =
+                        PudTable::from_raw(pud_tbl_raw_virt.as_usize() as *mut PudEntry);
 
-                    Self::alloc_init_pud(&mut pud_tbl, cur_virt, next, cur_phys, prot, no_alloc, flags);
+                    Self::alloc_init_pud(
+                        &mut pud_tbl,
+                        cur_virt,
+                        next,
+                        cur_phys,
+                        prot,
+                        no_alloc,
+                        flags,
+                    );
                     FixMap::clear_pud_map();
                     cur_virt = next;
                     cur_phys += next - cur_virt;
@@ -285,10 +333,21 @@ impl Mmu {
     pub fn create_map_noalloc(phys: PhysAddr, virt: VirtAddr, size: usize, prot: PtePgProt) {
         // virt must be in kernel space
         if virt.as_usize() < Arm64VaLayout::KERNNEL_VA_START {
-            panic!("create_map_noalloc: virt 0x{:x} is not in kernel space", virt.as_usize());
+            panic!(
+                "create_map_noalloc: virt 0x{:x} is not in kernel space",
+                virt.as_usize()
+            );
         }
         let mut k_pgdir_tbl = PgdirTable::kernel_pgdir();
-        Self::create_pgd_mapping(&mut k_pgdir_tbl, phys, virt, size, prot, true, MmuMapFlags::NO_CONT);
+        Self::create_pgd_mapping(
+            &mut k_pgdir_tbl,
+            phys,
+            virt,
+            size,
+            prot,
+            true,
+            MmuMapFlags::NO_CONT,
+        );
     }
 }
 

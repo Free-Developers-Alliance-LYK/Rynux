@@ -12,4 +12,3 @@ cfg_if! {
         pub const SMP_CACHE_BYTES: usize = L1_CACHE_BYTES;
     }
 }
-

@@ -2,8 +2,8 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Meta, Token, Expr, ExprLit, Lit};
 use syn::punctuated::Punctuated;
+use syn::{parse_macro_input, Expr, ExprLit, Lit, Meta, Token};
 
 pub(crate) fn aligned_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr with Punctuated::<Meta, Token![,]>::parse_terminated);
@@ -11,7 +11,11 @@ pub(crate) fn aligned_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
     for meta in args.iter() {
         match meta {
             Meta::NameValue(nv) if nv.path.is_ident("align") => {
-                if let Expr::Lit(ExprLit { lit: Lit::Int(lit_int), .. }) = &nv.value {
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Int(lit_int),
+                    ..
+                }) = &nv.value
+                {
                     repr_args.push(quote!(align(#lit_int)));
                 }
             }
@@ -41,7 +45,8 @@ pub(crate) fn aligned_impl(attr: TokenStream, item: TokenStream) -> TokenStream 
         _ => {
             return quote! {
                 compile_error!("aligned attribute only supports struct/enum!");
-            }.into();
+            }
+            .into();
         }
     }
 

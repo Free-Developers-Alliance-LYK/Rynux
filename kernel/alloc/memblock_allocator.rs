@@ -2,13 +2,9 @@
 
 //!  Mmeblock Allocator support.
 
-use core::{
-    alloc::Layout,
-    ptr::NonNull,
-    ptr,
-};
+use core::{alloc::Layout, ptr, ptr::NonNull};
 
-use super::{AllocError, Allocator, AllocFlags};
+use super::{AllocError, AllocFlags, Allocator};
 use crate::mm::memblock::GLOBAL_MEMBLOCK;
 
 /// Early kernel memory allocator
@@ -21,15 +17,12 @@ fn aligned_size(new_layout: Layout) -> usize {
     layout.size()
 }
 
-// SAFETY: 
+// SAFETY:
 // `memblock_alloc` is a function that allocates memory from the kernel's memblock allocator.
 // It is safe to use this function as long as the caller ensures that the size and alignment
 unsafe impl Allocator for MemblockAllocator {
     #[inline]
-    fn alloc(
-        new_layout: Layout,
-        flags: AllocFlags,
-    ) -> Result<NonNull<[u8]>, AllocError> {
+    fn alloc(new_layout: Layout, flags: AllocFlags) -> Result<NonNull<[u8]>, AllocError> {
         let size = aligned_size(new_layout);
         let ptr = if size == 0 {
             // Zero-sized allocations are always valid
@@ -37,7 +30,9 @@ unsafe impl Allocator for MemblockAllocator {
             super::dangling_from_layout(new_layout)
         } else {
             // try to allocate memory from the kernel's memblock allocator
-            GLOBAL_MEMBLOCK.lock().alloc(size, new_layout.align(), flags)?
+            GLOBAL_MEMBLOCK
+                .lock()
+                .alloc(size, new_layout.align(), flags)?
         };
 
         Ok(NonNull::slice_from_raw_parts(ptr, size))
@@ -62,13 +57,19 @@ unsafe impl Allocator for MemblockAllocator {
             // SAFETY: `ptr` is a valid pointer to an allocation of size `old_size`
             // and `new` is a valid pointer to an allocation of size `new_layout.size()`.
             unsafe {
-                ptr::copy_nonoverlapping(old_ptr.as_ptr(), new_ptr.as_ptr() as *mut u8, old_size.min(new_size));
+                ptr::copy_nonoverlapping(
+                    old_ptr.as_ptr(),
+                    new_ptr.as_ptr() as *mut u8,
+                    old_size.min(new_size),
+                );
             }
         }
 
         // free the old memory block
         // SAFETY: `ptr` is a valid pointer to an allocation of size `old_layout.size()`.
-        unsafe {Self::free(old_ptr, old_layout);}
+        unsafe {
+            Self::free(old_ptr, old_layout);
+        }
         // return the new memory block
         Ok(new_ptr)
     }
@@ -92,10 +93,8 @@ mod tests {
         // This function should set up the memblock allocator.
         // It is usually called during kernel initialization.
         // For testing purposes, we nedd manually set up the memblock allocator.
-
     }
 
     #[test]
-    fn test_memblock_allocator() {
-    }
+    fn test_memblock_allocator() {}
 }

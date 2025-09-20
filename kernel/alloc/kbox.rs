@@ -2,14 +2,14 @@
 
 //! Implementation of [`Box`].
 
-use super::{AllocError, Allocator, AllocFlags};
+use super::{AllocError, AllocFlags, Allocator};
 use core::alloc::Layout;
 use core::fmt;
-use core::ptr::NonNull;
 use core::marker::PhantomData;
 use core::mem::ManuallyDrop;
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
+use core::ptr::NonNull;
 use core::result::Result;
 
 /// The kernel's [`Box`] type -- a heap allocation for a single value of type `T`.
@@ -52,10 +52,7 @@ use core::result::Result;
 /// zero-sized types, is a dangling, well aligned pointer.
 #[repr(transparent)]
 #[derive(core::marker::CoercePointee)]
-pub struct Box<#[pointee] T: ?Sized, A: Allocator>(
-    NonNull<T>,
-    PhantomData<A>,
-);
+pub struct Box<#[pointee] T: ?Sized, A: Allocator>(NonNull<T>, PhantomData<A>);
 
 /*
 /// Type alias for [`Box`] with a [`Kmalloc`] allocator.
@@ -382,4 +379,3 @@ mod tests {
         assert_eq!(*b, 42);
     }
 }
-

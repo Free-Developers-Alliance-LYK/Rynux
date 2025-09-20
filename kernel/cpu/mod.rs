@@ -3,7 +3,7 @@
 pub mod cpu_mask;
 mod cpu_state;
 
-use cpu_state::CpuStateManager;
 use cpu_mask::CpuMask;
+use cpu_state::CpuStateManager;
 
 pub mod processor;

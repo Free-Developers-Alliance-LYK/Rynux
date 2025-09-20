@@ -5,7 +5,8 @@
 /// Stack frame meta type
 pub enum StackFrameMetaType {
     /// This value is reserved.
-    #[default] None = 0,
+    #[default]
+    None = 0,
     /// The record is the last entry on the stack.
     Final = 1,
     /// The record is embedded within a struct pt_regs, recording the registers at
@@ -73,7 +74,7 @@ impl PtRegs {
     /// From raw ptr
     #[inline(always)]
     pub unsafe fn from_raw(raw: *const Self) -> Self {
-        unsafe {*raw}
+        unsafe { *raw }
     }
 
     #[inline(always)]

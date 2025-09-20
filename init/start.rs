@@ -1,6 +1,6 @@
 //! Rynux init
 //!
-//! TODO: 
+//! TODO:
 //!   start_kernel:  
 //!     - debug_objects_early_init
 //!     - init_vmlinux_build_id
@@ -10,11 +10,11 @@
 use kernel::arch::arm64::early_debug::early_uart_put_u64_hex;
 //use kernel::arch::arm64::early_debug::early_uart_putchar;
 use kernel::arch::irq::{ArchIrq, IRQ};
+use kernel::arch::setup::{ArchBootSetup, ArchBootSetupTrait};
 use kernel::cpu::processor::processor_boot_init;
-use kernel::arch::setup::{ArchBootSetupTrait, ArchBootSetup};
 
 /// Start kernel
-#[unsafe(no_mangle)] 
+#[unsafe(no_mangle)]
 extern "C" fn start_kernel() -> ! {
     // Test current is set OK ?
     let current = kernel::schedule::current();
@@ -34,4 +34,3 @@ extern "C" fn start_kernel() -> ! {
     early_uart_put_u64_hex(0x1234);
     loop {}
 }
-

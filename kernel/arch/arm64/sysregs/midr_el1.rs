@@ -165,7 +165,8 @@ impl MidrEl1 {
     const ARCHITECTURE_OFFSET: u64 = 16;
     #[inline(always)]
     const fn cpu_model(implementer: ArmCpuImplementer, part_number: ArmCpuPartNumber) -> u64 {
-        ArmCpuImplementer::implementer(implementer) | ArmCpuPartNumber::part_number(part_number)
+        ArmCpuImplementer::implementer(implementer)
+            | ArmCpuPartNumber::part_number(part_number)
             | 0xf << Self::ARCHITECTURE_OFFSET
     }
 
@@ -175,10 +176,10 @@ impl MidrEl1 {
     pub const fn cpu_var_rev(var: u64, rev: u64) -> u64 {
         (var << Self::VARIANT_OFFSET) | (rev << 0)
     }
-
 }
 
 /// Fujitsu A64FX
-pub(crate) const FUJITSU_A64FX: MidrEl1 = MidrEl1::from_bits_truncate(
-    MidrEl1::cpu_model(ArmCpuImplementer::Fujitsu, ArmCpuPartNumber::FujitsuA64FX)
-);
+pub(crate) const FUJITSU_A64FX: MidrEl1 = MidrEl1::from_bits_truncate(MidrEl1::cpu_model(
+    ArmCpuImplementer::Fujitsu,
+    ArmCpuPartNumber::FujitsuA64FX,
+));

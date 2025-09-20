@@ -1,14 +1,14 @@
 //! Arm64 Page table PTE
 
-use core::{marker::PhantomData, ptr::NonNull, ops::{Deref, DerefMut, Index, IndexMut}};
-use crate::{
-    mm::page::PageConfig,
-    arch::arm64::pgtable::config::Arm64PgtableConfig,
-    cfg_if,
+use crate::{arch::arm64::pgtable::config::Arm64PgtableConfig, cfg_if, mm::page::PageConfig};
+use core::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut, Index, IndexMut},
+    ptr::NonNull,
 };
 
-use crate::mm::{PhysAddr, VirtAddr};
 use super::{PgTableEntry, PtePgProt};
+use crate::mm::{PhysAddr, VirtAddr};
 
 /// Pte
 #[derive(Copy, Clone)]
@@ -67,7 +67,7 @@ impl PteEntry {
 }
 
 impl PgTableEntry for PteEntry {
-    /// Value 
+    /// Value
     #[inline(always)]
     fn value(&self) -> u64 {
         self.0
@@ -150,10 +150,10 @@ impl PteTable {
     // - Otherwise, defaults to 4 (for safety; can be adjusted for other configurations).
     const fn pte_cont_shift(page_shift: usize) -> usize {
         match page_shift {
-            12 => 4,  // 4KB pages
-            14 => 7,  // 16KB pages
-            16 => 5,  // 64KB pages
-            _  => 4,  // Default/fallback value
+            12 => 4, // 4KB pages
+            14 => 7, // 16KB pages
+            16 => 5, // 64KB pages
+            _ => 4,  // Default/fallback value
         }
     }
 
@@ -164,9 +164,9 @@ impl PteTable {
     // Mask for aligning to a PTE entry
     const MASK: usize = !(Self::ENTRY_SIZE - 1);
     /// Number of entries per PTE
-    pub const PTRS: usize = 1 <<  Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
+    pub const PTRS: usize = 1 << Arm64PgtableConfig::PTDESC_TABLE_SHIFT;
     // determines the continue PTE size map
-    const CONT_SHIFT: usize =  Self::pte_cont_shift(PageConfig::PAGE_SHIFT) + PageConfig::PAGE_SHIFT;
+    const CONT_SHIFT: usize = Self::pte_cont_shift(PageConfig::PAGE_SHIFT) + PageConfig::PAGE_SHIFT;
     /// Size of a contiguous PTE entry in bytes.
     pub const CONT_ENTRY_SIZE: usize = 1 << Self::CONT_SHIFT;
     // Number of entries per contiguous PTE
@@ -177,7 +177,7 @@ impl PteTable {
     /// Create a new PteTable
     pub const fn from_raw(base: *mut PteEntry) -> Self {
         Self {
-            base: unsafe { NonNull::new_unchecked(base)},
+            base: unsafe { NonNull::new_unchecked(base) },
             _marker: PhantomData,
             len: Self::PTRS,
         }
@@ -185,9 +185,8 @@ impl PteTable {
 
     /// Get the index of a PteTable
     pub const fn addr_index(addr: VirtAddr) -> usize {
-        (addr.as_usize()>> Self::SHIFT) & (Self::PTRS - 1)
+        (addr.as_usize() >> Self::SHIFT) & (Self::PTRS - 1)
     }
-
 
     /// len of the table
     pub const fn len(&self) -> usize {
@@ -226,17 +225,13 @@ impl Deref for PteTable {
     type Target = [PteEntry];
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            core::slice::from_raw_parts(self.base.as_ptr(), self.len)
-        }
+        unsafe { core::slice::from_raw_parts(self.base.as_ptr(), self.len) }
     }
 }
 
 impl DerefMut for PteTable {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            core::slice::from_raw_parts_mut(self.base.as_ptr(), self.len)
-        }
+        unsafe { core::slice::from_raw_parts_mut(self.base.as_ptr(), self.len) }
     }
 }
 
@@ -255,6 +250,3 @@ impl IndexMut<usize> for PteTable {
         &mut self.deref_mut()[index]
     }
 }
-
-
-

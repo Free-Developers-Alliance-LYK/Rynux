@@ -15,7 +15,6 @@ unsafe extern "C" {
     /// start RODATA
     pub fn __start_rodata();
 
-
     /// init begin
     pub fn __init_begin();
     /// init text begin

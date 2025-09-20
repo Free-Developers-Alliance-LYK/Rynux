@@ -1,7 +1,7 @@
 //! ARM64 pmuserenr_el0
 
+use super::{id_aa64dfr0_el1::PmuVer, IdAa64dfr0El1};
 use crate::bitflags::bitflags;
-use super::{IdAa64dfr0El1, id_aa64dfr0_el1::PmuVer};
 
 bitflags! {
     /// PMUSERENR_EL0
@@ -19,7 +19,6 @@ bitflags! {
         const ER = 1 << 3;
     }
 }
-
 
 impl PmuserenrEl0 {
     /// Read register.
@@ -43,7 +42,7 @@ impl PmuserenrEl0 {
         sys_coproc_write_raw!(u64, "PMUSERENR_EL0", "x", pmuserenr);
     }
 
-    /// Reset PMUSERENR_EL0 if PMUv3 present 
+    /// Reset PMUSERENR_EL0 if PMUv3 present
     #[inline(always)]
     pub fn reset() {
         let pmuver = IdAa64dfr0El1::read_pmu_ver();

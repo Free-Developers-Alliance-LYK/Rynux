@@ -1,4 +1,4 @@
-//! Dummy 
+//! Dummy
 
 use crate::arch::cpu::ArchProcessorTrait;
 
@@ -6,8 +6,7 @@ use crate::arch::cpu::ArchProcessorTrait;
 pub struct DummyProcessor;
 
 impl ArchProcessorTrait for DummyProcessor {
-    fn boot_init(&self) {
-    }
+    fn boot_init(&self) {}
 
     fn boot_processor_id(&self) -> usize {
         0
@@ -20,4 +19,3 @@ impl DummyProcessor {
         Self
     }
 }
-
