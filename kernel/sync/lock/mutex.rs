@@ -27,12 +27,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 ///
 pub type Mutex<T> = super::Lock<T, MutexBackend>;
 
-/// A [`Guard`] acquired from locking a [`Mutex`].
+/// A Guard acquired from locking a [`Mutex`].
 ///
-/// This is simply a type alias for a [`Guard`] returned from locking a [`Mutex`].
-/// It will unlock the [`Mutex`] upon being dropped.
-///
-/// [`Guard`]: super::Guard
+/// [`BaseLockGuard`]: super::BaseLockGuard
 pub type MutexGuard<'a, T> = super::BaseLockGuard<'a, T, MutexBackend>;
 
 /// Mutex backend.

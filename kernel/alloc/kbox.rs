@@ -17,11 +17,8 @@ use core::result::Result;
 /// This is the kernel's version of the Rust stdlib's `Box`. There are several differences,
 /// for example no `noalias` attribute is emitted and partially moving out of a `Box` is not
 /// supported. There are also several API differences, e.g. `Box` always requires an [`Allocator`]
-/// implementation to be passed as generic, page [`Flags`] when allocating memory and all functions
+/// implementation to be passed as generic, page flags when allocating memory and all functions
 /// that may allocate memory are fallible.
-///
-/// `Box` works with any of the kernel's allocators, e.g. [`Kmalloc`], [`Vmalloc`] or [`KVmalloc`].
-/// There are aliases for `Box` with these allocators ([`KBox`], [`VBox`], [`KVBox`]).
 ///
 /// When dropping a [`Box`], the value is also dropped and the heap memory is automatically freed.
 ///
@@ -92,7 +89,7 @@ pub type VBox<T> = Box<T, super::allocator::Vmalloc>;
 pub type KVBox<T> = Box<T, super::allocator::KVmalloc>;
 */
 
-/// Type alias for [`Box`] with a [`memblock_allocator::MemblockAllocator`] allocator.
+/// Type alias for [`Box`] with a [`super::MemblockAllocator`] allocator.
 pub type MBox<T> = Box<T, super::MemblockAllocator>;
 
 // SAFETY: `Box` is `Send` if `T` is `Send` because the `Box` owns a `T`.

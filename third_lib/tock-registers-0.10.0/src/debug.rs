@@ -114,11 +114,8 @@ pub trait RegisterDebugInfo<T: UIntLike>: RegisterLongName {
     /// this [`RegisterLongName`] register.
     ///
     /// See [`FieldValueEnumSeq`]. The index of types in this sequence
-    /// correspond to indices of values returned from the [`fields`] and
-    /// [`field_names`] methods.
-    ///
-    /// [`field_names`]: RegisterDebugInfo::field_names [`fields`]:
-    /// RegisterDebugInfo::fields
+    /// correspond to indices of values returned from the [`fields`](RegisterDebugInfo::fields)
+    /// and [`field_names`](RegisterDebugInfo::field_names) methods.
     type FieldValueEnumTypes: FieldValueEnumSeq<T>;
 
     /// The name of the register.
@@ -127,25 +124,21 @@ pub trait RegisterDebugInfo<T: UIntLike>: RegisterLongName {
     /// The names of the fields in the register.
     ///
     /// The length of the returned slice is identical to the length of the
-    /// [`FieldValueEnumTypes`] sequence and [`fields`] return value. For every
-    /// index `i`, the element of this slice corresponds to the type at the
-    /// `i`th position in the [`FieldValueEnumTypes`] sequence and element at
-    /// the `i`th position in the [`fields`] return value.
-    ///
-    /// [`FieldValueEnumTypes`]: RegisterDebugInfo::FieldValueEnumTypes
-    /// [`fields`]: RegisterDebugInfo::fields
+    /// [`FieldValueEnumTypes`](RegisterDebugInfo::FieldValueEnumTypes) sequence and
+    /// [`fields`](RegisterDebugInfo::fields) return value. For every index `i`, the element of
+    /// this slice corresponds to the type at the `i`th position in the
+    /// [`FieldValueEnumTypes`](RegisterDebugInfo::FieldValueEnumTypes) sequence and element at the
+    /// `i`th position in the [`fields`](RegisterDebugInfo::fields) return value.
     fn field_names() -> &'static [&'static str];
 
     /// The fields of a register.
     ///
     /// The length of the returned slice is identical to the length of the
-    /// [`FieldValueEnumTypes`] sequence and [`field_names`] return value. For
-    /// every index `i`, the element of this slice corresponds to the type at
-    /// the `i`th position in the [`FieldValueEnumTypes`] sequence and element
-    /// at the `i`th position in the [`field_names`] return value.
-    ///
-    /// [`FieldValueEnumTypes`]: RegisterDebugInfo::FieldValueEnumTypes
-    /// [`field_names`]: RegisterDebugInfo::field_names
+    /// [`FieldValueEnumTypes`](RegisterDebugInfo::FieldValueEnumTypes) sequence and
+    /// [`field_names`](RegisterDebugInfo::field_names) return value. For every index `i`, the
+    /// element of this slice corresponds to the type at the `i`th position in the
+    /// [`FieldValueEnumTypes`](RegisterDebugInfo::FieldValueEnumTypes) sequence and element at the
+    /// `i`th position in the [`field_names`](RegisterDebugInfo::field_names) return value.
     fn fields() -> &'static [Field<T, Self>]
     where
         Self: Sized;

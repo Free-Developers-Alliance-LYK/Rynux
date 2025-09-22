@@ -32,13 +32,7 @@ It requires kernel `.config` file generated, so need to run `make menuconfig` fi
 make LLVM=1  O=build_dir rust-analyzer
 ```
 
-This will generate a `rust-project.json` file in the build directory of the kernel.
-
-copy this file to the root directory of the kernel:
-
-```bash
-cp build_dir/rust-project.json .
-```
+This will generate a `rust-project.json` file in the directory of the kernel.
 
 ### About cfg test
 

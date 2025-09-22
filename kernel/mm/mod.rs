@@ -1,6 +1,6 @@
 //! Memory management code.
 
-mod addr;
+pub mod addr;
 pub mod memblock;
 pub mod page;
 pub mod percpu;

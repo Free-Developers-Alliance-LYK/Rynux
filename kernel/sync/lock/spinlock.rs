@@ -42,12 +42,10 @@ pub type RawSpinLockNoIrq<T> = super::Lock<T, RawSpinLockNoIrqBackend>;
 /// Raw spinlock backend.
 pub struct RawSpinLockNoIrqBackend;
 
-/// A [`Guard`] acquired from locking a [`RawSpinLockNoIrq`].
+/// A Guard acquired from locking a [`RawSpinLockNoIrq`].
 ///
-/// This is simply a type alias for a [`Guard`] returned from locking a [`RawSpinLockNoIrq`].
+/// This is simply a type alias for a Guard returned from locking a [`RawSpinLockNoIrq`].
 /// It will unlock the [`RawSpinLockNoIrq`] upon being dropped.
-///
-/// [`Guard`]: super::Guard
 pub type RawSpinLockNoIrqGuard<'a, T> = super::BaseLockGuard<'a, T, RawSpinLockNoIrqBackend>;
 
 /// Raw spinlock inner.

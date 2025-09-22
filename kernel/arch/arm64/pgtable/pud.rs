@@ -23,7 +23,7 @@ impl PudEntry {
     pub const PUD_TYPE_TABLE: u64 = 3 << 0;
     /// Section type
     pub const PUD_TYPE_SECT: u64 = 1 << 0;
-    /// AP[2]
+    /// AP 3 bits
     pub const PUD_SECT_RDONLY: u64 = 1 << 7;
     /// Pud AF
     pub const PUD_TABLE_AF: u64 = 1 << 10;

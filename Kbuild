@@ -44,6 +44,16 @@ PHONY += rusttest-third_lib
 rusttest-third_lib:
 	$(Q)$(MAKE) $(build)=third_lib rusttest
 
+rustdoc: rustdoc-kernel
+PHONY += rustdoc-third_lib
+rustdoc-third_lib:
+	$(Q)$(MAKE) $(build)=third_lib rustdoc
+
+rustdoc-kernel: private rustc_target_flags = --extern macros $(third_lib)
+rustdoc-kernel: $(src)/kernel/lib.rs rustdoc-third_lib FORCE
+	+$(call if_changed,rustdoc)
+
+
 # Ordinary directory descending
 # ---------------------------------------------------------------------------
 obj-y			+= third_lib/

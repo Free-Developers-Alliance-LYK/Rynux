@@ -8,10 +8,10 @@ use crate::mm::page::PageConfig;
 
 /// Align address upwards.
 ///
-/// Returns the smallest `x` with alignment `align` so that `x >= addr`.                
+/// Returns the smallest `x` with alignment `align` so that `x >= addr`.
 /// The alignment must be a power of two.
 #[inline]
-const fn align_up(addr: usize, align: usize) -> usize {
+pub const fn align_up(addr: usize, align: usize) -> usize {
     (addr + align - 1) & !(align - 1)
 }
 
@@ -21,7 +21,7 @@ const fn align_up(addr: usize, align: usize) -> usize {
 ///
 /// The alignment must be a power of two.
 #[inline]
-const fn align_down(addr: usize, align: usize) -> usize {
+pub const fn align_down(addr: usize, align: usize) -> usize {
     addr & !(align - 1)
 }
 
@@ -52,7 +52,7 @@ impl PhysAddr {
         Self(addr)
     }
 
-    /// Converts the address to an `usize`.                                
+    /// Converts the address to an `usize`.
     #[inline]
     pub const fn as_usize(self) -> usize {
         self.0

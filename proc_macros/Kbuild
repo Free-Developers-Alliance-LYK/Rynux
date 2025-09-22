@@ -1,9 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+
+# ------------------------unicode-ident------------------------
 $(obj)/libunicode_ident.rlib: $(src)/unicode-ident/src/lib.rs FORCE
 	+$(call if_changed_dep,host_rustlib)
 
+rustdoc-unicode_ident: $(src)/unicode-ident/src/lib.rs FORCE
+	+$(call if_changed,rustdoc_host)
+
+# ---------------------------------- unicode-xid ------------------------
 $(obj)/libunicode_xid.rlib: $(src)/unicode-xid/src/lib.rs FORCE
 	+$(call if_changed_dep,host_rustlib)
 
+rustdoc-unicode_xid: $(src)/unicode-xid/src/lib.rs FORCE
+	+$(call if_changed,rustdoc_host)
+
+
+# ---------------------------------- proc-macro2 ------------------------
 proc_macro2_cfg = \
 	--cfg 'feature="default"'  --cfg 'feature="proc-macro"' \
 	--cfg wrap_proc_macro
@@ -13,28 +26,44 @@ $(obj)/libproc_macro2.rlib: private rustc_target_flags = --extern unicode_ident 
 $(obj)/libproc_macro2.rlib: $(src)/proc-macro2/src/lib.rs $(obj)/libunicode_ident.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
 
+rustdoc-proc_macro2: private rustc_target_flags = --extern unicode_ident $(proc_macro2_cfg)
+rustdoc-proc_macro2: $(src)/proc-macro2/src/lib.rs rustdoc-unicode_ident FORCE
+	+$(call if_changed,rustdoc_host)
+
+# ---------------------------------- quote ------------------------
+
 quote_cfg = --cfg 'feature="proc-macro"'
 $(obj)/libquote.rlib: private rustc_target_flags = --extern proc_macro2 $(quote_cfg)
 $(obj)/libquote.rlib: $(src)/quote/src/lib.rs $(obj)/libproc_macro2.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
 
+rustdoc-quote: private rustc_target_flags = --extern proc_macro2 $(quote_cfg)
+rustdoc-quote: $(src)/quote/src/lib.rs rustdoc-proc_macro2 FORCE
+	+$(call if_changed,rustdoc_host)
+
+
+# ---------------------------------- syn ------------------------
 syn_cfg = --cfg 'feature="derive"' \
 		  --cfg 'feature="parsing"' \
 		  --cfg 'feature="printing"' \
 		  --cfg 'feature="proc-macro"' \
 		  --cfg 'feature="full"' \
 		  --cfg 'feature="clone-impls"'
+
 $(obj)/libsyn.rlib: private rustc_target_flags = --extern proc_macro2 --extern quote --extern unicode_ident $(syn_cfg)
 $(obj)/libsyn.rlib: private skip_flags = -Wrust_2018_idioms
 $(obj)/libsyn.rlib: $(src)/syn/src/lib.rs $(obj)/libproc_macro2.rlib $(obj)/libunicode_ident.rlib $(obj)/libquote.rlib FORCE
 	+$(call if_changed_dep,host_rustlib)
 
+rustdoc-syn: private rustc_target_flags = --extern proc_macro2 --extern quote --extern unicode_ident $(syn_cfg)
+rustdoc-syn: private skip_flags = -Wrust_2018_idioms
+rustdoc-syn: $(src)/syn/src/lib.rs rustdoc-proc_macro2 rustdoc-quote rustdoc-unicode_ident FORCE
+	+$(call if_changed,rustdoc_host)
+
+# ----------------------------------- macros ------------------------
+
 libmacros_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name macros --crate-type proc-macro - </dev/null)
 libmacros_extension := $(patsubst libmacros.%,%,$(libmacros_name))
-
-libconst_format_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name const_format_proc_macros --crate-type proc-macro - </dev/null)
-
-libstatic_assertions_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name static_assertions_proc_macros --crate-type proc-macro - </dev/null)
 
 # Procedural macros can only be used with the `rustc` that compiled it.
 $(obj)/$(libmacros_name): private rustc_target_flags = \
@@ -42,21 +71,47 @@ $(obj)/$(libmacros_name): private rustc_target_flags = \
 $(obj)/$(libmacros_name): $(src)/macros/lib.rs $(obj)/libquote.rlib $(obj)/libsyn.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
+rustdoc-macros: private rustc_target_flags = --extern quote --extern syn \
+	--crate-type proc-macro
+rustdoc-macros: $(src)/macros/lib.rs rustdoc-quote rustdoc-syn FORCE
+	+$(call if_changed,rustdoc_host)
+
+# ----------------------------------- const_format_proc_macros ------------
+
+libconst_format_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name const_format_proc_macros --crate-type proc-macro - </dev/null)
+
 $(obj)/$(libconst_format_proc_macro_name): private rustc_target_flags = \
 	--extern proc_macro2 --extern quote --extern unicode_xid
 $(obj)/$(libconst_format_proc_macro_name): $(src)/const_format_proc_macros/src/lib.rs \
 	$(obj)/libproc_macro2.rlib $(obj)/libquote.rlib $(obj)/libunicode_xid.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
+
+
+# ----------------------------------- static_assertions_proc_macros ----
+libstatic_assertions_proc_macro_name := $(shell MAKEFLAGS= $(RUSTC) --print file-names --crate-name static_assertions_proc_macros --crate-type proc-macro - </dev/null)
+
 $(obj)/$(libstatic_assertions_proc_macro_name): $(src)/static_assertions_proc_macros/src/lib.rs FORCE
 	+$(call if_changed_dep,rustc_procmacro)
+
+rustdoc-const_format_proc_macros: private rustc_target_flags = \
+	--extern proc_macro2 --extern quote --extern unicode_xid \
+	--crate-type proc-macro
+rustdoc-const_format_proc_macros: $(src)/const_format_proc_macros/src/lib.rs \
+	rustdoc-proc_macro2 rustdoc-quote rustdoc-unicode_xid FORCE
+	+$(call if_changed,rustdoc_host)
+
 
 # This to trrgger Makefile.build include Makefile.host
 hostprogs += fake
 # This to trrgger target exclude unicode_ident
 fake-rustlib := y
 
+# ----------------------------------- PHONY ------------------------
 prepare: $(obj)/$(libmacros_name) $(obj)/$(libconst_format_proc_macro_name) $(obj)/$(libstatic_assertions_proc_macro_name)
+
+rustdoc: rustdoc-unicode_ident rustdoc-unicode_xid rustdoc-proc_macro2 \
+	rustdoc-quote rustdoc-syn rustdoc-macros rustdoc-const_format_proc_macros
 
 always-y += libunicode_ident.rlib
 always-y += libunicode_xid.rlib

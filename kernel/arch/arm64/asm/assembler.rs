@@ -13,11 +13,6 @@ macro_rules! adr_l {
 pub use adr_l;
 
 /// Generate a load instruction.
-/// @dst: destination register (32 or 64 bit wide)
-/// @sym: name of the symbol
-/// @tmp: optional 64-bit scratch register to be used if <dst> is a
-///       32-bit wide register, in which case it cannot be used to hold
-///       the address
 #[macro_export]
 macro_rules! str_l {
     ($src:expr, $sym:expr, $tmp:expr) => {

@@ -32,24 +32,14 @@ pub trait Backend {
     fn lock(state: &mut Self::Inner) -> Self::GuardState;
 
     /// Tries to acquire the lock.
-    ///
-    /// # Safety
-    ///
-    /// Callers must ensure that [`Backend::init`] has been previously called.
     fn try_lock(inner: &mut Self::Inner) -> Option<Self::GuardState>;
 
     /// Releases the lock, giving up its ownership.
     ///
-    /// # Safety
-    ///
-    /// It must only be called by the current owner of the lock.
     fn unlock(inner: &mut Self::Inner, guard_state: &Self::GuardState);
 
     /// Asserts that the lock is held using lockdep.
     ///
-    /// # Safety
-    ///
-    /// Callers must ensure that [`Backend::init`] has been previously called.
     fn assert_is_held(inner: &Self::Inner);
 }
 
@@ -115,7 +105,7 @@ impl<'a, T: ?Sized, B: Backend> BaseLockGuard<'a, T, B> {
     }
     /// Returns the lock that this guard originates from.
     ///
-    /// The following example shows how to use [`Guard::lock_ref()`] to assert the corresponding
+    /// The following example shows how to assert the corresponding
     /// lock is held.
     ///
     /// ```

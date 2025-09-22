@@ -92,7 +92,7 @@ impl NumberFormatting {
 /// prefixes numbers with `0x`.
 ///
 /// - The binary formater (eg: `formatc!("{:#b}", FOO)`):
-/// prefixes numbers with `0b`.`
+/// prefixes numbers with `0b`.\`
 ///
 /// [`Formatter`]: ./struct.Formatter.html
 ///

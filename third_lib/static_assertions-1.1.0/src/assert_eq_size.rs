@@ -71,6 +71,7 @@ macro_rules! assert_eq_size {
 /// ];
 ///
 /// assert_eq_size_ptr!(BYTES, TABLE);
+/// }
 /// ```
 #[macro_export]
 macro_rules! assert_eq_size_ptr {
